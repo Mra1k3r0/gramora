@@ -1,0 +1,7 @@
+node_modules/
+dist/
+*.log
+.env
+
+# Local-only bot testing file (may contain secrets)
+examples/functional-test-bot.ts

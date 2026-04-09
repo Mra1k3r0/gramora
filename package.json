@@ -1,0 +1,62 @@
+{
+  "name": "@mra1k3r0/gramora",
+  "version": "0.0.1-beta",
+  "description": "Advanced Telegram bot framework for TypeScript with a clean API, strong typing, and production-focused runtime controls.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "directories": {
+    "example": "examples"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "build:examples": "tsc -p tsconfig.examples.json",
+    "dev": "tsc -w -p tsconfig.json",
+    "check": "tsc --noEmit -p tsconfig.json",
+    "lint": "eslint . --ext .ts --max-warnings=0",
+    "lint:fix": "eslint . --ext .ts --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "verify": "npm run check && npm run lint && npm run format:check",
+    "bench": "npm run build && node scripts/bench.mjs",
+    "size": "npm run build && node scripts/size-report.mjs",
+    "example:functional": "npm run build:examples && node dist/examples/functional-test-bot.js"
+  },
+  "keywords": [
+    "telegram",
+    "telegram-bot",
+    "telegram-api",
+    "bot-framework",
+    "gramora",
+    "nodejs",
+    "typescript",
+    "middleware",
+    "webhook"
+  ],
+  "author": "mra1k3r0",
+  "homepage": "https://github.com/mra1k3r0/gramora",
+  "bugs": {
+    "url": "https://github.com/mra1k3r0/gramora/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mra1k3r0/gramora.git"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "reflect-metadata": "^0.2.2",
+    "undici": "^8.0.2"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.2",
+    "@typescript-eslint/eslint-plugin": "^8.58.1",
+    "@typescript-eslint/parser": "^8.58.1",
+    "eslint": "^10.2.0",
+    "eslint-config-prettier": "^10.1.8",
+    "prettier": "^3.8.1",
+    "typescript": "^6.0.2"
+  }
+}

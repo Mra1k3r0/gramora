@@ -1,0 +1,46 @@
+import type { BaseContext } from "../context";
+import type { MiddlewareFn } from "../middleware/types";
+
+export type Constructor<T = object> = new (...args: unknown[]) => T;
+
+export interface BotModuleHost {
+  use: (mw: MiddlewareFn<BaseContext>) => BotModuleHost;
+  command: (name: string, handler: (gram: BaseContext) => Promise<void> | void) => BotModuleHost;
+  onText: (handler: (gram: BaseContext) => Promise<void> | void) => BotModuleHost;
+  onMessage: (handler: (gram: BaseContext) => Promise<void> | void) => BotModuleHost;
+  onCallback: (
+    pattern: string,
+    handler: (gram: BaseContext) => Promise<void> | void,
+  ) => BotModuleHost;
+}
+
+export type BotModule = (bot: BotModuleHost) => void;
+export interface BotRuntimeConfig {
+  userAgent?: string;
+  timeoutMs?: number;
+  proxy?: string;
+  debug?: boolean;
+}
+
+export interface BotOptions {
+  token: string;
+  apiBaseUrl?: string;
+  polling?: { timeout?: number; limit?: number; allowedUpdates?: string[] };
+  userAgent?: string;
+  timeoutMs?: number;
+  proxy?: string;
+  debug?: boolean;
+  mode?: "full" | "core";
+}
+
+export interface LaunchOptions {
+  transport?: "polling" | "webhook";
+  webhook?: BotWebhookConfig;
+}
+
+export interface BotWebhookConfig {
+  domain?: string;
+  port: number;
+  path?: string;
+  secretToken?: string;
+}

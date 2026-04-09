@@ -1,0 +1,15 @@
+import type { MiddlewareFn, NextFn } from "./types";
+
+export function compose<C>(middleware: Array<MiddlewareFn<C>>): MiddlewareFn<C> {
+  return async (ctx: C, next: NextFn) => {
+    let index = -1;
+    const dispatch = async (i: number): Promise<void> => {
+      if (i <= index) throw new Error("next() called multiple times");
+      index = i;
+      const fn = i === middleware.length ? next : middleware[i];
+      if (!fn) return;
+      await fn(ctx, () => dispatch(i + 1));
+    };
+    await dispatch(0);
+  };
+}
