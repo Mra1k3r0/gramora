@@ -71,6 +71,14 @@ class Bot {
     this.router.registerSimpleHandler("callback_query", pattern, handler);
     return this;
   }
+  onInline(handler: (gram: BaseContext) => Promise<void> | void) {
+    this.router.registerSimpleHandler("inline_query", "*", handler);
+    return this;
+  }
+  onInlineQuery(pattern: string, handler: (gram: BaseContext) => Promise<void> | void) {
+    this.router.registerSimpleHandler("inline_query", pattern, handler);
+    return this;
+  }
   module(register: BotModule) {
     register(this);
     return this;

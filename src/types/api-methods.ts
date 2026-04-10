@@ -2,6 +2,8 @@ import type {
   File,
   ForceReply,
   InlineKeyboardMarkup,
+  InlineQueryResult,
+  InputMedia,
   Message,
   Poll,
   ReplyMarkup,
@@ -121,15 +123,77 @@ export interface EditMessageTextParams {
   reply_markup?: InlineKeyboardMarkup;
 }
 
+export interface EditMessageCaptionParams {
+  chat_id?: number | string;
+  message_id?: number;
+  inline_message_id?: string;
+  caption?: string;
+  parse_mode?: "Markdown" | "MarkdownV2" | "HTML";
+  reply_markup?: InlineKeyboardMarkup;
+}
+
+export interface EditMessageReplyMarkupParams {
+  chat_id?: number | string;
+  message_id?: number;
+  inline_message_id?: string;
+  reply_markup?: InlineKeyboardMarkup;
+}
+
+export interface EditMessageMediaParams {
+  chat_id?: number | string;
+  message_id?: number;
+  inline_message_id?: string;
+  media: InputMedia;
+  reply_markup?: InlineKeyboardMarkup;
+}
+
 export interface AnswerCallbackQueryParams {
   callback_query_id: string;
   text?: string;
   show_alert?: boolean;
 }
 
+export interface AnswerInlineQueryParams {
+  inline_query_id: string;
+  results: InlineQueryResult[];
+  cache_time?: number;
+  is_personal?: boolean;
+  next_offset?: string;
+  button?: {
+    text: string;
+    web_app?: { url: string };
+    start_parameter?: string;
+  };
+}
+
 export interface DeleteMessageParams {
   chat_id: number | string;
   message_id: number;
+}
+
+export interface DeleteMessagesParams {
+  chat_id: number | string;
+  message_ids: number[];
+}
+
+export interface ForwardMessageParams {
+  chat_id: number | string;
+  from_chat_id: number | string;
+  message_id: number;
+  disable_notification?: boolean;
+  protect_content?: boolean;
+}
+
+export interface CopyMessageParams {
+  chat_id: number | string;
+  from_chat_id: number | string;
+  message_id: number;
+  caption?: string;
+  parse_mode?: "Markdown" | "MarkdownV2" | "HTML";
+  reply_markup?: ReplyMarkup;
+  disable_notification?: boolean;
+  protect_content?: boolean;
+  reply_to_message_id?: number;
 }
 
 export interface SetWebhookParams {
@@ -167,6 +231,10 @@ export interface SendMediaGroupParams {
   reply_to_message_id?: number;
 }
 
+export interface MessageId {
+  message_id: number;
+}
+
 export interface TelegramApiMethods {
   getMe: { params: void; result: User };
   getUpdates: { params: GetUpdatesParams; result: Update[] };
@@ -179,8 +247,15 @@ export interface TelegramApiMethods {
   sendVoice: { params: SendVoiceParams; result: Message };
   sendSticker: { params: SendStickerParams; result: Message };
   editMessageText: { params: EditMessageTextParams; result: Message | true };
+  editMessageCaption: { params: EditMessageCaptionParams; result: Message | true };
+  editMessageReplyMarkup: { params: EditMessageReplyMarkupParams; result: Message | true };
+  editMessageMedia: { params: EditMessageMediaParams; result: Message | true };
   answerCallbackQuery: { params: AnswerCallbackQueryParams; result: true };
+  answerInlineQuery: { params: AnswerInlineQueryParams; result: true };
   deleteMessage: { params: DeleteMessageParams; result: true };
+  deleteMessages: { params: DeleteMessagesParams; result: true };
+  forwardMessage: { params: ForwardMessageParams; result: Message };
+  copyMessage: { params: CopyMessageParams; result: MessageId };
   setWebhook: { params: SetWebhookParams; result: true };
   deleteWebhook: { params: DeleteWebhookParams; result: true };
   getWebhookInfo: { params: void; result: Record<string, unknown> };

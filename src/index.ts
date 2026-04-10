@@ -3,6 +3,7 @@ import "reflect-metadata";
 export { Gramora } from "./core/bot";
 export { ApiClient } from "./core/api-client";
 export { DEFAULT_BOT_USER_AGENT } from "./core/api-client";
+export { TELEGRAM_BOT_API_DOC_VERSION, TELEGRAM_BOT_API_DOCS_URL } from "./core/api-version";
 export { GramClient } from "./core/gram-client";
 export type { BotModule } from "./core/types";
 export type { BotOptions } from "./core/types";
@@ -31,6 +32,7 @@ export {
 } from "./context";
 
 export { Keyboard } from "./keyboard";
+export { InlineResult, InlineResultBuilder } from "./inline-result";
 
 export { Composer } from "./middleware/composer";
 export type { MiddlewareFn } from "./middleware/types";

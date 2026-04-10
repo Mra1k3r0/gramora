@@ -1,8 +1,8 @@
 # Gramora
 
-![Beta](https://img.shields.io/badge/status-beta-orange)
-![npm](https://img.shields.io/npm/v/%40mra1k3r0%2Fgramora)
-![npm package size](https://img.shields.io/packagephobia/install/%40mra1k3r0%2Fgramora)
+![beta](https://img.shields.io/badge/beta-f59e0b?logo=github&logoColor=white&labelColor=6b7280)
+[![9.6](https://img.shields.io/static/v1?label=&message=9.6&color=26A5E4&logo=telegram&logoColor=white&labelColor=6b7280)](https://core.telegram.org/bots/api)
+![npm version](https://img.shields.io/npm/v/%40mra1k3r0%2Fgramora?label=&logo=npm&logoColor=white&labelColor=6b7280) <!-- ![npm package size](https://img.shields.io/packagephobia/install/%40mra1k3r0%2Fgramora?label=&logo=npm&logoColor=white&labelColor=6b7280) --> ![typescript usage](https://img.shields.io/github/languages/top/mra1k3r0/gramora?label=&logo=typescript&logoColor=white&labelColor=6b7280)
 
 Advanced Telegram bot framework for TypeScript with a clean API, strong typing, and production-focused runtime controls.
 
@@ -165,6 +165,50 @@ await gram.photo({
 
 </details>
 
+### Edit messages
+
+```ts
+bot.onCallback("edit:text", async (gram) => {
+  await gram.editText("Updated text!");
+});
+
+await gram.editText({ text: "New text", messageId: 123, parseMode: "HTML" });
+```
+
+```ts
+await gram.editCaption("New caption", messageId);
+await gram.editReplyMarkup(Keyboard.inline().text("New button", "cb:1").build(), messageId);
+await gram.editMedia({ type: "photo", media: "https://example.com/new.jpg", caption: "Swapped" });
+```
+
+### Delete messages
+
+```ts
+bot.command("del", async (gram) => {
+  await gram.deleteMessage();
+});
+
+await gram.deleteMessage(messageId);
+await gram.deleteMessages([101, 102, 103]);
+```
+
+### Forward and copy
+
+```ts
+await gram.forward(targetChatId);
+await gram.copy(targetChatId);
+```
+
+```ts
+await gram.forward({ chatId: targetChatId, fromChatId: sourceChatId, messageId: 42 });
+await gram.copy({
+  chatId: targetChatId,
+  fromChatId: sourceChatId,
+  messageId: 42,
+  caption: "Copied!",
+});
+```
+
 ### Callback queries
 
 ```ts
@@ -208,6 +252,49 @@ const authOnly: MiddlewareFn<BaseContext> = async (ctx, next) => {
 
 bot.use(authOnly);
 ```
+
+### Inline mode
+
+```ts
+import { InlineResult } from "@mra1k3r0/gramora";
+
+bot.onInline(async (gram) => {
+  const results = InlineResult.builder()
+    .article("Hello", InlineResult.textContent("Hello from Gramora!"), {
+      description: "Send a greeting",
+    })
+    .article("Docs", InlineResult.textContent("https://github.com/mra1k3r0/gramora"), {
+      description: "Link to docs",
+    })
+    .build();
+
+  await gram.answerInline(results, { cacheTime: 10 });
+});
+```
+
+<details>
+<summary><strong>Show more inline result examples</strong></summary>
+
+Single result helpers (no builder needed):
+
+```ts
+const article = InlineResult.article("Title", InlineResult.textContent("Body text"));
+const photo = InlineResult.photo("https://example.com/img.jpg", "https://example.com/thumb.jpg");
+await gram.answerInline([article, photo]);
+```
+
+Builder with multiple result types:
+
+```ts
+const results = InlineResult.builder()
+  .photo("https://picsum.photos/500/300", "https://picsum.photos/100/60", { caption: "Random" })
+  .gif("https://example.com/anim.gif", "https://example.com/anim_thumb.gif")
+  .document("Report", "https://example.com/report.pdf", "application/pdf")
+  .cachedPhoto("AgACAgIAAxk...")
+  .build();
+```
+
+</details>
 
 ### Modules and lazy modules
 
@@ -285,13 +372,16 @@ With `debug: true`, Gramora logs:
 
 ## API Overview
 
-| Area            | Main APIs                                                                                                                        |
-| --------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| Bot             | `command`, `onText`, `onMessage`, `onCallback`, `use`, `module`, `lazyModule`, `launch`, `stop`, `configure`, `configureWebhook` |
-| Handler context | `send`, `photo`, `doc`, `audio`, `video`, `animation`, `voice`, `sticker`, `answer`, `text`, `chatId`, `fromId`                  |
-| Global sender   | `bot.gram.withChat(chatId).send/photo/doc/...`                                                                                   |
-| Raw control     | `gram.api.*` for full Telegram method-level access                                                                               |
-| Decorators      | `@Controller`, `@Command`, `@On`, `@CallbackQuery`, `@InlineQuery`, `@Guard`, `@UseMiddleware`, `@Scene`, `@Step`                |
+| Area            | Main APIs                                                                                                                                                     |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Bot             | `command`, `onText`, `onMessage`, `onCallback`, `onInline`, `onInlineQuery`, `use`, `module`, `lazyModule`, `launch`, `stop`, `configure`, `configureWebhook` |
+| Handler context | `send`, `photo`, `doc`, `audio`, `video`, `animation`, `voice`, `sticker`, `answer`, `text`, `chatId`, `fromId`                                               |
+| Edit/delete     | `editText`, `editCaption`, `editReplyMarkup`, `editMedia`, `deleteMessage`, `deleteMessages`                                                                  |
+| Lifecycle       | `forward`, `copy`                                                                                                                                             |
+| Inline mode     | `answerInline`, `InlineResult.builder()`, `InlineResult.article()`, `InlineResult.photo()`, `InlineResult.textContent()`                                      |
+| Global sender   | `bot.gram.withChat(chatId).send/photo/editText/deleteMessage/forward/copy/...`                                                                                |
+| Raw control     | `gram.api.*` for full Telegram method-level access                                                                                                            |
+| Decorators      | `@Controller`, `@Command`, `@On`, `@CallbackQuery`, `@InlineQuery`, `@Guard`, `@UseMiddleware`, `@Scene`, `@Step`                                             |
 
 ## Telegram Coverage
 
@@ -300,10 +390,12 @@ With `debug: true`, Gramora logs:
 
 | Area                       | Status                      |
 | -------------------------- | --------------------------- |
-| Core messaging             | Partial                     |
+| Core messaging             | Implemented                 |
 | Media sending              | Implemented (major methods) |
+| Edit/delete messages       | Implemented                 |
+| Forward/copy messages      | Implemented                 |
 | Callback queries           | Implemented                 |
-| Inline mode                | Partial                     |
+| Inline mode                | Implemented                 |
 | Scenes/session             | Implemented (core)          |
 | Middleware                 | Implemented                 |
 | Polling/webhook transports | Implemented (core)          |
@@ -316,8 +408,8 @@ With `debug: true`, Gramora logs:
 ### Build Roadmap
 
 1. Media expansion (`sendAudio`, `sendVideo`, `sendAnimation`, `sendVoice`, `sendSticker`) ![implemented](https://img.shields.io/badge/implemented-10b981)
-2. Edit/delete completion (`editCaption`, `editReplyMarkup`, message lifecycle helpers) ![soon](https://img.shields.io/badge/soon-6366f1)
-3. Inline mode completion (`answerInlineQuery` + builders) ![soon](https://img.shields.io/badge/soon-6366f1)
+2. Edit/delete completion (`editCaption`, `editReplyMarkup`, message lifecycle helpers) ![implemented](https://img.shields.io/badge/implemented-10b981)
+3. Inline mode completion (`answerInlineQuery` + builders) ![implemented](https://img.shields.io/badge/implemented-10b981)
 4. Chat administration APIs (ban/unban/restrict/promote, permissions) ![soon](https://img.shields.io/badge/soon-6366f1)
 5. Group/supergroup utilities (pin/unpin, forum topics, members) ![soon](https://img.shields.io/badge/soon-6366f1)
 6. Bot profile + command management (scopes, localized commands, menu buttons) ![soon](https://img.shields.io/badge/soon-6366f1)

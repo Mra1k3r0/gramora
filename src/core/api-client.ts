@@ -322,11 +322,32 @@ export class ApiClient {
   editMessageText(params: TelegramApiMethods["editMessageText"]["params"]) {
     return this.call("editMessageText", params);
   }
+  editMessageCaption(params: TelegramApiMethods["editMessageCaption"]["params"]) {
+    return this.call("editMessageCaption", params);
+  }
+  editMessageReplyMarkup(params: TelegramApiMethods["editMessageReplyMarkup"]["params"]) {
+    return this.call("editMessageReplyMarkup", params);
+  }
+  editMessageMedia(params: TelegramApiMethods["editMessageMedia"]["params"]) {
+    return this.call("editMessageMedia", params);
+  }
   answerCallbackQuery(params: TelegramApiMethods["answerCallbackQuery"]["params"]) {
     return this.call("answerCallbackQuery", params);
   }
+  answerInlineQuery(params: TelegramApiMethods["answerInlineQuery"]["params"]) {
+    return this.call("answerInlineQuery", params);
+  }
   deleteMessage(params: TelegramApiMethods["deleteMessage"]["params"]) {
     return this.call("deleteMessage", params);
+  }
+  deleteMessages(params: TelegramApiMethods["deleteMessages"]["params"]) {
+    return this.call("deleteMessages", params);
+  }
+  forwardMessage(params: TelegramApiMethods["forwardMessage"]["params"]) {
+    return this.call("forwardMessage", params);
+  }
+  copyMessage(params: TelegramApiMethods["copyMessage"]["params"]) {
+    return this.call("copyMessage", params);
   }
   setWebhook(params: TelegramApiMethods["setWebhook"]["params"]) {
     return this.call("setWebhook", params);

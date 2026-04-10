@@ -3,7 +3,15 @@ import {
   GramClient,
   type AnimationOptions,
   type AudioOptions,
+  type CopyOptions,
+  type DeleteMessageOptions,
+  type DeleteMessagesOptions,
   type DocOptions,
+  type EditCaptionOptions,
+  type EditMediaOptions,
+  type EditReplyMarkupOptions,
+  type EditTextOptions,
+  type ForwardOptions,
   type PhotoOptions,
   type SendOptions,
   type StickerOptions,
@@ -13,7 +21,15 @@ import {
 } from "./core/gram-client";
 import type { InputMediaPhoto } from "./types/api-methods";
 import type { MessageForKind } from "./types/context";
-import type { InputFile, MessageContentKind, ReplyMarkup, Update } from "./types/telegram";
+import type {
+  InlineKeyboardMarkup,
+  InlineQueryResult,
+  InputFile,
+  InputMedia,
+  MessageContentKind,
+  ReplyMarkup,
+  Update,
+} from "./types/telegram";
 
 export interface SceneControl {
   name?: string;
@@ -188,12 +204,143 @@ export class BaseContext {
     return this.gram.sendMediaGroup(mediaOrOptions);
   }
 
+  async editText(
+    text: string,
+    messageId?: number,
+    replyMarkup?: InlineKeyboardMarkup,
+  ): Promise<unknown>;
+  async editText(options: EditTextOptions): Promise<unknown>;
+  async editText(
+    textOrOptions: string | EditTextOptions,
+    messageId?: number,
+    replyMarkup?: InlineKeyboardMarkup,
+  ) {
+    if (typeof textOrOptions === "string") {
+      const resolvedId = messageId ?? this.callbackQuery?.message?.message_id;
+      return this.gram.editText({ text: textOrOptions, messageId: resolvedId, replyMarkup });
+    }
+    if (textOrOptions.messageId === undefined && !textOrOptions.inlineMessageId) {
+      textOrOptions.messageId = this.callbackQuery?.message?.message_id;
+    }
+    return this.gram.editText(textOrOptions);
+  }
+
+  async editCaption(caption: string, messageId?: number): Promise<unknown>;
+  async editCaption(options: EditCaptionOptions): Promise<unknown>;
+  async editCaption(captionOrOptions: string | EditCaptionOptions, messageId?: number) {
+    if (typeof captionOrOptions === "string") {
+      const resolvedId = messageId ?? this.callbackQuery?.message?.message_id;
+      return this.gram.editCaption({ caption: captionOrOptions, messageId: resolvedId });
+    }
+    if (captionOrOptions.messageId === undefined && !captionOrOptions.inlineMessageId) {
+      captionOrOptions.messageId = this.callbackQuery?.message?.message_id;
+    }
+    return this.gram.editCaption(captionOrOptions);
+  }
+
+  async editReplyMarkup(replyMarkup: InlineKeyboardMarkup, messageId?: number): Promise<unknown>;
+  async editReplyMarkup(options: EditReplyMarkupOptions): Promise<unknown>;
+  async editReplyMarkup(
+    markupOrOptions: InlineKeyboardMarkup | EditReplyMarkupOptions,
+    messageId?: number,
+  ) {
+    if ("inline_keyboard" in markupOrOptions) {
+      const resolvedId = messageId ?? this.callbackQuery?.message?.message_id;
+      return this.gram.editReplyMarkup({ replyMarkup: markupOrOptions, messageId: resolvedId });
+    }
+    if (markupOrOptions.messageId === undefined && !markupOrOptions.inlineMessageId) {
+      markupOrOptions.messageId = this.callbackQuery?.message?.message_id;
+    }
+    return this.gram.editReplyMarkup(markupOrOptions);
+  }
+
+  async editMedia(media: InputMedia, messageId?: number): Promise<unknown>;
+  async editMedia(options: EditMediaOptions): Promise<unknown>;
+  async editMedia(mediaOrOptions: InputMedia | EditMediaOptions, messageId?: number) {
+    if ("type" in mediaOrOptions) {
+      const resolvedId = messageId ?? this.callbackQuery?.message?.message_id;
+      return this.gram.editMedia({ media: mediaOrOptions, messageId: resolvedId });
+    }
+    if (mediaOrOptions.messageId === undefined && !mediaOrOptions.inlineMessageId) {
+      mediaOrOptions.messageId = this.callbackQuery?.message?.message_id;
+    }
+    return this.gram.editMedia(mediaOrOptions);
+  }
+
+  async deleteMessage(messageId?: number): Promise<unknown>;
+  async deleteMessage(options: DeleteMessageOptions): Promise<unknown>;
+  async deleteMessage(messageIdOrOptions?: number | DeleteMessageOptions) {
+    if (typeof messageIdOrOptions === "number" || messageIdOrOptions === undefined) {
+      const resolvedId = messageIdOrOptions ?? this.message?.message_id;
+      if (resolvedId === undefined) throw new Error("No message_id available in current context");
+      return this.gram.deleteMessage(resolvedId);
+    }
+    return this.gram.deleteMessage(messageIdOrOptions);
+  }
+
+  async deleteMessages(messageIds: number[]): Promise<unknown>;
+  async deleteMessages(options: DeleteMessagesOptions): Promise<unknown>;
+  async deleteMessages(messageIdsOrOptions: number[] | DeleteMessagesOptions) {
+    if (Array.isArray(messageIdsOrOptions)) {
+      return this.gram.deleteMessages(messageIdsOrOptions);
+    }
+    return this.gram.deleteMessages(messageIdsOrOptions);
+  }
+
+  async forward(toChatId: number | string, messageId?: number): Promise<unknown>;
+  async forward(options: ForwardOptions): Promise<unknown>;
+  async forward(toChatIdOrOptions: number | string | ForwardOptions, messageId?: number) {
+    if (typeof toChatIdOrOptions === "number" || typeof toChatIdOrOptions === "string") {
+      const resolvedId = messageId ?? this.message?.message_id;
+      if (resolvedId === undefined) throw new Error("No message_id available in current context");
+      const fromChatId = this.chatId;
+      if (fromChatId === undefined) throw new Error("No chat_id available in current context");
+      return this.gram.forward({
+        chatId: toChatIdOrOptions,
+        fromChatId,
+        messageId: resolvedId,
+      });
+    }
+    return this.gram.forward(toChatIdOrOptions);
+  }
+
+  async copy(toChatId: number | string, messageId?: number): Promise<unknown>;
+  async copy(options: CopyOptions): Promise<unknown>;
+  async copy(toChatIdOrOptions: number | string | CopyOptions, messageId?: number) {
+    if (typeof toChatIdOrOptions === "number" || typeof toChatIdOrOptions === "string") {
+      const resolvedId = messageId ?? this.message?.message_id;
+      if (resolvedId === undefined) throw new Error("No message_id available in current context");
+      const fromChatId = this.chatId;
+      if (fromChatId === undefined) throw new Error("No chat_id available in current context");
+      return this.gram.copy({
+        chatId: toChatIdOrOptions,
+        fromChatId,
+        messageId: resolvedId,
+      });
+    }
+    return this.gram.copy(toChatIdOrOptions);
+  }
+
   async answer(text?: string, show_alert?: boolean) {
     if (!this.callbackQuery?.id) throw new Error("No callback query available in current context");
     return this.api.answerCallbackQuery({
       callback_query_id: this.callbackQuery.id,
       text,
       show_alert,
+    });
+  }
+
+  async answerInline(
+    results: InlineQueryResult[],
+    options?: { cacheTime?: number; isPersonal?: boolean; nextOffset?: string },
+  ) {
+    if (!this.inlineQuery?.id) throw new Error("No inline query available in current context");
+    return this.api.answerInlineQuery({
+      inline_query_id: this.inlineQuery.id,
+      results,
+      ...(options?.cacheTime !== undefined ? { cache_time: options.cacheTime } : {}),
+      ...(options?.isPersonal !== undefined ? { is_personal: options.isPersonal } : {}),
+      ...(options?.nextOffset !== undefined ? { next_offset: options.nextOffset } : {}),
     });
   }
 }
@@ -227,6 +374,10 @@ export class CallbackContext extends BaseContext {
 export class InlineContext extends BaseContext {
   get query() {
     return this.inlineQuery?.query;
+  }
+
+  get inlineQueryId(): string | undefined {
+    return this.inlineQuery?.id;
   }
 }
 

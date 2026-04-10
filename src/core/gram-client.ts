@@ -1,5 +1,5 @@
 import type { ApiClient } from "./api-client";
-import type { InputFile, ReplyMarkup } from "../types/telegram";
+import type { InlineKeyboardMarkup, InputFile, InputMedia, ReplyMarkup } from "../types/telegram";
 import type { InputMediaPhoto } from "../types/api-methods";
 
 export interface GramClientOptions {
@@ -94,6 +94,69 @@ export interface StickerOptions {
 export interface SendMediaGroupOptions {
   media: InputMediaPhoto[];
   chatId?: number | string;
+  silent?: boolean;
+  protect?: boolean;
+  replyTo?: number;
+}
+
+export interface EditTextOptions {
+  text: string;
+  messageId?: number;
+  inlineMessageId?: string;
+  chatId?: number | string;
+  parseMode?: "Markdown" | "MarkdownV2" | "HTML";
+  replyMarkup?: InlineKeyboardMarkup;
+}
+
+export interface EditCaptionOptions {
+  messageId?: number;
+  inlineMessageId?: string;
+  chatId?: number | string;
+  caption?: string;
+  parseMode?: "Markdown" | "MarkdownV2" | "HTML";
+  replyMarkup?: InlineKeyboardMarkup;
+}
+
+export interface EditReplyMarkupOptions {
+  messageId?: number;
+  inlineMessageId?: string;
+  chatId?: number | string;
+  replyMarkup?: InlineKeyboardMarkup;
+}
+
+export interface EditMediaOptions {
+  media: InputMedia;
+  messageId?: number;
+  inlineMessageId?: string;
+  chatId?: number | string;
+  replyMarkup?: InlineKeyboardMarkup;
+}
+
+export interface DeleteMessageOptions {
+  messageId: number;
+  chatId?: number | string;
+}
+
+export interface DeleteMessagesOptions {
+  messageIds: number[];
+  chatId?: number | string;
+}
+
+export interface ForwardOptions {
+  messageId: number;
+  fromChatId: number | string;
+  chatId?: number | string;
+  silent?: boolean;
+  protect?: boolean;
+}
+
+export interface CopyOptions {
+  messageId: number;
+  fromChatId: number | string;
+  chatId?: number | string;
+  caption?: string;
+  parseMode?: "Markdown" | "MarkdownV2" | "HTML";
+  replyMarkup?: ReplyMarkup;
   silent?: boolean;
   protect?: boolean;
   replyTo?: number;
@@ -335,6 +398,119 @@ export class GramClient {
       ...(normalized.silent !== undefined ? { disable_notification: normalized.silent } : {}),
       ...(normalized.protect !== undefined ? { protect_content: normalized.protect } : {}),
       ...(normalized.replyTo !== undefined ? { reply_to_message_id: normalized.replyTo } : {}),
+    });
+  }
+
+  async editText(options: EditTextOptions) {
+    const targetChatId = options.chatId ?? this.options.chatId;
+    return this.api.editMessageText({
+      ...(targetChatId !== undefined ? { chat_id: targetChatId } : {}),
+      ...(options.messageId !== undefined ? { message_id: options.messageId } : {}),
+      ...(options.inlineMessageId ? { inline_message_id: options.inlineMessageId } : {}),
+      text: options.text,
+      ...(options.parseMode ? { parse_mode: options.parseMode } : {}),
+      ...(options.replyMarkup ? { reply_markup: options.replyMarkup } : {}),
+    });
+  }
+
+  async editCaption(options: EditCaptionOptions) {
+    const targetChatId = options.chatId ?? this.options.chatId;
+    return this.api.editMessageCaption({
+      ...(targetChatId !== undefined ? { chat_id: targetChatId } : {}),
+      ...(options.messageId !== undefined ? { message_id: options.messageId } : {}),
+      ...(options.inlineMessageId ? { inline_message_id: options.inlineMessageId } : {}),
+      ...(options.caption !== undefined ? { caption: options.caption } : {}),
+      ...(options.parseMode ? { parse_mode: options.parseMode } : {}),
+      ...(options.replyMarkup ? { reply_markup: options.replyMarkup } : {}),
+    });
+  }
+
+  async editReplyMarkup(options: EditReplyMarkupOptions) {
+    const targetChatId = options.chatId ?? this.options.chatId;
+    return this.api.editMessageReplyMarkup({
+      ...(targetChatId !== undefined ? { chat_id: targetChatId } : {}),
+      ...(options.messageId !== undefined ? { message_id: options.messageId } : {}),
+      ...(options.inlineMessageId ? { inline_message_id: options.inlineMessageId } : {}),
+      ...(options.replyMarkup ? { reply_markup: options.replyMarkup } : {}),
+    });
+  }
+
+  async editMedia(options: EditMediaOptions) {
+    const targetChatId = options.chatId ?? this.options.chatId;
+    return this.api.editMessageMedia({
+      ...(targetChatId !== undefined ? { chat_id: targetChatId } : {}),
+      ...(options.messageId !== undefined ? { message_id: options.messageId } : {}),
+      ...(options.inlineMessageId ? { inline_message_id: options.inlineMessageId } : {}),
+      media: options.media,
+      ...(options.replyMarkup ? { reply_markup: options.replyMarkup } : {}),
+    });
+  }
+
+  async deleteMessage(messageId: number, chatId?: number | string): Promise<unknown>;
+  async deleteMessage(options: DeleteMessageOptions): Promise<unknown>;
+  async deleteMessage(messageIdOrOptions: number | DeleteMessageOptions, chatId?: number | string) {
+    const normalized: DeleteMessageOptions =
+      typeof messageIdOrOptions === "number"
+        ? { messageId: messageIdOrOptions, chatId }
+        : messageIdOrOptions;
+    const targetChatId = normalized.chatId ?? this.options.chatId;
+    if (targetChatId === undefined) {
+      throw new Error("Missing chat id. Use gram.withChat(chatId).deleteMessage(...).");
+    }
+    return this.api.deleteMessage({
+      chat_id: targetChatId,
+      message_id: normalized.messageId,
+    });
+  }
+
+  async deleteMessages(messageIds: number[], chatId?: number | string): Promise<unknown>;
+  async deleteMessages(options: DeleteMessagesOptions): Promise<unknown>;
+  async deleteMessages(
+    messageIdsOrOptions: number[] | DeleteMessagesOptions,
+    chatId?: number | string,
+  ) {
+    const normalized: DeleteMessagesOptions = Array.isArray(messageIdsOrOptions)
+      ? { messageIds: messageIdsOrOptions, chatId }
+      : messageIdsOrOptions;
+    const targetChatId = normalized.chatId ?? this.options.chatId;
+    if (targetChatId === undefined) {
+      throw new Error("Missing chat id. Use gram.withChat(chatId).deleteMessages(...).");
+    }
+    return this.api.deleteMessages({
+      chat_id: targetChatId,
+      message_ids: normalized.messageIds,
+    });
+  }
+
+  async forward(options: ForwardOptions) {
+    const targetChatId = options.chatId ?? this.options.chatId;
+    if (targetChatId === undefined) {
+      throw new Error("Missing chat id. Use gram.withChat(chatId).forward(...).");
+    }
+    return this.api.forwardMessage({
+      chat_id: targetChatId,
+      from_chat_id: options.fromChatId,
+      message_id: options.messageId,
+      ...(options.silent !== undefined ? { disable_notification: options.silent } : {}),
+      ...(options.protect !== undefined ? { protect_content: options.protect } : {}),
+    });
+  }
+
+  async copy(options: CopyOptions) {
+    const targetChatId = options.chatId ?? this.options.chatId;
+    if (targetChatId === undefined) {
+      throw new Error("Missing chat id. Use gram.withChat(chatId).copy(...).");
+    }
+    return this.api.copyMessage({
+      chat_id: targetChatId,
+      from_chat_id: options.fromChatId,
+      message_id: options.messageId,
+      ...(options.caption !== undefined ? { caption: options.caption } : {}),
+      ...(options.parseMode ? { parse_mode: options.parseMode } : {}),
+      ...(options.replyMarkup ? { reply_markup: options.replyMarkup } : {}),
+      ...(options.silent !== undefined ? { disable_notification: options.silent } : {}),
+      ...(options.protect !== undefined ? { protect_content: options.protect } : {}),
+      ...(options.replyTo !== undefined ? { reply_to_message_id: options.replyTo } : {}),
     });
   }
 }

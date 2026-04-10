@@ -286,6 +286,244 @@ export type UploadFromStream = {
 
 export type InputFile = string | UploadFromPath | UploadFromBuffer | UploadFromStream;
 
+export interface InputMediaBase {
+  caption?: string;
+  parse_mode?: "Markdown" | "MarkdownV2" | "HTML";
+}
+
+export interface InputMediaAnimation extends InputMediaBase {
+  type: "animation";
+  media: InputFile;
+  width?: number;
+  height?: number;
+  duration?: number;
+}
+
+export interface InputMediaDocument extends InputMediaBase {
+  type: "document";
+  media: InputFile;
+}
+
+export interface InputMediaAudio extends InputMediaBase {
+  type: "audio";
+  media: InputFile;
+  duration?: number;
+  performer?: string;
+  title?: string;
+}
+
+export interface InputMediaVideo extends InputMediaBase {
+  type: "video";
+  media: InputFile;
+  width?: number;
+  height?: number;
+  duration?: number;
+  supports_streaming?: boolean;
+}
+
+export type InputMedia =
+  | InputMediaAnimation
+  | InputMediaDocument
+  | InputMediaAudio
+  | InputMediaVideo;
+
+export interface InputTextMessageContent {
+  message_text: string;
+  parse_mode?: "Markdown" | "MarkdownV2" | "HTML";
+  disable_web_page_preview?: boolean;
+}
+
+export interface InputLocationMessageContent {
+  latitude: number;
+  longitude: number;
+}
+
+export interface InputVenueMessageContent {
+  latitude: number;
+  longitude: number;
+  title: string;
+  address: string;
+  foursquare_id?: string;
+  foursquare_type?: string;
+}
+
+export interface InputContactMessageContent {
+  phone_number: string;
+  first_name: string;
+  last_name?: string;
+  vcard?: string;
+}
+
+export type InputMessageContent =
+  | InputTextMessageContent
+  | InputLocationMessageContent
+  | InputVenueMessageContent
+  | InputContactMessageContent;
+
+export interface InlineQueryResultBase {
+  id: string;
+  reply_markup?: InlineKeyboardMarkup;
+}
+
+export interface InlineQueryResultArticle extends InlineQueryResultBase {
+  type: "article";
+  title: string;
+  input_message_content: InputMessageContent;
+  description?: string;
+  thumbnail_url?: string;
+  thumbnail_width?: number;
+  thumbnail_height?: number;
+  url?: string;
+  hide_url?: boolean;
+}
+
+export interface InlineQueryResultPhoto extends InlineQueryResultBase {
+  type: "photo";
+  photo_url: string;
+  thumbnail_url: string;
+  photo_width?: number;
+  photo_height?: number;
+  title?: string;
+  description?: string;
+  caption?: string;
+  parse_mode?: "Markdown" | "MarkdownV2" | "HTML";
+  input_message_content?: InputMessageContent;
+}
+
+export interface InlineQueryResultGif extends InlineQueryResultBase {
+  type: "gif";
+  gif_url: string;
+  thumbnail_url: string;
+  gif_width?: number;
+  gif_height?: number;
+  gif_duration?: number;
+  title?: string;
+  caption?: string;
+  parse_mode?: "Markdown" | "MarkdownV2" | "HTML";
+  input_message_content?: InputMessageContent;
+}
+
+export interface InlineQueryResultVideo extends InlineQueryResultBase {
+  type: "video";
+  video_url: string;
+  mime_type: "text/html" | "video/mp4";
+  thumbnail_url: string;
+  title: string;
+  caption?: string;
+  parse_mode?: "Markdown" | "MarkdownV2" | "HTML";
+  video_width?: number;
+  video_height?: number;
+  video_duration?: number;
+  description?: string;
+  input_message_content?: InputMessageContent;
+}
+
+export interface InlineQueryResultAudio extends InlineQueryResultBase {
+  type: "audio";
+  audio_url: string;
+  title: string;
+  caption?: string;
+  parse_mode?: "Markdown" | "MarkdownV2" | "HTML";
+  performer?: string;
+  audio_duration?: number;
+  input_message_content?: InputMessageContent;
+}
+
+export interface InlineQueryResultDocument extends InlineQueryResultBase {
+  type: "document";
+  title: string;
+  document_url: string;
+  mime_type: "application/pdf" | "application/zip";
+  caption?: string;
+  parse_mode?: "Markdown" | "MarkdownV2" | "HTML";
+  description?: string;
+  thumbnail_url?: string;
+  thumbnail_width?: number;
+  thumbnail_height?: number;
+  input_message_content?: InputMessageContent;
+}
+
+export interface InlineQueryResultVoice extends InlineQueryResultBase {
+  type: "voice";
+  voice_url: string;
+  title: string;
+  caption?: string;
+  parse_mode?: "Markdown" | "MarkdownV2" | "HTML";
+  voice_duration?: number;
+  input_message_content?: InputMessageContent;
+}
+
+export interface InlineQueryResultLocation extends InlineQueryResultBase {
+  type: "location";
+  latitude: number;
+  longitude: number;
+  title: string;
+  thumbnail_url?: string;
+  thumbnail_width?: number;
+  thumbnail_height?: number;
+  input_message_content?: InputMessageContent;
+}
+
+export interface InlineQueryResultCachedPhoto extends InlineQueryResultBase {
+  type: "photo";
+  photo_file_id: string;
+  title?: string;
+  description?: string;
+  caption?: string;
+  parse_mode?: "Markdown" | "MarkdownV2" | "HTML";
+  input_message_content?: InputMessageContent;
+}
+
+export interface InlineQueryResultCachedGif extends InlineQueryResultBase {
+  type: "gif";
+  gif_file_id: string;
+  title?: string;
+  caption?: string;
+  parse_mode?: "Markdown" | "MarkdownV2" | "HTML";
+  input_message_content?: InputMessageContent;
+}
+
+export interface InlineQueryResultCachedVideo extends InlineQueryResultBase {
+  type: "video";
+  video_file_id: string;
+  title: string;
+  description?: string;
+  caption?: string;
+  parse_mode?: "Markdown" | "MarkdownV2" | "HTML";
+  input_message_content?: InputMessageContent;
+}
+
+export interface InlineQueryResultCachedDocument extends InlineQueryResultBase {
+  type: "document";
+  document_file_id: string;
+  title: string;
+  description?: string;
+  caption?: string;
+  parse_mode?: "Markdown" | "MarkdownV2" | "HTML";
+  input_message_content?: InputMessageContent;
+}
+
+export interface InlineQueryResultCachedSticker extends InlineQueryResultBase {
+  type: "sticker";
+  sticker_file_id: string;
+  input_message_content?: InputMessageContent;
+}
+
+export type InlineQueryResult =
+  | InlineQueryResultArticle
+  | InlineQueryResultPhoto
+  | InlineQueryResultGif
+  | InlineQueryResultVideo
+  | InlineQueryResultAudio
+  | InlineQueryResultDocument
+  | InlineQueryResultVoice
+  | InlineQueryResultLocation
+  | InlineQueryResultCachedPhoto
+  | InlineQueryResultCachedGif
+  | InlineQueryResultCachedVideo
+  | InlineQueryResultCachedDocument
+  | InlineQueryResultCachedSticker;
+
 export type MessageContentKind =
   | "text"
   | "photo"
