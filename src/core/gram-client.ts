@@ -1,10 +1,14 @@
 import type { ApiClient } from "./api-client";
 import type {
+  BotCommandScope,
   ChatAdministratorRights,
+  ChatMember,
   ChatPermissions,
   InlineKeyboardMarkup,
   InputFile,
   InputMedia,
+  MenuButton,
+  ForumTopic,
   ReplyMarkup,
 } from "../types/telegram";
 import type { InputMediaPhoto } from "../types/api-methods";
@@ -205,6 +209,77 @@ export interface SetCustomTitleOptions {
   userId: number;
   customTitle: string;
   chatId?: number | string;
+}
+
+export interface PinOptions {
+  messageId: number;
+  chatId?: number | string;
+  silent?: boolean;
+}
+
+export interface UnpinOptions {
+  messageId?: number;
+  chatId?: number | string;
+}
+
+export interface MemberLookupOptions {
+  userId: number;
+  chatId?: number | string;
+}
+
+export interface ForumTopicCreateOptions {
+  name: string;
+  chatId?: number | string;
+  iconColor?: number;
+  iconCustomEmojiId?: string;
+}
+
+export interface ForumTopicEditOptions {
+  chatId?: number | string;
+  messageThreadId: number;
+  name?: string;
+  iconCustomEmojiId?: string;
+}
+
+export interface ForumTopicRefOptions {
+  chatId?: number | string;
+  messageThreadId: number;
+}
+
+export interface SetMyCommandsOptions {
+  commands: { command: string; description: string }[];
+  scope?: BotCommandScope;
+  languageCode?: string;
+}
+
+export interface GetMyCommandsOptions {
+  scope?: BotCommandScope;
+  languageCode?: string;
+}
+
+export interface DeleteMyCommandsOptions {
+  scope?: BotCommandScope;
+  languageCode?: string;
+}
+
+export interface SetMenuButtonOptions {
+  chatId?: number | string;
+  menuButton?: MenuButton;
+}
+
+export interface SetMyNameOptions {
+  name?: string;
+  languageCode?: string;
+}
+
+export interface SetMyDescriptionOptions {
+  description?: string;
+  languageCode?: string;
+}
+
+export interface SetMyShortDescriptionOptions {
+  shortDescription?: string;
+  languageCode?: string;
 }
 
 export class GramClient {
@@ -681,6 +756,214 @@ export class GramClient {
       chat_id: targetChatId,
       user_id: options.userId,
       custom_title: options.customTitle,
+    });
+  }
+
+  async pin(messageId: number, chatId?: number | string): Promise<unknown>;
+  async pin(options: PinOptions): Promise<unknown>;
+  async pin(messageIdOrOptions: number | PinOptions, chatId?: number | string) {
+    const normalized: PinOptions =
+      typeof messageIdOrOptions === "number"
+        ? { messageId: messageIdOrOptions, chatId }
+        : messageIdOrOptions;
+    const targetChatId = normalized.chatId ?? this.options.chatId;
+    if (targetChatId === undefined) {
+      throw new Error("Missing chat id. Use gram.withChat(chatId).pin(...).");
+    }
+    return this.api.pinChatMessage({
+      chat_id: targetChatId,
+      message_id: normalized.messageId,
+      ...(normalized.silent !== undefined ? { disable_notification: normalized.silent } : {}),
+    });
+  }
+
+  async unpin(messageId?: number, chatId?: number | string): Promise<unknown>;
+  async unpin(options: UnpinOptions): Promise<unknown>;
+  async unpin(messageIdOrOptions?: number | UnpinOptions, chatId?: number | string) {
+    const normalized: UnpinOptions =
+      typeof messageIdOrOptions === "number" || messageIdOrOptions === undefined
+        ? { messageId: messageIdOrOptions, chatId }
+        : messageIdOrOptions;
+    const targetChatId = normalized.chatId ?? this.options.chatId;
+    if (targetChatId === undefined) {
+      throw new Error("Missing chat id. Use gram.withChat(chatId).unpin(...).");
+    }
+    return this.api.unpinChatMessage({
+      chat_id: targetChatId,
+      ...(normalized.messageId !== undefined ? { message_id: normalized.messageId } : {}),
+    });
+  }
+
+  async unpinAll(chatId?: number | string) {
+    const targetChatId = chatId ?? this.options.chatId;
+    if (targetChatId === undefined) {
+      throw new Error("Missing chat id. Use gram.withChat(chatId).unpinAll().");
+    }
+    return this.api.unpinAllChatMessages({ chat_id: targetChatId });
+  }
+
+  async getMember(userId: number, chatId?: number | string): Promise<ChatMember>;
+  async getMember(options: MemberLookupOptions): Promise<ChatMember>;
+  async getMember(userIdOrOptions: number | MemberLookupOptions, chatId?: number | string) {
+    const normalized: MemberLookupOptions =
+      typeof userIdOrOptions === "number" ? { userId: userIdOrOptions, chatId } : userIdOrOptions;
+    const targetChatId = normalized.chatId ?? this.options.chatId;
+    if (targetChatId === undefined) {
+      throw new Error("Missing chat id. Use gram.withChat(chatId).getMember(...).");
+    }
+    return this.api.getChatMember({ chat_id: targetChatId, user_id: normalized.userId });
+  }
+
+  async getAdmins(chatId?: number | string): Promise<ChatMember[]> {
+    const targetChatId = chatId ?? this.options.chatId;
+    if (targetChatId === undefined) {
+      throw new Error("Missing chat id. Use gram.withChat(chatId).getAdmins().");
+    }
+    return this.api.getChatAdministrators({ chat_id: targetChatId });
+  }
+
+  async getMemberCount(chatId?: number | string): Promise<number> {
+    const targetChatId = chatId ?? this.options.chatId;
+    if (targetChatId === undefined) {
+      throw new Error("Missing chat id. Use gram.withChat(chatId).getMemberCount().");
+    }
+    return this.api.getChatMemberCount({ chat_id: targetChatId });
+  }
+
+  async createTopic(options: ForumTopicCreateOptions): Promise<ForumTopic> {
+    const targetChatId = options.chatId ?? this.options.chatId;
+    if (targetChatId === undefined) {
+      throw new Error("Missing chat id. Use gram.withChat(chatId).createTopic(...).");
+    }
+    return this.api.createForumTopic({
+      chat_id: targetChatId,
+      name: options.name,
+      ...(options.iconColor !== undefined ? { icon_color: options.iconColor } : {}),
+      ...(options.iconCustomEmojiId !== undefined
+        ? { icon_custom_emoji_id: options.iconCustomEmojiId }
+        : {}),
+    });
+  }
+
+  async editTopic(options: ForumTopicEditOptions) {
+    const targetChatId = options.chatId ?? this.options.chatId;
+    if (targetChatId === undefined) {
+      throw new Error("Missing chat id. Use gram.withChat(chatId).editTopic(...).");
+    }
+    return this.api.editForumTopic({
+      chat_id: targetChatId,
+      message_thread_id: options.messageThreadId,
+      ...(options.name !== undefined ? { name: options.name } : {}),
+      ...(options.iconCustomEmojiId !== undefined
+        ? { icon_custom_emoji_id: options.iconCustomEmojiId }
+        : {}),
+    });
+  }
+
+  async closeTopic(options: ForumTopicRefOptions) {
+    const targetChatId = options.chatId ?? this.options.chatId;
+    if (targetChatId === undefined) {
+      throw new Error("Missing chat id. Use gram.withChat(chatId).closeTopic(...).");
+    }
+    return this.api.closeForumTopic({
+      chat_id: targetChatId,
+      message_thread_id: options.messageThreadId,
+    });
+  }
+
+  async reopenTopic(options: ForumTopicRefOptions) {
+    const targetChatId = options.chatId ?? this.options.chatId;
+    if (targetChatId === undefined) {
+      throw new Error("Missing chat id. Use gram.withChat(chatId).reopenTopic(...).");
+    }
+    return this.api.reopenForumTopic({
+      chat_id: targetChatId,
+      message_thread_id: options.messageThreadId,
+    });
+  }
+
+  async deleteTopic(options: ForumTopicRefOptions) {
+    const targetChatId = options.chatId ?? this.options.chatId;
+    if (targetChatId === undefined) {
+      throw new Error("Missing chat id. Use gram.withChat(chatId).deleteTopic(...).");
+    }
+    return this.api.deleteForumTopic({
+      chat_id: targetChatId,
+      message_thread_id: options.messageThreadId,
+    });
+  }
+
+  async setMyCommands(options: SetMyCommandsOptions) {
+    return this.api.setMyCommands({
+      commands: options.commands,
+      ...(options.scope ? { scope: options.scope } : {}),
+      ...(options.languageCode ? { language_code: options.languageCode } : {}),
+    });
+  }
+
+  async getMyCommands(options: GetMyCommandsOptions = {}) {
+    return this.api.getMyCommands({
+      ...(options.scope ? { scope: options.scope } : {}),
+      ...(options.languageCode ? { language_code: options.languageCode } : {}),
+    });
+  }
+
+  async deleteMyCommands(options: DeleteMyCommandsOptions = {}) {
+    return this.api.deleteMyCommands({
+      ...(options.scope ? { scope: options.scope } : {}),
+      ...(options.languageCode ? { language_code: options.languageCode } : {}),
+    });
+  }
+
+  async setMenuButton(options: SetMenuButtonOptions = {}) {
+    return this.api.setChatMenuButton({
+      ...(options.chatId !== undefined ? { chat_id: options.chatId } : {}),
+      ...(options.menuButton !== undefined ? { menu_button: options.menuButton } : {}),
+    });
+  }
+
+  async getMenuButton(chatId?: number | string) {
+    return this.api.getChatMenuButton({
+      ...(chatId !== undefined ? { chat_id: chatId } : {}),
+    });
+  }
+
+  async setMyName(options: SetMyNameOptions = {}) {
+    return this.api.setMyName({
+      ...(options.name !== undefined ? { name: options.name } : {}),
+      ...(options.languageCode ? { language_code: options.languageCode } : {}),
+    });
+  }
+
+  async getMyName(languageCode?: string) {
+    return this.api.getMyName({ ...(languageCode ? { language_code: languageCode } : {}) });
+  }
+
+  async setMyDescription(options: SetMyDescriptionOptions = {}) {
+    return this.api.setMyDescription({
+      ...(options.description !== undefined ? { description: options.description } : {}),
+      ...(options.languageCode ? { language_code: options.languageCode } : {}),
+    });
+  }
+
+  async getMyDescription(languageCode?: string) {
+    return this.api.getMyDescription({
+      ...(languageCode ? { language_code: languageCode } : {}),
+    });
+  }
+
+  async setMyShortDescription(options: SetMyShortDescriptionOptions = {}) {
+    return this.api.setMyShortDescription({
+      ...(options.shortDescription !== undefined
+        ? { short_description: options.shortDescription }
+        : {}),
+      ...(options.languageCode ? { language_code: options.languageCode } : {}),
+    });
+  }
+
+  async getMyShortDescription(languageCode?: string) {
+    return this.api.getMyShortDescription({
+      ...(languageCode ? { language_code: languageCode } : {}),
     });
   }
 }

@@ -1,10 +1,14 @@
 import type {
+  BotCommandScope,
+  ChatMember,
   ChatPermissions,
   File,
   ForceReply,
+  ForumTopic,
   InlineKeyboardMarkup,
   InlineQueryResult,
   InputMedia,
+  MenuButton,
   Message,
   Poll,
   ReplyMarkup,
@@ -268,6 +272,18 @@ export interface BotCommand {
 
 export interface SetMyCommandsParams {
   commands: BotCommand[];
+  scope?: BotCommandScope;
+  language_code?: string;
+}
+
+export interface DeleteMyCommandsParams {
+  scope?: BotCommandScope;
+  language_code?: string;
+}
+
+export interface GetMyCommandsParams {
+  scope?: BotCommandScope;
+  language_code?: string;
 }
 
 export interface InputMediaPhoto {
@@ -283,6 +299,111 @@ export interface SendMediaGroupParams {
   disable_notification?: boolean;
   protect_content?: boolean;
   reply_to_message_id?: number;
+}
+
+export interface PinChatMessageParams {
+  chat_id: number | string;
+  message_id: number;
+  disable_notification?: boolean;
+}
+
+export interface UnpinChatMessageParams {
+  chat_id: number | string;
+  message_id?: number;
+}
+
+export interface UnpinAllChatMessagesParams {
+  chat_id: number | string;
+}
+
+export interface GetChatMemberParams {
+  chat_id: number | string;
+  user_id: number;
+}
+
+export interface GetChatAdministratorsParams {
+  chat_id: number | string;
+}
+
+export interface GetChatMemberCountParams {
+  chat_id: number | string;
+}
+
+export interface CreateForumTopicParams {
+  chat_id: number | string;
+  name: string;
+  icon_color?: number;
+  icon_custom_emoji_id?: string;
+}
+
+export interface EditForumTopicParams {
+  chat_id: number | string;
+  message_thread_id: number;
+  name?: string;
+  icon_custom_emoji_id?: string;
+}
+
+export interface CloseForumTopicParams {
+  chat_id: number | string;
+  message_thread_id: number;
+}
+
+export interface ReopenForumTopicParams {
+  chat_id: number | string;
+  message_thread_id: number;
+}
+
+export interface DeleteForumTopicParams {
+  chat_id: number | string;
+  message_thread_id: number;
+}
+
+export interface SetChatMenuButtonParams {
+  chat_id?: number | string;
+  menu_button?: MenuButton;
+}
+
+export interface GetChatMenuButtonParams {
+  chat_id?: number | string;
+}
+
+export interface SetMyNameParams {
+  name?: string;
+  language_code?: string;
+}
+
+export interface GetMyNameParams {
+  language_code?: string;
+}
+
+export interface BotName {
+  name: string;
+}
+
+export interface SetMyDescriptionParams {
+  description?: string;
+  language_code?: string;
+}
+
+export interface GetMyDescriptionParams {
+  language_code?: string;
+}
+
+export interface BotDescription {
+  description: string;
+}
+
+export interface SetMyShortDescriptionParams {
+  short_description?: string;
+  language_code?: string;
+}
+
+export interface GetMyShortDescriptionParams {
+  language_code?: string;
+}
+
+export interface BotShortDescription {
+  short_description: string;
 }
 
 export interface MessageId {
@@ -321,7 +442,28 @@ export interface TelegramApiMethods {
   getWebhookInfo: { params: void; result: Record<string, unknown> };
   getFile: { params: { file_id: string }; result: File };
   setMyCommands: { params: SetMyCommandsParams; result: true };
+  deleteMyCommands: { params: DeleteMyCommandsParams; result: true };
+  getMyCommands: { params: GetMyCommandsParams; result: BotCommand[] };
+  setChatMenuButton: { params: SetChatMenuButtonParams; result: true };
+  getChatMenuButton: { params: GetChatMenuButtonParams; result: MenuButton };
+  setMyName: { params: SetMyNameParams; result: true };
+  getMyName: { params: GetMyNameParams; result: BotName };
+  setMyDescription: { params: SetMyDescriptionParams; result: true };
+  getMyDescription: { params: GetMyDescriptionParams; result: BotDescription };
+  setMyShortDescription: { params: SetMyShortDescriptionParams; result: true };
+  getMyShortDescription: { params: GetMyShortDescriptionParams; result: BotShortDescription };
   sendMediaGroup: { params: SendMediaGroupParams; result: Message[] };
+  pinChatMessage: { params: PinChatMessageParams; result: true };
+  unpinChatMessage: { params: UnpinChatMessageParams; result: true };
+  unpinAllChatMessages: { params: UnpinAllChatMessagesParams; result: true };
+  getChatMember: { params: GetChatMemberParams; result: ChatMember };
+  getChatAdministrators: { params: GetChatAdministratorsParams; result: ChatMember[] };
+  getChatMemberCount: { params: GetChatMemberCountParams; result: number };
+  createForumTopic: { params: CreateForumTopicParams; result: ForumTopic };
+  editForumTopic: { params: EditForumTopicParams; result: true };
+  closeForumTopic: { params: CloseForumTopicParams; result: true };
+  reopenForumTopic: { params: ReopenForumTopicParams; result: true };
+  deleteForumTopic: { params: DeleteForumTopicParams; result: true };
   sendPoll: {
     params: {
       chat_id: number | string;

@@ -13,13 +13,25 @@ import {
   type EditReplyMarkupOptions,
   type EditTextOptions,
   type ForwardOptions,
+  type ForumTopicCreateOptions,
+  type ForumTopicEditOptions,
+  type ForumTopicRefOptions,
+  type GetMyCommandsOptions,
+  type MemberLookupOptions,
+  type PinOptions,
   type PhotoOptions,
   type PromoteMemberOptions,
   type RestrictMemberOptions,
   type SendOptions,
+  type SetMenuButtonOptions,
+  type SetMyCommandsOptions,
+  type SetMyDescriptionOptions,
+  type SetMyNameOptions,
+  type SetMyShortDescriptionOptions,
   type StickerOptions,
   type SetCustomTitleOptions,
   type SetPermissionsOptions,
+  type UnpinOptions,
   type VideoOptions,
   type VoiceOptions,
   type SendMediaGroupOptions,
@@ -325,6 +337,124 @@ export class BaseContext {
       });
     }
     return this.gram.copy(toChatIdOrOptions);
+  }
+
+  async pin(messageId: number): Promise<unknown>;
+  async pin(options: PinOptions): Promise<unknown>;
+  async pin(messageIdOrOptions: number | PinOptions) {
+    if (typeof messageIdOrOptions === "number") return this.gram.pin(messageIdOrOptions);
+    return this.gram.pin(messageIdOrOptions);
+  }
+
+  async unpin(messageId?: number): Promise<unknown>;
+  async unpin(options: UnpinOptions): Promise<unknown>;
+  async unpin(messageIdOrOptions?: number | UnpinOptions) {
+    if (typeof messageIdOrOptions === "number" || messageIdOrOptions === undefined) {
+      return this.gram.unpin(messageIdOrOptions);
+    }
+    return this.gram.unpin(messageIdOrOptions);
+  }
+
+  async unpinAll(): Promise<unknown> {
+    return this.gram.unpinAll();
+  }
+
+  async getMember(userId?: number): Promise<unknown>;
+  async getMember(options: MemberLookupOptions): Promise<unknown>;
+  async getMember(userIdOrOptions?: number | MemberLookupOptions) {
+    if (typeof userIdOrOptions === "number" || userIdOrOptions === undefined) {
+      const resolvedUserId = userIdOrOptions ?? this.fromId;
+      if (resolvedUserId === undefined) throw new Error("No user_id available in current context");
+      return this.gram.getMember(resolvedUserId);
+    }
+    return this.gram.getMember(userIdOrOptions);
+  }
+
+  async getAdmins(): Promise<unknown> {
+    return this.gram.getAdmins();
+  }
+
+  async getMemberCount(): Promise<unknown> {
+    return this.gram.getMemberCount();
+  }
+
+  async createTopic(name: string): Promise<unknown>;
+  async createTopic(options: ForumTopicCreateOptions): Promise<unknown>;
+  async createTopic(nameOrOptions: string | ForumTopicCreateOptions) {
+    if (typeof nameOrOptions === "string") return this.gram.createTopic({ name: nameOrOptions });
+    return this.gram.createTopic(nameOrOptions);
+  }
+
+  async editTopic(options: ForumTopicEditOptions): Promise<unknown> {
+    return this.gram.editTopic(options);
+  }
+
+  async closeTopic(messageThreadId: number): Promise<unknown>;
+  async closeTopic(options: ForumTopicRefOptions): Promise<unknown>;
+  async closeTopic(idOrOptions: number | ForumTopicRefOptions) {
+    if (typeof idOrOptions === "number")
+      return this.gram.closeTopic({ messageThreadId: idOrOptions });
+    return this.gram.closeTopic(idOrOptions);
+  }
+
+  async reopenTopic(messageThreadId: number): Promise<unknown>;
+  async reopenTopic(options: ForumTopicRefOptions): Promise<unknown>;
+  async reopenTopic(idOrOptions: number | ForumTopicRefOptions) {
+    if (typeof idOrOptions === "number")
+      return this.gram.reopenTopic({ messageThreadId: idOrOptions });
+    return this.gram.reopenTopic(idOrOptions);
+  }
+
+  async deleteTopic(messageThreadId: number): Promise<unknown>;
+  async deleteTopic(options: ForumTopicRefOptions): Promise<unknown>;
+  async deleteTopic(idOrOptions: number | ForumTopicRefOptions) {
+    if (typeof idOrOptions === "number")
+      return this.gram.deleteTopic({ messageThreadId: idOrOptions });
+    return this.gram.deleteTopic(idOrOptions);
+  }
+
+  async setMyCommands(options: SetMyCommandsOptions): Promise<unknown> {
+    return this.gram.setMyCommands(options);
+  }
+
+  async getMyCommands(options?: GetMyCommandsOptions): Promise<unknown> {
+    return this.gram.getMyCommands(options ?? {});
+  }
+
+  async deleteMyCommands(options?: GetMyCommandsOptions): Promise<unknown> {
+    return this.gram.deleteMyCommands(options ?? {});
+  }
+
+  async setMenuButton(options?: SetMenuButtonOptions): Promise<unknown> {
+    return this.gram.setMenuButton(options ?? {});
+  }
+
+  async getMenuButton(chatId?: number | string): Promise<unknown> {
+    return this.gram.getMenuButton(chatId);
+  }
+
+  async setMyName(options?: SetMyNameOptions): Promise<unknown> {
+    return this.gram.setMyName(options ?? {});
+  }
+
+  async getMyName(languageCode?: string): Promise<unknown> {
+    return this.gram.getMyName(languageCode);
+  }
+
+  async setMyDescription(options?: SetMyDescriptionOptions): Promise<unknown> {
+    return this.gram.setMyDescription(options ?? {});
+  }
+
+  async getMyDescription(languageCode?: string): Promise<unknown> {
+    return this.gram.getMyDescription(languageCode);
+  }
+
+  async setMyShortDescription(options?: SetMyShortDescriptionOptions): Promise<unknown> {
+    return this.gram.setMyShortDescription(options ?? {});
+  }
+
+  async getMyShortDescription(languageCode?: string): Promise<unknown> {
+    return this.gram.getMyShortDescription(languageCode);
   }
 
   async banMember(userId?: number): Promise<unknown>;

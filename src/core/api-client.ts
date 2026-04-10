@@ -384,8 +384,71 @@ export class ApiClient {
   setMyCommands(params: TelegramApiMethods["setMyCommands"]["params"]) {
     return this.call("setMyCommands", params);
   }
+  deleteMyCommands(params: TelegramApiMethods["deleteMyCommands"]["params"] = {}) {
+    return this.call("deleteMyCommands", params);
+  }
+  getMyCommands(params: TelegramApiMethods["getMyCommands"]["params"] = {}) {
+    return this.call("getMyCommands", params);
+  }
+  setChatMenuButton(params: TelegramApiMethods["setChatMenuButton"]["params"] = {}) {
+    return this.call("setChatMenuButton", params);
+  }
+  getChatMenuButton(params: TelegramApiMethods["getChatMenuButton"]["params"] = {}) {
+    return this.call("getChatMenuButton", params);
+  }
+  setMyName(params: TelegramApiMethods["setMyName"]["params"] = {}) {
+    return this.call("setMyName", params);
+  }
+  getMyName(params: TelegramApiMethods["getMyName"]["params"] = {}) {
+    return this.call("getMyName", params);
+  }
+  setMyDescription(params: TelegramApiMethods["setMyDescription"]["params"] = {}) {
+    return this.call("setMyDescription", params);
+  }
+  getMyDescription(params: TelegramApiMethods["getMyDescription"]["params"] = {}) {
+    return this.call("getMyDescription", params);
+  }
+  setMyShortDescription(params: TelegramApiMethods["setMyShortDescription"]["params"] = {}) {
+    return this.call("setMyShortDescription", params);
+  }
+  getMyShortDescription(params: TelegramApiMethods["getMyShortDescription"]["params"] = {}) {
+    return this.call("getMyShortDescription", params);
+  }
   sendMediaGroup(params: TelegramApiMethods["sendMediaGroup"]["params"]) {
     return this.call("sendMediaGroup", params);
+  }
+  pinChatMessage(params: TelegramApiMethods["pinChatMessage"]["params"]) {
+    return this.call("pinChatMessage", params);
+  }
+  unpinChatMessage(params: TelegramApiMethods["unpinChatMessage"]["params"]) {
+    return this.call("unpinChatMessage", params);
+  }
+  unpinAllChatMessages(params: TelegramApiMethods["unpinAllChatMessages"]["params"]) {
+    return this.call("unpinAllChatMessages", params);
+  }
+  getChatMember(params: TelegramApiMethods["getChatMember"]["params"]) {
+    return this.call("getChatMember", params);
+  }
+  getChatAdministrators(params: TelegramApiMethods["getChatAdministrators"]["params"]) {
+    return this.call("getChatAdministrators", params);
+  }
+  getChatMemberCount(params: TelegramApiMethods["getChatMemberCount"]["params"]) {
+    return this.call("getChatMemberCount", params);
+  }
+  createForumTopic(params: TelegramApiMethods["createForumTopic"]["params"]) {
+    return this.call("createForumTopic", params);
+  }
+  editForumTopic(params: TelegramApiMethods["editForumTopic"]["params"]) {
+    return this.call("editForumTopic", params);
+  }
+  closeForumTopic(params: TelegramApiMethods["closeForumTopic"]["params"]) {
+    return this.call("closeForumTopic", params);
+  }
+  reopenForumTopic(params: TelegramApiMethods["reopenForumTopic"]["params"]) {
+    return this.call("reopenForumTopic", params);
+  }
+  deleteForumTopic(params: TelegramApiMethods["deleteForumTopic"]["params"]) {
+    return this.call("deleteForumTopic", params);
   }
   sendPoll(params: TelegramApiMethods["sendPoll"]["params"]) {
     return this.call("sendPoll", params);

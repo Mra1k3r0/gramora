@@ -293,6 +293,109 @@ export interface ChatAdministratorRights {
   can_delete_stories?: boolean;
 }
 
+export type ChatMemberStatus =
+  | "creator"
+  | "administrator"
+  | "member"
+  | "restricted"
+  | "left"
+  | "kicked";
+
+export interface ChatMemberBase {
+  status: ChatMemberStatus;
+  user: User;
+}
+
+export interface ChatMemberOwner extends ChatMemberBase {
+  status: "creator";
+  is_anonymous: boolean;
+  custom_title?: string;
+}
+
+export interface ChatMemberAdministrator extends ChatMemberBase {
+  status: "administrator";
+  can_be_edited: boolean;
+  is_anonymous: boolean;
+  can_manage_chat: boolean;
+  can_delete_messages: boolean;
+  can_manage_video_chats: boolean;
+  can_restrict_members: boolean;
+  can_promote_members: boolean;
+  can_change_info: boolean;
+  can_invite_users: boolean;
+  can_post_messages?: boolean;
+  can_edit_messages?: boolean;
+  can_pin_messages?: boolean;
+  can_manage_topics?: boolean;
+  custom_title?: string;
+}
+
+export interface ChatMemberMember extends ChatMemberBase {
+  status: "member";
+}
+
+export interface ChatMemberRestricted extends ChatMemberBase {
+  status: "restricted";
+  is_member: boolean;
+  can_send_messages: boolean;
+  can_send_audios: boolean;
+  can_send_documents: boolean;
+  can_send_photos: boolean;
+  can_send_videos: boolean;
+  can_send_video_notes: boolean;
+  can_send_voice_notes: boolean;
+  can_send_polls: boolean;
+  can_send_other_messages: boolean;
+  can_add_web_page_previews: boolean;
+  can_change_info: boolean;
+  can_invite_users: boolean;
+  can_pin_messages: boolean;
+  can_manage_topics: boolean;
+  until_date: number;
+}
+
+export interface ChatMemberLeft extends ChatMemberBase {
+  status: "left";
+}
+
+export interface ChatMemberBanned extends ChatMemberBase {
+  status: "kicked";
+  until_date: number;
+}
+
+export type ChatMember =
+  | ChatMemberOwner
+  | ChatMemberAdministrator
+  | ChatMemberMember
+  | ChatMemberRestricted
+  | ChatMemberLeft
+  | ChatMemberBanned;
+
+export interface ForumTopic {
+  message_thread_id: number;
+  name: string;
+  icon_color: number;
+  icon_custom_emoji_id?: string;
+}
+
+export interface WebAppInfo {
+  url: string;
+}
+
+export type MenuButton =
+  | { type: "default" }
+  | { type: "commands" }
+  | { type: "web_app"; text: string; web_app: WebAppInfo };
+
+export type BotCommandScope =
+  | { type: "default" }
+  | { type: "all_private_chats" }
+  | { type: "all_group_chats" }
+  | { type: "all_chat_administrators" }
+  | { type: "chat"; chat_id: number | string }
+  | { type: "chat_administrators"; chat_id: number | string }
+  | { type: "chat_member"; chat_id: number | string; user_id: number };
+
 export interface File {
   file_id: string;
   file_unique_id: string;

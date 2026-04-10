@@ -231,6 +231,66 @@ await gram.setPermissions(permissions);
 await gram.setAdminTitle("Moderator", 123456789);
 ```
 
+### Group utilities
+
+```ts
+// Pin/unpin messages
+await gram.pin(123); // message_id
+await gram.unpin(); // unpin latest pinned
+await gram.unpin(123); // unpin specific message_id
+await gram.unpinAll(); // unpin all in chat
+
+// Members
+const me = await gram.getMember(gram.fromId!);
+const admins = await gram.getAdmins();
+const count = await gram.getMemberCount();
+```
+
+### Forum topics (supergroups)
+
+```ts
+const topic = await gram.createTopic("Support", { iconColor: 0x6fb9f0 });
+await gram.editTopic({ messageThreadId: topic.message_thread_id, name: "Support / Help" });
+await gram.closeTopic(topic.message_thread_id);
+await gram.reopenTopic(topic.message_thread_id);
+await gram.deleteTopic(topic.message_thread_id);
+```
+
+### Bot profile + commands
+
+```ts
+// Commands with scopes + localization
+await bot.api.setMyCommands({
+  commands: [
+    { command: "start", description: "Start" },
+    { command: "help", description: "Help" },
+  ],
+  scope: { type: "all_private_chats" },
+  language_code: "en",
+});
+
+// Or via sender helpers
+await bot.gram.setMyCommands({
+  commands: [{ command: "start", description: "Start" }],
+  scope: { type: "default" },
+});
+
+await bot.gram.getMyCommands();
+await bot.gram.deleteMyCommands({ scope: { type: "default" } });
+
+// Menu button (chat-specific or default)
+await bot.gram.setMenuButton({ menuButton: { type: "commands" } });
+await bot.gram.setMenuButton({
+  chatId: 123456789,
+  menuButton: { type: "web_app", text: "Open", web_app: { url: "https://example.com" } },
+});
+
+// Profile strings (optional localization)
+await bot.gram.setMyName({ name: "Gramora Bot", languageCode: "en" });
+await bot.gram.setMyDescription({ description: "Example bot", languageCode: "en" });
+await bot.gram.setMyShortDescription({ shortDescription: "Demo", languageCode: "en" });
+```
+
 ### Callback queries
 
 ```ts
@@ -401,6 +461,8 @@ With `debug: true`, Gramora logs:
 | Edit/delete     | `editText`, `editCaption`, `editReplyMarkup`, `editMedia`, `deleteMessage`, `deleteMessages`                                                                  |
 | Lifecycle       | `forward`, `copy`                                                                                                                                             |
 | Chat admin      | `banMember`, `unbanMember`, `restrictMember`, `promoteMember`, `setPermissions`, `setAdminTitle`                                                              |
+| Group utilities | `pin`, `unpin`, `unpinAll`, `getMember`, `getAdmins`, `getMemberCount`, `createTopic`, `editTopic`, `closeTopic`, `reopenTopic`, `deleteTopic`                |
+| Bot profile     | `setMyCommands`, `getMyCommands`, `deleteMyCommands`, `setMenuButton`, `getMenuButton`, `setMyName`, `setMyDescription`, `setMyShortDescription`              |
 | Inline mode     | `answerInline`, `InlineResult.builder()`, `InlineResult.article()`, `InlineResult.photo()`, `InlineResult.textContent()`                                      |
 | Global sender   | `bot.gram.withChat(chatId).send/photo/editText/deleteMessage/forward/copy/...`                                                                                |
 | Raw control     | `gram.api.*` for full Telegram method-level access                                                                                                            |
@@ -423,6 +485,8 @@ With `debug: true`, Gramora logs:
 | Middleware                 | Implemented                 |
 | Polling/webhook transports | Implemented (core)          |
 | Chat admin/moderation      | Implemented (core methods)  |
+| Group utilities            | Implemented (core methods)  |
+| Bot profile/commands       | Implemented (core methods)  |
 | Payments                   | Not implemented             |
 | Full update/event coverage | Partial                     |
 
@@ -434,8 +498,8 @@ With `debug: true`, Gramora logs:
 2. Edit/delete completion (`editCaption`, `editReplyMarkup`, message lifecycle helpers) ![implemented](https://img.shields.io/badge/implemented-10b981)
 3. Inline mode completion (`answerInlineQuery` + builders) ![implemented](https://img.shields.io/badge/implemented-10b981)
 4. Chat administration APIs (ban/unban/restrict/promote, permissions) ![implemented](https://img.shields.io/badge/implemented-10b981)
-5. Group/supergroup utilities (pin/unpin, forum topics, members) ![soon](https://img.shields.io/badge/soon-6366f1)
-6. Bot profile + command management (scopes, localized commands, menu buttons) ![soon](https://img.shields.io/badge/soon-6366f1)
+5. Group/supergroup utilities (pin/unpin, forum topics, members) ![implemented](https://img.shields.io/badge/implemented-10b981)
+6. Bot profile + command management (scopes, localized commands, menu buttons) ![implemented](https://img.shields.io/badge/implemented-10b981)
 7. Payments and commerce flow (invoice, shipping, pre-checkout) ![soon](https://img.shields.io/badge/soon-6366f1)
 8. Advanced update types (chat_member, reactions, join requests, business events) ![soon](https://img.shields.io/badge/soon-6366f1)
 9. Webhook hardening (retry strategy, observability hooks) ![soon](https://img.shields.io/badge/soon-6366f1)
@@ -484,10 +548,10 @@ npm run build
 
 ---
 
-### Note
-
-This project is a student/practice project created to explore Telegram bot framework design in TypeScript.
-It is inspired by ideas from [Telegraf](https://github.com/telegraf/telegraf), but it is not intended to be a drop-in replacement or a production-complete alternative yet.
-
-Gramora is still evolving and may include incomplete features, rough edges, or breaking changes while the architecture and API are being refined.
-Use it for learning, experimentation, and prototyping, and please review carefully before using it in production workloads.
+> **Note**
+>
+> Gramora is a student/practice project exploring Telegram bot framework design in TypeScript.
+> It’s inspired by [Telegraf](https://github.com/telegraf/telegraf), but it is **not** a drop-in replacement or a production-complete alternative.
+>
+> The API is still evolving and may include incomplete features or breaking changes.
+> Use it for learning, experimentation, and prototyping, and review carefully before production use.
