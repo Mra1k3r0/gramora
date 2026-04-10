@@ -349,6 +349,26 @@ export class ApiClient {
   copyMessage(params: TelegramApiMethods["copyMessage"]["params"]) {
     return this.call("copyMessage", params);
   }
+  banChatMember(params: TelegramApiMethods["banChatMember"]["params"]) {
+    return this.call("banChatMember", params);
+  }
+  unbanChatMember(params: TelegramApiMethods["unbanChatMember"]["params"]) {
+    return this.call("unbanChatMember", params);
+  }
+  restrictChatMember(params: TelegramApiMethods["restrictChatMember"]["params"]) {
+    return this.call("restrictChatMember", params);
+  }
+  promoteChatMember(params: TelegramApiMethods["promoteChatMember"]["params"]) {
+    return this.call("promoteChatMember", params);
+  }
+  setChatPermissions(params: TelegramApiMethods["setChatPermissions"]["params"]) {
+    return this.call("setChatPermissions", params);
+  }
+  setChatAdministratorCustomTitle(
+    params: TelegramApiMethods["setChatAdministratorCustomTitle"]["params"],
+  ) {
+    return this.call("setChatAdministratorCustomTitle", params);
+  }
   setWebhook(params: TelegramApiMethods["setWebhook"]["params"]) {
     return this.call("setWebhook", params);
   }

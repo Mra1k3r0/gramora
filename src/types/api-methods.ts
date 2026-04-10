@@ -1,4 +1,5 @@
 import type {
+  ChatPermissions,
   File,
   ForceReply,
   InlineKeyboardMarkup,
@@ -196,6 +197,59 @@ export interface CopyMessageParams {
   reply_to_message_id?: number;
 }
 
+export interface BanChatMemberParams {
+  chat_id: number | string;
+  user_id: number;
+  until_date?: number;
+  revoke_messages?: boolean;
+}
+
+export interface UnbanChatMemberParams {
+  chat_id: number | string;
+  user_id: number;
+  only_if_banned?: boolean;
+}
+
+export interface RestrictChatMemberParams {
+  chat_id: number | string;
+  user_id: number;
+  permissions: ChatPermissions;
+  use_independent_chat_permissions?: boolean;
+  until_date?: number;
+}
+
+export interface PromoteChatMemberParams {
+  chat_id: number | string;
+  user_id: number;
+  is_anonymous?: boolean;
+  can_manage_chat?: boolean;
+  can_delete_messages?: boolean;
+  can_manage_video_chats?: boolean;
+  can_restrict_members?: boolean;
+  can_promote_members?: boolean;
+  can_change_info?: boolean;
+  can_invite_users?: boolean;
+  can_post_messages?: boolean;
+  can_edit_messages?: boolean;
+  can_pin_messages?: boolean;
+  can_manage_topics?: boolean;
+  can_post_stories?: boolean;
+  can_edit_stories?: boolean;
+  can_delete_stories?: boolean;
+}
+
+export interface SetChatPermissionsParams {
+  chat_id: number | string;
+  permissions: ChatPermissions;
+  use_independent_chat_permissions?: boolean;
+}
+
+export interface SetChatAdministratorCustomTitleParams {
+  chat_id: number | string;
+  user_id: number;
+  custom_title: string;
+}
+
 export interface SetWebhookParams {
   url: string;
   secret_token?: string;
@@ -256,6 +310,12 @@ export interface TelegramApiMethods {
   deleteMessages: { params: DeleteMessagesParams; result: true };
   forwardMessage: { params: ForwardMessageParams; result: Message };
   copyMessage: { params: CopyMessageParams; result: MessageId };
+  banChatMember: { params: BanChatMemberParams; result: true };
+  unbanChatMember: { params: UnbanChatMemberParams; result: true };
+  restrictChatMember: { params: RestrictChatMemberParams; result: true };
+  promoteChatMember: { params: PromoteChatMemberParams; result: true };
+  setChatPermissions: { params: SetChatPermissionsParams; result: true };
+  setChatAdministratorCustomTitle: { params: SetChatAdministratorCustomTitleParams; result: true };
   setWebhook: { params: SetWebhookParams; result: true };
   deleteWebhook: { params: DeleteWebhookParams; result: true };
   getWebhookInfo: { params: void; result: Record<string, unknown> };

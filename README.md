@@ -209,6 +209,28 @@ await gram.copy({
 });
 ```
 
+### Chat administration
+
+```ts
+const permissions = {
+  can_send_messages: true,
+  can_send_photos: true,
+  can_send_videos: true,
+  can_invite_users: false,
+};
+
+await gram.banMember(123456789);
+await gram.unbanMember(123456789);
+await gram.restrictMember(permissions, 123456789);
+await gram.promoteMember(123456789, {
+  can_delete_messages: true,
+  can_restrict_members: true,
+  can_invite_users: true,
+});
+await gram.setPermissions(permissions);
+await gram.setAdminTitle("Moderator", 123456789);
+```
+
 ### Callback queries
 
 ```ts
@@ -378,6 +400,7 @@ With `debug: true`, Gramora logs:
 | Handler context | `send`, `photo`, `doc`, `audio`, `video`, `animation`, `voice`, `sticker`, `answer`, `text`, `chatId`, `fromId`                                               |
 | Edit/delete     | `editText`, `editCaption`, `editReplyMarkup`, `editMedia`, `deleteMessage`, `deleteMessages`                                                                  |
 | Lifecycle       | `forward`, `copy`                                                                                                                                             |
+| Chat admin      | `banMember`, `unbanMember`, `restrictMember`, `promoteMember`, `setPermissions`, `setAdminTitle`                                                              |
 | Inline mode     | `answerInline`, `InlineResult.builder()`, `InlineResult.article()`, `InlineResult.photo()`, `InlineResult.textContent()`                                      |
 | Global sender   | `bot.gram.withChat(chatId).send/photo/editText/deleteMessage/forward/copy/...`                                                                                |
 | Raw control     | `gram.api.*` for full Telegram method-level access                                                                                                            |
@@ -399,7 +422,7 @@ With `debug: true`, Gramora logs:
 | Scenes/session             | Implemented (core)          |
 | Middleware                 | Implemented                 |
 | Polling/webhook transports | Implemented (core)          |
-| Chat admin/moderation      | Not implemented             |
+| Chat admin/moderation      | Implemented (core methods)  |
 | Payments                   | Not implemented             |
 | Full update/event coverage | Partial                     |
 
@@ -410,7 +433,7 @@ With `debug: true`, Gramora logs:
 1. Media expansion (`sendAudio`, `sendVideo`, `sendAnimation`, `sendVoice`, `sendSticker`) ![implemented](https://img.shields.io/badge/implemented-10b981)
 2. Edit/delete completion (`editCaption`, `editReplyMarkup`, message lifecycle helpers) ![implemented](https://img.shields.io/badge/implemented-10b981)
 3. Inline mode completion (`answerInlineQuery` + builders) ![implemented](https://img.shields.io/badge/implemented-10b981)
-4. Chat administration APIs (ban/unban/restrict/promote, permissions) ![soon](https://img.shields.io/badge/soon-6366f1)
+4. Chat administration APIs (ban/unban/restrict/promote, permissions) ![implemented](https://img.shields.io/badge/implemented-10b981)
 5. Group/supergroup utilities (pin/unpin, forum topics, members) ![soon](https://img.shields.io/badge/soon-6366f1)
 6. Bot profile + command management (scopes, localized commands, menu buttons) ![soon](https://img.shields.io/badge/soon-6366f1)
 7. Payments and commerce flow (invoice, shipping, pre-checkout) ![soon](https://img.shields.io/badge/soon-6366f1)

@@ -1,5 +1,12 @@
 import type { ApiClient } from "./api-client";
-import type { InlineKeyboardMarkup, InputFile, InputMedia, ReplyMarkup } from "../types/telegram";
+import type {
+  ChatAdministratorRights,
+  ChatPermissions,
+  InlineKeyboardMarkup,
+  InputFile,
+  InputMedia,
+  ReplyMarkup,
+} from "../types/telegram";
 import type { InputMediaPhoto } from "../types/api-methods";
 
 export interface GramClientOptions {
@@ -160,6 +167,44 @@ export interface CopyOptions {
   silent?: boolean;
   protect?: boolean;
   replyTo?: number;
+}
+
+export interface BanMemberOptions {
+  userId: number;
+  chatId?: number | string;
+  untilDate?: number;
+  revokeMessages?: boolean;
+}
+
+export interface UnbanMemberOptions {
+  userId: number;
+  chatId?: number | string;
+  onlyIfBanned?: boolean;
+}
+
+export interface RestrictMemberOptions {
+  userId: number;
+  permissions: ChatPermissions;
+  chatId?: number | string;
+  independentPermissions?: boolean;
+  untilDate?: number;
+}
+
+export interface PromoteMemberOptions extends Partial<ChatAdministratorRights> {
+  userId: number;
+  chatId?: number | string;
+}
+
+export interface SetPermissionsOptions {
+  permissions: ChatPermissions;
+  chatId?: number | string;
+  independentPermissions?: boolean;
+}
+
+export interface SetCustomTitleOptions {
+  userId: number;
+  customTitle: string;
+  chatId?: number | string;
 }
 
 export class GramClient {
@@ -511,6 +556,131 @@ export class GramClient {
       ...(options.silent !== undefined ? { disable_notification: options.silent } : {}),
       ...(options.protect !== undefined ? { protect_content: options.protect } : {}),
       ...(options.replyTo !== undefined ? { reply_to_message_id: options.replyTo } : {}),
+    });
+  }
+
+  async banMember(userId: number, chatId?: number | string): Promise<unknown>;
+  async banMember(options: BanMemberOptions): Promise<unknown>;
+  async banMember(userIdOrOptions: number | BanMemberOptions, chatId?: number | string) {
+    const normalized: BanMemberOptions =
+      typeof userIdOrOptions === "number" ? { userId: userIdOrOptions, chatId } : userIdOrOptions;
+    const targetChatId = normalized.chatId ?? this.options.chatId;
+    if (targetChatId === undefined)
+      throw new Error("Missing chat id. Use gram.withChat(chatId).banMember(...).");
+    return this.api.banChatMember({
+      chat_id: targetChatId,
+      user_id: normalized.userId,
+      ...(normalized.untilDate !== undefined ? { until_date: normalized.untilDate } : {}),
+      ...(normalized.revokeMessages !== undefined
+        ? { revoke_messages: normalized.revokeMessages }
+        : {}),
+    });
+  }
+
+  async unbanMember(userId: number, chatId?: number | string): Promise<unknown>;
+  async unbanMember(options: UnbanMemberOptions): Promise<unknown>;
+  async unbanMember(userIdOrOptions: number | UnbanMemberOptions, chatId?: number | string) {
+    const normalized: UnbanMemberOptions =
+      typeof userIdOrOptions === "number" ? { userId: userIdOrOptions, chatId } : userIdOrOptions;
+    const targetChatId = normalized.chatId ?? this.options.chatId;
+    if (targetChatId === undefined)
+      throw new Error("Missing chat id. Use gram.withChat(chatId).unbanMember(...).");
+    return this.api.unbanChatMember({
+      chat_id: targetChatId,
+      user_id: normalized.userId,
+      ...(normalized.onlyIfBanned !== undefined ? { only_if_banned: normalized.onlyIfBanned } : {}),
+    });
+  }
+
+  async restrictMember(options: RestrictMemberOptions) {
+    const targetChatId = options.chatId ?? this.options.chatId;
+    if (targetChatId === undefined)
+      throw new Error("Missing chat id. Use gram.withChat(chatId).restrictMember(...).");
+    return this.api.restrictChatMember({
+      chat_id: targetChatId,
+      user_id: options.userId,
+      permissions: options.permissions,
+      ...(options.independentPermissions !== undefined
+        ? { use_independent_chat_permissions: options.independentPermissions }
+        : {}),
+      ...(options.untilDate !== undefined ? { until_date: options.untilDate } : {}),
+    });
+  }
+
+  async promoteMember(options: PromoteMemberOptions) {
+    const targetChatId = options.chatId ?? this.options.chatId;
+    if (targetChatId === undefined)
+      throw new Error("Missing chat id. Use gram.withChat(chatId).promoteMember(...).");
+    return this.api.promoteChatMember({
+      chat_id: targetChatId,
+      user_id: options.userId,
+      ...(options.is_anonymous !== undefined ? { is_anonymous: options.is_anonymous } : {}),
+      ...(options.can_manage_chat !== undefined
+        ? { can_manage_chat: options.can_manage_chat }
+        : {}),
+      ...(options.can_delete_messages !== undefined
+        ? { can_delete_messages: options.can_delete_messages }
+        : {}),
+      ...(options.can_manage_video_chats !== undefined
+        ? { can_manage_video_chats: options.can_manage_video_chats }
+        : {}),
+      ...(options.can_restrict_members !== undefined
+        ? { can_restrict_members: options.can_restrict_members }
+        : {}),
+      ...(options.can_promote_members !== undefined
+        ? { can_promote_members: options.can_promote_members }
+        : {}),
+      ...(options.can_change_info !== undefined
+        ? { can_change_info: options.can_change_info }
+        : {}),
+      ...(options.can_invite_users !== undefined
+        ? { can_invite_users: options.can_invite_users }
+        : {}),
+      ...(options.can_post_messages !== undefined
+        ? { can_post_messages: options.can_post_messages }
+        : {}),
+      ...(options.can_edit_messages !== undefined
+        ? { can_edit_messages: options.can_edit_messages }
+        : {}),
+      ...(options.can_pin_messages !== undefined
+        ? { can_pin_messages: options.can_pin_messages }
+        : {}),
+      ...(options.can_manage_topics !== undefined
+        ? { can_manage_topics: options.can_manage_topics }
+        : {}),
+      ...(options.can_post_stories !== undefined
+        ? { can_post_stories: options.can_post_stories }
+        : {}),
+      ...(options.can_edit_stories !== undefined
+        ? { can_edit_stories: options.can_edit_stories }
+        : {}),
+      ...(options.can_delete_stories !== undefined
+        ? { can_delete_stories: options.can_delete_stories }
+        : {}),
+    });
+  }
+
+  async setPermissions(options: SetPermissionsOptions) {
+    const targetChatId = options.chatId ?? this.options.chatId;
+    if (targetChatId === undefined)
+      throw new Error("Missing chat id. Use gram.withChat(chatId).setPermissions(...).");
+    return this.api.setChatPermissions({
+      chat_id: targetChatId,
+      permissions: options.permissions,
+      ...(options.independentPermissions !== undefined
+        ? { use_independent_chat_permissions: options.independentPermissions }
+        : {}),
+    });
+  }
+
+  async setAdminTitle(options: SetCustomTitleOptions) {
+    const targetChatId = options.chatId ?? this.options.chatId;
+    if (targetChatId === undefined)
+      throw new Error("Missing chat id. Use gram.withChat(chatId).setAdminTitle(...).");
+    return this.api.setChatAdministratorCustomTitle({
+      chat_id: targetChatId,
+      user_id: options.userId,
+      custom_title: options.customTitle,
     });
   }
 }

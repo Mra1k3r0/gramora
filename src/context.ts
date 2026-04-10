@@ -3,6 +3,7 @@ import {
   GramClient,
   type AnimationOptions,
   type AudioOptions,
+  type BanMemberOptions,
   type CopyOptions,
   type DeleteMessageOptions,
   type DeleteMessagesOptions,
@@ -13,11 +14,16 @@ import {
   type EditTextOptions,
   type ForwardOptions,
   type PhotoOptions,
+  type PromoteMemberOptions,
+  type RestrictMemberOptions,
   type SendOptions,
   type StickerOptions,
+  type SetCustomTitleOptions,
+  type SetPermissionsOptions,
   type VideoOptions,
   type VoiceOptions,
   type SendMediaGroupOptions,
+  type UnbanMemberOptions,
 } from "./core/gram-client";
 import type { InputMediaPhoto } from "./types/api-methods";
 import type { MessageForKind } from "./types/context";
@@ -319,6 +325,83 @@ export class BaseContext {
       });
     }
     return this.gram.copy(toChatIdOrOptions);
+  }
+
+  async banMember(userId?: number): Promise<unknown>;
+  async banMember(options: BanMemberOptions): Promise<unknown>;
+  async banMember(userIdOrOptions?: number | BanMemberOptions) {
+    if (typeof userIdOrOptions === "number" || userIdOrOptions === undefined) {
+      const resolvedUserId = userIdOrOptions ?? this.fromId;
+      if (resolvedUserId === undefined) throw new Error("No user_id available in current context");
+      return this.gram.banMember(resolvedUserId);
+    }
+    return this.gram.banMember(userIdOrOptions);
+  }
+
+  async unbanMember(userId: number): Promise<unknown>;
+  async unbanMember(options: UnbanMemberOptions): Promise<unknown>;
+  async unbanMember(userIdOrOptions: number | UnbanMemberOptions) {
+    if (typeof userIdOrOptions === "number") {
+      return this.gram.unbanMember(userIdOrOptions);
+    }
+    return this.gram.unbanMember(userIdOrOptions);
+  }
+
+  async restrictMember(
+    permissions: SetPermissionsOptions["permissions"],
+    userId?: number,
+  ): Promise<unknown>;
+  async restrictMember(options: RestrictMemberOptions): Promise<unknown>;
+  async restrictMember(
+    permissionsOrOptions: SetPermissionsOptions["permissions"] | RestrictMemberOptions,
+    userId?: number,
+  ) {
+    if (!("permissions" in permissionsOrOptions)) {
+      const resolvedUserId = userId ?? this.fromId;
+      if (resolvedUserId === undefined) throw new Error("No user_id available in current context");
+      return this.gram.restrictMember({
+        userId: resolvedUserId,
+        permissions: permissionsOrOptions,
+      });
+    }
+    return this.gram.restrictMember(permissionsOrOptions);
+  }
+
+  async promoteMember(options: PromoteMemberOptions): Promise<unknown>;
+  async promoteMember(
+    userId: number,
+    rights?: Omit<PromoteMemberOptions, "userId" | "chatId">,
+  ): Promise<unknown>;
+  async promoteMember(
+    optionsOrUserId: PromoteMemberOptions | number,
+    rights?: Omit<PromoteMemberOptions, "userId" | "chatId">,
+  ) {
+    if (typeof optionsOrUserId === "number") {
+      return this.gram.promoteMember({ userId: optionsOrUserId, ...(rights ?? {}) });
+    }
+    return this.gram.promoteMember(optionsOrUserId);
+  }
+
+  async setPermissions(options: SetPermissionsOptions): Promise<unknown>;
+  async setPermissions(permissions: SetPermissionsOptions["permissions"]): Promise<unknown>;
+  async setPermissions(
+    optionsOrPermissions: SetPermissionsOptions | SetPermissionsOptions["permissions"],
+  ) {
+    if ("permissions" in optionsOrPermissions) {
+      return this.gram.setPermissions(optionsOrPermissions);
+    }
+    return this.gram.setPermissions({ permissions: optionsOrPermissions });
+  }
+
+  async setAdminTitle(customTitle: string, userId?: number): Promise<unknown>;
+  async setAdminTitle(options: SetCustomTitleOptions): Promise<unknown>;
+  async setAdminTitle(customTitleOrOptions: string | SetCustomTitleOptions, userId?: number) {
+    if (typeof customTitleOrOptions === "string") {
+      const resolvedUserId = userId ?? this.fromId;
+      if (resolvedUserId === undefined) throw new Error("No user_id available in current context");
+      return this.gram.setAdminTitle({ customTitle: customTitleOrOptions, userId: resolvedUserId });
+    }
+    return this.gram.setAdminTitle(customTitleOrOptions);
   }
 
   async answer(text?: string, show_alert?: boolean) {
