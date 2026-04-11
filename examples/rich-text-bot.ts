@@ -5,11 +5,10 @@ if (!token) throw new Error("Set TELEGRAM_BOT_TOKEN before running the example."
 
 const bot = new Gramora({ token });
 
-/** Markdown-ish source; `renderTelegramRichText` turns it into Telegram HTML. */
 const demoMarkdown = `
 **Gramora rich text demo**
 
-Mix *italic* and _italic_, **bold** and __bold__, and \`inline code\` like \`npm run build\`.
+Mix *italic* and _italic_, **bold** and __bold__, \`inline code\`, ~~strike~~, and ||spoiler text|| (e.g. \`npm run build\`).
 
 **JavaScript**
 \`\`\`js
@@ -32,8 +31,8 @@ int main() {
 End with a one-liner: use \`parseMode: "HTML"\` with \`renderTelegramRichText(...)\`.
 `.trim();
 
-bot.command("start", async (ctx) => {
-  await ctx.reply({
+bot.command("start", async (gram) => {
+  await gram.reply({
     text: renderTelegramRichText(
       "**Rich text bot**\\n\\nTry /demo for fenced code, bold, italic, and inline code.",
     ),
@@ -41,18 +40,18 @@ bot.command("start", async (ctx) => {
   });
 });
 
-bot.command("demo", async (ctx) => {
-  await ctx.reply({
+bot.command("demo", async (gram) => {
+  await gram.reply({
     text: renderTelegramRichText(demoMarkdown),
     parseMode: "HTML",
   });
 });
 
-bot.onText(async (ctx) => {
-  const raw = ctx.text?.trim();
-  if (!raw || raw.startsWith("/")) return;
+bot.onText(async (gram) => {
+  const raw = gram.text?.trim();
+  if (!raw || raw.startsWith("/")) return; // commands handled by bot.command
 
-  await ctx.reply({
+  await gram.reply({
     text: renderTelegramRichText(`You sent:\\n\\n${raw}`),
     parseMode: "HTML",
   });

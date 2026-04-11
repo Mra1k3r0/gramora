@@ -22,18 +22,27 @@ function isCommandListBlock(raw: string): boolean {
   return commandTokenCount >= 2 && ratio >= 0.6 && !isLikelyRealCode(raw);
 }
 
-/**
- * Convert common Markdown-style input to Telegram HTML for `parseMode: "HTML"` on send/reply/captions.
- * Safer than MarkdownV2 when content is loosely formatted.
- */
-export function renderTelegramRichText(input: string): string {
+export interface RenderTelegramRichTextOptions {
+  commandListHeuristic?: boolean;
+}
+
+export function escapeTelegramHtml(text: string): string {
+  return escapeHtml(text);
+}
+
+/** Markdown-ish input → Telegram HTML (`parseMode: "HTML"`). */
+export function renderTelegramRichText(
+  input: string,
+  options?: RenderTelegramRichTextOptions,
+): string {
+  const useCommandListHeuristic = options?.commandListHeuristic !== false;
   const codeBlocks: string[] = [];
   let text = input;
 
   text = text.replace(/```([a-zA-Z0-9_-]+)?\n([\s\S]*?)```/g, (_f, _lang, code) => {
     const raw = String(code).replace(/\n$/, "");
 
-    if (isCommandListBlock(raw)) {
+    if (useCommandListHeuristic && isCommandListBlock(raw)) {
       return `\n${raw}\n`;
     }
 
@@ -54,6 +63,8 @@ export function renderTelegramRichText(input: string): string {
   text = text.replace(/__([^_]+)__/g, "<b>$1</b>");
   text = text.replace(/\*([^\n*]+)\*/g, "<i>$1</i>");
   text = text.replace(/_([^\n_]+)_/g, "<i>$1</i>");
+  text = text.replace(/~~([^~]+)~~/g, "<s>$1</s>");
+  text = text.replace(/\|\|([^|]+)\|\|/g, "<tg-spoiler>$1</tg-spoiler>");
   text = text.replace(/`/g, "");
 
   for (let i = 0; i < codeBlocks.length; i++) {
