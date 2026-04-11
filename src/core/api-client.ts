@@ -7,7 +7,7 @@ import { basename, extname } from "node:path";
 import { createReadStream } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { Blob } from "node:buffer";
-import { fetch, FormData, ProxyAgent, type Dispatcher } from "undici";
+import { fetch, FormData, ProxyAgent, Socks5ProxyAgent, type Dispatcher } from "undici";
 import type { InputFile } from "../types/telegram";
 import type { BotOptions, BotRuntimeConfig } from "./types";
 import { log, stringifyForLog } from "./logger";
@@ -56,7 +56,20 @@ export class ApiClient {
       timeoutMs: config.timeoutMs ?? this.network.timeoutMs ?? 15000,
       proxy: config.proxy ?? this.network.proxy,
     };
-    this.dispatcher = this.network.proxy ? new ProxyAgent(this.network.proxy) : undefined;
+    const proxy = this.network.proxy?.trim();
+    if (!proxy) {
+      this.dispatcher = undefined;
+    } else if (/^socks5(h)?:\/\//i.test(proxy)) {
+      const socksUrl = proxy.replace(/^socks5h:\/\//i, "socks5://");
+      this.dispatcher = new Socks5ProxyAgent(socksUrl);
+    } else {
+      this.dispatcher = new ProxyAgent({ uri: proxy });
+    }
+  }
+
+  /** Whether a proxy URL is configured (used for launch-time health logging). */
+  hasProxy(): boolean {
+    return Boolean(this.network.proxy?.trim());
   }
 
   setDebug(enabled: boolean) {

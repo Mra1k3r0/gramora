@@ -1,7 +1,13 @@
 import { createHash } from "node:crypto";
 import { ApiClient } from "./api-client";
 import { GramClient } from "./gram-client";
-import { highlightId, highlightUsername, log, stringifyForLog } from "./logger";
+import {
+  formatProxyProbeMessage,
+  highlightId,
+  highlightUsername,
+  log,
+  stringifyForLog,
+} from "./logger";
 import { PollingTransport, WebhookTransport } from "./polling";
 import { UpdateRouter } from "./update-router";
 import type { BaseContext } from "../context";
@@ -110,7 +116,26 @@ class Bot {
   }
 
   async launch(options?: LaunchOptions) {
-    const me = await this.api.getMe();
+    const started = Date.now();
+    let me: User;
+    try {
+      me = await this.api.getMe();
+    } catch (error) {
+      if (this.api.hasProxy()) {
+        const ms = Date.now() - started;
+        const message = error instanceof Error ? error.message : String(error);
+        log(
+          "warn",
+          "proxy",
+          formatProxyProbeMessage({ is_working: false, speedMs: ms, error: message }),
+        );
+      }
+      throw error;
+    }
+    if (this.api.hasProxy()) {
+      const ms = Date.now() - started;
+      log("info", "proxy", formatProxyProbeMessage({ is_working: true, speedMs: ms }));
+    }
     this.logConnected(me);
 
     if (this.lazyModules.length > 0) {

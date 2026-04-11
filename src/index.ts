@@ -39,6 +39,7 @@ export type { RenderTelegramRichTextOptions } from "./telegram-rich-text";
 export { Composer } from "./middleware/composer";
 export type { MiddlewareFn } from "./middleware/types";
 
+export { formatProxyProbeMessage } from "./core/logger";
 export { logger } from "./middleware/built-in/logger";
 export { rateLimiter } from "./middleware/built-in/rate-limiter";
 export { errorHandler } from "./middleware/built-in/error-handler";

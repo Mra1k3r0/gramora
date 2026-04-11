@@ -41,6 +41,35 @@ const colorizeBg = (text: string, hex: string) => {
 export const highlightUsername = (value: string) => colorize(value, TOKEN_COLORS.username);
 export const highlightId = (value: string | number) => colorize(String(value), TOKEN_COLORS.id);
 
+/** Latency tiers for `formatProxyProbeMessage` speed coloring (round-trip `getMe` via proxy). */
+const PROXY_SPEED_GOOD_MS = 1500;
+const PROXY_SPEED_WARN_MS = 4000;
+const PROXY_SPEED_HEX = { good: "#22c55e", warn: "#fbbf24", bad: "#f87171" } as const;
+
+function proxySpeedHex(ms: number): string {
+  if (ms < PROXY_SPEED_GOOD_MS) return PROXY_SPEED_HEX.good;
+  if (ms < PROXY_SPEED_WARN_MS) return PROXY_SPEED_HEX.warn;
+  return PROXY_SPEED_HEX.bad;
+}
+
+/** One-line JSON-like proxy status for the terminal (keys / punctuation / values colored; speed by latency). */
+export function formatProxyProbeMessage(input: {
+  is_working: boolean;
+  speedMs: number;
+  error?: string;
+}): string {
+  const p = (s: string) => colorize(s, TOKEN_COLORS.punctuation);
+  const key = (name: string) => colorize(`"${name}"`, TOKEN_COLORS.key);
+  const boolColor = input.is_working ? PROXY_SPEED_HEX.good : PROXY_SPEED_HEX.bad;
+  const boolPart = colorize(String(input.is_working), boolColor);
+  const speedPart = colorize(`${String(input.speedMs)}ms`, proxySpeedHex(input.speedMs));
+  let body = `${p("{")} ${key("is_working")}${p(":")} ${boolPart}${p(",")} ${key("speed")}${p(":")} ${speedPart}`;
+  if (input.error !== undefined) {
+    body += `${p(",")} ${key("error")}${p(":")} ${colorize(JSON.stringify(input.error), TOKEN_COLORS.string)}`;
+  }
+  return `${body} ${p("}")}`;
+}
+
 export const log = (level: LogLevel, scope: string, message: string) => {
   const levelTag = colorizeBg(` ${level} `, HEX_COLORS[level]);
   const scopeTag = colorize(`${scope}:`, TOKEN_COLORS.scope);

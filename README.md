@@ -61,12 +61,12 @@ Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)
 
 ### Runtime config (`.configure`)
 
-| Key         | Type      | Description                         |
-| ----------- | --------- | ----------------------------------- |
-| `userAgent` | `string`  | Custom UA for Telegram API requests |
-| `timeoutMs` | `number`  | Request timeout in milliseconds     |
-| `proxy`     | `string`  | Proxy URL (`http://` or `https://`) |
-| `debug`     | `boolean` | Toggle debug logging at runtime     |
+| Key         | Type      | Description                                                                                                                                                                                   |
+| ----------- | --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `userAgent` | `string`  | Custom UA for Telegram API requests                                                                                                                                                           |
+| `timeoutMs` | `number`  | Request timeout in milliseconds                                                                                                                                                               |
+| `proxy`     | `string`  | HTTP(S) proxy URL, or `socks5://` / `socks5h://` (`socks5h` is normalized to `socks5` for undici). Uses undici `Socks5ProxyAgent` (Node may emit one experimental SOCKS5 warning per process) |
+| `debug`     | `boolean` | Toggle debug logging at runtime                                                                                                                                                               |
 
 ```ts
 import { Gramora } from "@mra1k3r0/gramora";
@@ -79,6 +79,8 @@ const bot = new Gramora({ token: process.env.TELEGRAM_BOT_TOKEN!, mode: "core" }
   debug: true,
 });
 ```
+
+For an authenticated HTTP CONNECT proxy, put credentials in the URL (for example `http://user:pass@host:8080`; percent-encode special characters in `user` or `pass`). Raise `timeoutMs` if the proxy is slow.
 
 ### Webhook config (`.configureWebhook`)
 
