@@ -103,8 +103,21 @@ export class BaseContext {
     return this.message && "text" in this.message ? this.message.text : undefined;
   }
 
-  async reply(text: string, reply_markup?: ReplyMarkup) {
-    return this.gram.send(text, reply_markup);
+  async reply(text: string, replyMarkup?: ReplyMarkup): Promise<unknown>;
+  async reply(options: SendOptions): Promise<unknown>;
+  async reply(textOrOptions: string | SendOptions, replyMarkup?: ReplyMarkup) {
+    const replyTo = this.message?.message_id;
+    if (typeof textOrOptions === "string") {
+      return this.gram.send({
+        text: textOrOptions,
+        replyMarkup,
+        ...(replyTo !== undefined ? { replyTo } : {}),
+      });
+    }
+    return this.gram.send({
+      ...textOrOptions,
+      replyTo: textOrOptions.replyTo ?? replyTo,
+    });
   }
 
   async send(text: string, replyMarkup?: ReplyMarkup): Promise<unknown>;

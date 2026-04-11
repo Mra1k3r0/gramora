@@ -1,8 +1,22 @@
+import { timingSafeEqual } from "node:crypto";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import type { ApiClient } from "./api-client";
 import type { Update } from "../types/telegram";
 
 type UpdateHandler = (update: Update) => Promise<void>;
+
+function headerSingleValue(value: string | string[] | undefined): string | undefined {
+  if (value === undefined) return undefined;
+  return Array.isArray(value) ? value[0] : value;
+}
+
+/** Compare webhook secret without early exit on first differing byte (length must match). */
+function timingSafeSecretEqual(incoming: string, expected: string): boolean {
+  const a = Buffer.from(incoming, "utf8");
+  const b = Buffer.from(expected, "utf8");
+  if (a.length !== b.length) return false;
+  return timingSafeEqual(a, b);
+}
 
 export class PollingTransport {
   private running = false;
@@ -53,14 +67,15 @@ export class WebhookTransport {
   async start(options: { port: number; path?: string; secretToken?: string }) {
     const targetPath = options.path ?? "/webhook";
     const server = createServer((req: IncomingMessage, res: ServerResponse) => {
-      if (req.method !== "POST" || req.url !== targetPath) {
+      const pathOnly = (req.url ?? "").split("?")[0] ?? "";
+      if (req.method !== "POST" || pathOnly !== targetPath) {
         res.statusCode = 404;
         res.end("not found");
         return;
       }
       if (options.secretToken) {
-        const incoming = req.headers["x-telegram-bot-api-secret-token"];
-        if (incoming !== options.secretToken) {
+        const incoming = headerSingleValue(req.headers["x-telegram-bot-api-secret-token"]);
+        if (typeof incoming !== "string" || !timingSafeSecretEqual(incoming, options.secretToken)) {
           res.statusCode = 401;
           res.end("unauthorized");
           return;

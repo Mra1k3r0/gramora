@@ -176,7 +176,13 @@ class Bot {
     const startedAt = Date.now();
     try {
       this.debug("update", `received id=${update.update_id} kind=${this.detectUpdateKind(update)}`);
-      this.debug("payload", `body:\n${stringifyForLog(this.sanitizeForLog(update))}`);
+      const payload = stringifyForLog(this.sanitizeForLog(update));
+      const maxPayloadChars = 48_000;
+      const truncated =
+        payload.length > maxPayloadChars
+          ? `${payload.slice(0, maxPayloadChars)}\n… (truncated, ${String(payload.length)} chars)`
+          : payload;
+      this.debug("payload", `body:\n${truncated}`);
       await this.router.handleUpdate(update);
       this.debug("update", `handled id=${update.update_id} in ${Date.now() - startedAt}ms`);
     } catch (error) {
@@ -191,6 +197,7 @@ class Bot {
   private detectUpdateKind(update: Update) {
     if (update.callback_query) return "callback_query";
     if (update.inline_query) return "inline_query";
+    if (update.chosen_inline_result) return "chosen_inline_result";
     if (update.message) return "message";
     if (update.edited_message) return "edited_message";
     if (update.poll_answer) return "poll_answer";

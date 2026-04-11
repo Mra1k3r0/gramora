@@ -23,7 +23,8 @@
     "verify": "npm run check && npm run lint && npm run format:check",
     "bench": "npm run build && node scripts/bench.mjs",
     "size": "npm run build && node scripts/size-report.mjs",
-    "example:functional": "npm run build:examples && node dist/examples/functional-test-bot.js"
+    "example:functional": "npm run build:examples && node dist/examples/functional-test-bot.js",
+    "example:rich-text": "npm run build:examples && node dist/examples/rich-text-bot.js"
   },
   "keywords": [
     "telegram",

@@ -20,6 +20,7 @@ export interface GramClientOptions {
 export interface SendOptions {
   text: string;
   chatId?: number | string;
+  parseMode?: "Markdown" | "MarkdownV2" | "HTML";
   replyMarkup?: ReplyMarkup;
   replyTo?: number;
   silent?: boolean;
@@ -311,6 +312,7 @@ export class GramClient {
     return this.api.sendMessage({
       chat_id: targetChatId,
       text: normalized.text,
+      ...(normalized.parseMode ? { parse_mode: normalized.parseMode } : {}),
       ...(normalized.replyMarkup ? { reply_markup: normalized.replyMarkup } : {}),
       ...(normalized.replyTo !== undefined ? { reply_to_message_id: normalized.replyTo } : {}),
       ...(normalized.silent !== undefined ? { disable_notification: normalized.silent } : {}),

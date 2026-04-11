@@ -33,6 +33,7 @@ export {
 
 export { Keyboard } from "./keyboard";
 export { InlineResult, InlineResultBuilder } from "./inline-result";
+export { renderTelegramRichText } from "./telegram-rich-text";
 
 export { Composer } from "./middleware/composer";
 export type { MiddlewareFn } from "./middleware/types";
