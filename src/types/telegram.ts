@@ -18,6 +18,31 @@ export interface Chat {
   last_name?: string;
 }
 
+export type ChatAction =
+  | "typing"
+  | "upload_photo"
+  | "record_video"
+  | "upload_video"
+  | "record_voice"
+  | "upload_voice"
+  | "upload_document"
+  | "choose_sticker"
+  | "find_location"
+  | "record_video_note"
+  | "upload_video_note";
+
+export interface ChatInviteLink {
+  invite_link: string;
+  creator: User;
+  creates_join_request?: boolean;
+  is_primary?: boolean;
+  is_revoked?: boolean;
+  name?: string;
+  expire_date?: number;
+  member_limit?: number;
+  pending_join_request_count?: number;
+}
+
 export interface PhotoSize {
   file_id: string;
   file_unique_id: string;
@@ -175,6 +200,8 @@ export type Message =
   | ContactMessage
   | LocationMessage
   | PollMessage
+  | InvoiceMessage
+  | SuccessfulPaymentMessage
   | MessageBase;
 
 export interface CallbackQuery {
@@ -217,6 +244,8 @@ export interface Update {
   chosen_inline_result?: ChosenInlineResult;
   poll_answer?: PollAnswer;
   poll?: Poll;
+  shipping_query?: ShippingQuery;
+  pre_checkout_query?: PreCheckoutQuery;
 }
 
 export interface InlineKeyboardButton {
@@ -273,6 +302,28 @@ export interface ChatPermissions {
   can_invite_users?: boolean;
   can_pin_messages?: boolean;
   can_manage_topics?: boolean;
+}
+
+/** Rich chat object from getChat (subset of Bot API fields). */
+export interface ChatFull extends Chat {
+  is_forum?: boolean;
+  photo?: { small_file_id: string; big_file_id: string };
+  active_usernames?: string[];
+  accent_color_id?: number;
+  bio?: string;
+  description?: string;
+  invite_link?: string;
+  pinned_message?: Message;
+  permissions?: ChatPermissions;
+  slow_mode_delay?: number;
+  message_auto_delete_time?: number;
+  has_hidden_members?: boolean;
+  has_protected_content?: boolean;
+  has_visible_history?: boolean;
+  has_aggressive_anti_spam_enabled?: boolean;
+  sticker_set_name?: string;
+  can_set_sticker_set?: boolean;
+  linked_chat_id?: number;
 }
 
 export interface ChatAdministratorRights {
@@ -662,6 +713,76 @@ export type InlineQueryResult =
   | InlineQueryResultCachedDocument
   | InlineQueryResultCachedSticker;
 
+export interface LabeledPrice {
+  label: string;
+  amount: number;
+}
+
+export interface Invoice {
+  title: string;
+  description: string;
+  start_parameter: string;
+  currency: string;
+  total_amount: number;
+}
+
+export interface ShippingAddress {
+  country_code: string;
+  state: string;
+  city: string;
+  street_line1: string;
+  street_line2: string;
+  post_code: string;
+}
+
+export interface OrderInfo {
+  name?: string;
+  phone_number?: string;
+  email?: string;
+  shipping_address?: ShippingAddress;
+}
+
+export interface ShippingOption {
+  id: string;
+  title: string;
+  prices: LabeledPrice[];
+}
+
+export interface SuccessfulPayment {
+  currency: string;
+  total_amount: number;
+  invoice_payload: string;
+  shipping_option_id?: string;
+  order_info?: OrderInfo;
+  telegram_payment_charge_id: string;
+  provider_payment_charge_id: string;
+}
+
+export interface ShippingQuery {
+  id: string;
+  from: User;
+  invoice_payload: string;
+  shipping_address: ShippingAddress;
+}
+
+export interface PreCheckoutQuery {
+  id: string;
+  from: User;
+  currency: string;
+  total_amount: number;
+  invoice_payload: string;
+  shipping_option_id?: string;
+  order_info?: OrderInfo;
+}
+
+export interface InvoiceMessage extends MessageBase {
+  invoice: Invoice;
+}
+
+export interface SuccessfulPaymentMessage extends MessageBase {
+  successful_payment: SuccessfulPayment;
+}
+
 export type MessageContentKind =
   | "text"
   | "photo"
@@ -671,4 +792,6 @@ export type MessageContentKind =
   | "voice"
   | "contact"
   | "location"
-  | "poll";
+  | "poll"
+  | "invoice"
+  | "successful_payment";

@@ -12,6 +12,8 @@ export interface BotModuleHost {
     pattern: string,
     handler: (gram: BaseContext) => Promise<void> | void,
   ) => BotModuleHost;
+  onShippingQuery: (handler: (gram: BaseContext) => Promise<void> | void) => BotModuleHost;
+  onPreCheckoutQuery: (handler: (gram: BaseContext) => Promise<void> | void) => BotModuleHost;
 }
 
 export type BotModule = (bot: BotModuleHost) => void;

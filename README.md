@@ -316,6 +316,19 @@ bot.onCallback("action:*", async (gram) => {
 });
 ```
 
+Optional object form for `answer` (Telegram `url` / `cache_time`): `await gram.answer({ url: "https://example.com", cacheTime: 3600 });`
+
+### Chat typing, metadata, and invite links
+
+```ts
+await gram.sendChatAction("typing");
+const chat = await gram.getChat();
+const link = await gram.exportInviteLink();
+const scoped = await gram.createInviteLink({ name: "mods", memberLimit: 50 });
+```
+
+Use `bot.gram.withChat(chatId).sendChatAction("upload_document")` when there is no message-derived `chatId` in context.
+
 ### Middleware (Koa style)
 
 ```ts
@@ -466,43 +479,44 @@ Compared to [Telegraf’s `debug` namespaces](https://github.com/telegraf/telegr
 
 ## API Overview
 
-| Area            | Main APIs                                                                                                                                                              |
-| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Bot             | `command`, `onText`, `onMessage`, `onCallback`, `onInline`, `onInlineQuery`, `use`, `module`, `lazyModule`, `launch`, `stop`, `configure`, `configureWebhook`          |
-| Handler context | `send`, `photo`, `doc`, `audio`, `video`, `animation`, `voice`, `sticker`, `answer`, `text`, `chatId`, `fromId`                                                        |
-| Edit/delete     | `editText`, `editCaption`, `editReplyMarkup`, `editMedia`, `deleteMessage`, `deleteMessages`                                                                           |
-| Lifecycle       | `forward`, `copy`                                                                                                                                                      |
-| Chat admin      | `banMember`, `unbanMember`, `restrictMember`, `promoteMember`, `setPermissions`, `setAdminTitle`                                                                       |
-| Group utilities | `pin`, `unpin`, `unpinAll`, `getMember`, `getAdmins`, `getMemberCount`, `createTopic`, `editTopic`, `closeTopic`, `reopenTopic`, `deleteTopic`                         |
-| Bot profile     | `setMyCommands`, `getMyCommands`, `deleteMyCommands`, `setMenuButton`, `getMenuButton`, `setMyName`, `setMyDescription`, `setMyShortDescription`                       |
-| Inline mode     | `answerInline`, `InlineResult.builder()`, `InlineResult.article()`, `InlineResult.photo()`, `InlineResult.textContent()`                                               |
-| Global sender   | `bot.gram.withChat(chatId).send/photo/editText/deleteMessage/forward/copy/...`                                                                                         |
-| Raw control     | `gram.api` exposes a **growing typed subset** of Bot API methods (see `ApiClient` / `TelegramApiMethods`); methods not listed there are not callable on `gram.api` yet |
-| Decorators      | `@Controller`, `@Command`, `@On`, `@CallbackQuery`, `@InlineQuery`, `@Guard`, `@UseMiddleware`, `@Scene`, `@Step`                                                      |
+| Area            | Main APIs                                                                                                                                                                                                                        |
+| --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Bot             | `command`, `onText`, `onMessage`, `onCallback`, `onInline`, `onInlineQuery`, `onShippingQuery`, `onPreCheckoutQuery`, `use`, `module`, `lazyModule`, `launch`, `stop`, `configure`, `configureWebhook`                           |
+| Handler context | `send`, `photo`, `doc`, `audio`, `video`, `animation`, `voice`, `sticker`, `answer` (text/alert or options), `text`, `chatId`, `fromId`                                                                                          |
+| Edit/delete     | `editText`, `editCaption`, `editReplyMarkup`, `editMedia`, `deleteMessage`, `deleteMessages`                                                                                                                                     |
+| Lifecycle       | `forward`, `copy`                                                                                                                                                                                                                |
+| Chat admin      | `banMember`, `unbanMember`, `restrictMember`, `promoteMember`, `setPermissions`, `setAdminTitle`                                                                                                                                 |
+| Group utilities | `pin`, `unpin`, `unpinAll`, `getMember`, `getAdmins`, `getMemberCount`, `createTopic`, `editTopic`, `closeTopic`, `reopenTopic`, `deleteTopic`, `sendChatAction`, `getChat`, `leaveChat`, `exportInviteLink`, `createInviteLink` |
+| Bot profile     | `setMyCommands`, `getMyCommands`, `deleteMyCommands`, `setMenuButton`, `getMenuButton`, `setMyName`, `setMyDescription`, `setMyShortDescription`                                                                                 |
+| Payments        | `sendInvoice`, `createInvoiceLink` (Telegram payment URL), `answerShippingQuery`, `answerShipping`, `answerPreCheckoutQuery`, `refundStarPayment`                                                                                |
+| Inline mode     | `answerInline`, `InlineResult.builder()`, `InlineResult.article()`, `InlineResult.photo()`, `InlineResult.textContent()`                                                                                                         |
+| Global sender   | `bot.gram.withChat(chatId).send/photo/editText/deleteMessage/forward/copy/...`                                                                                                                                                   |
+| Raw control     | `gram.api` exposes a **growing typed subset** of Bot API methods (see `ApiClient` / `TelegramApiMethods`); methods not listed there are not callable on `gram.api` yet                                                           |
+| Decorators      | `@Controller`, `@Command`, `@On`, `@CallbackQuery`, `@InlineQuery`, `@Guard`, `@UseMiddleware`, `@Scene`, `@Step`                                                                                                                |
 
 ## Telegram Coverage
 
 <details>
 <summary><strong>Show Telegram coverage matrix</strong></summary>
 
-| Area                                    | Status                                                                                                                         |
-| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| Core messaging                          | Implemented                                                                                                                    |
-| Media sending                           | Implemented (major methods)                                                                                                    |
-| Edit/delete messages                    | Implemented                                                                                                                    |
-| Forward/copy messages                   | Implemented                                                                                                                    |
-| Callback queries                        | Implemented                                                                                                                    |
-| Inline mode                             | Implemented                                                                                                                    |
-| Scenes/session                          | Implemented (core)                                                                                                             |
-| Middleware                              | Implemented                                                                                                                    |
-| Polling/webhook transports              | Implemented (core)                                                                                                             |
-| Chat admin/moderation                   | Implemented (core methods)                                                                                                     |
-| Group utilities                         | Implemented (core methods)                                                                                                     |
-| Bot profile/commands                    | Implemented (core methods)                                                                                                     |
-| Payments                                | Not implemented                                                                                                                |
-| Full update/event coverage              | Partial                                                                                                                        |
-| High-frequency chat APIs                | Partial (`sendChatAction`, `getChat`, invite links, join requests, reactions, shortcut sends mostly missing from typed client) |
-| Dev ergonomics (filters/session/format) | Partial (middleware + scenes; no Telegraf-style filters/session/MarkdownV2 escaper bundle)                                     |
+| Area                                    | Status                                                                                                                          |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| Core messaging                          | Implemented                                                                                                                     |
+| Media sending                           | Implemented (major methods)                                                                                                     |
+| Edit/delete messages                    | Implemented                                                                                                                     |
+| Forward/copy messages                   | Implemented                                                                                                                     |
+| Callback queries                        | Implemented                                                                                                                     |
+| Inline mode                             | Implemented                                                                                                                     |
+| Scenes/session                          | Implemented (core)                                                                                                              |
+| Middleware                              | Implemented                                                                                                                     |
+| Polling/webhook transports              | Implemented (core)                                                                                                              |
+| Chat admin/moderation                   | Implemented (core methods)                                                                                                      |
+| Group utilities                         | Implemented (core methods)                                                                                                      |
+| Bot profile/commands                    | Implemented (core methods)                                                                                                      |
+| Payments                                | Implemented (sendInvoice, createInvoiceLink, shipping/pre-checkout answers, star refunds)                                       |
+| Full update/event coverage              | Partial                                                                                                                         |
+| High-frequency chat APIs                | Partial (`sendChatAction`, `getChat`, invite-link helpers typed; join requests, reactions, shortcut sends still mostly missing) |
+| Dev ergonomics (filters/session/format) | Partial (middleware + scenes; no Telegraf-style filters/session/MarkdownV2 escaper bundle)                                      |
 
 </details>
 
@@ -514,11 +528,11 @@ Compared to [Telegraf’s `debug` namespaces](https://github.com/telegraf/telegr
 4. Chat administration APIs (ban/unban/restrict/promote, permissions) ![implemented](https://img.shields.io/badge/implemented-10b981)
 5. Group/supergroup utilities (pin/unpin, forum topics, members) ![implemented](https://img.shields.io/badge/implemented-10b981)
 6. Bot profile + command management (scopes, localized commands, menu buttons) ![implemented](https://img.shields.io/badge/implemented-10b981)
-7. Payments and commerce flow (invoice, shipping, pre-checkout) ![soon](https://img.shields.io/badge/soon-6366f1)
+7. Payments and commerce flow (invoice, shipping, pre-checkout) ![implemented](https://img.shields.io/badge/implemented-10b981)
 8. Advanced update types (chat_member, reactions, join requests, business events) ![soon](https://img.shields.io/badge/soon-6366f1)
 9. Webhook hardening (retry strategy, observability hooks) ![soon](https://img.shields.io/badge/soon-6366f1)
 10. Production safety layer (rate profiles, validation, structured errors) ![soon](https://img.shields.io/badge/soon-6366f1)
-11. High-frequency Bot API + sender parity (`sendChatAction`, `getChat` / `leaveChat`, invite-link methods, join-request approve/decline, reaction methods, `sendLocation` / `sendVenue` / `sendContact` / `sendDice`, expand `TelegramApiMethods` + `GramClient` — today `sendPoll` / `stopPoll` exist on `ApiClient` only) ![planned](https://img.shields.io/badge/planned-64748b)
+11. High-frequency Bot API + sender parity (remaining: join-request approve/decline, reactions, `sendLocation` / `sendVenue` / `sendContact` / `sendDice`, broader `TelegramApiMethods` + `GramClient`; note `sendPoll` / `stopPoll` are on `ApiClient` only today) ![planned](https://img.shields.io/badge/planned-64748b)
 12. Router ergonomics (typed update filters / narrowing, optional pluggable session outside scenes, MarkdownV2-safe escapers alongside `renderTelegramRichText`) ![planned](https://img.shields.io/badge/planned-64748b)
 13. Operations/debug parity (optional debug logs for webhook path/secret mismatches, configurable handler timeout + timeout logs, quieter or structured polling retry logging) ![planned](https://img.shields.io/badge/planned-64748b)
 

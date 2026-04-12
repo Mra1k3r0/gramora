@@ -5,7 +5,14 @@ export type DecoratorMiddleware = (
   ctx: BaseContext,
   next: () => Promise<void>,
 ) => Promise<void> | void;
-export type HandlerKind = "command" | "on" | "callback_query" | "inline_query" | "scene_step";
+export type HandlerKind =
+  | "command"
+  | "on"
+  | "callback_query"
+  | "inline_query"
+  | "shipping_query"
+  | "pre_checkout_query"
+  | "scene_step";
 
 export interface HandlerDefinition {
   methodName: string;

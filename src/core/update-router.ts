@@ -148,6 +148,8 @@ export class UpdateRouter {
       if (pattern === "*" || pattern === "") return { ok: true };
       return { ok: update.inline_query.query.includes(pattern) };
     }
+    if (handler.kind === "shipping_query") return { ok: Boolean(update.shipping_query) };
+    if (handler.kind === "pre_checkout_query") return { ok: Boolean(update.pre_checkout_query) };
     return { ok: false };
   }
 

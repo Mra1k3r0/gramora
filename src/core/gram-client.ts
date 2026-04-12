@@ -1,15 +1,20 @@
 import type { ApiClient } from "./api-client";
 import type {
   BotCommandScope,
+  ChatAction,
   ChatAdministratorRights,
+  ChatFull,
+  ChatInviteLink,
   ChatMember,
   ChatPermissions,
   InlineKeyboardMarkup,
   InputFile,
   InputMedia,
+  LabeledPrice,
   MenuButton,
   ForumTopic,
   ReplyMarkup,
+  ShippingOption,
 } from "../types/telegram";
 import type { InputMediaPhoto } from "../types/api-methods";
 
@@ -281,6 +286,86 @@ export interface SetMyDescriptionOptions {
 export interface SetMyShortDescriptionOptions {
   shortDescription?: string;
   languageCode?: string;
+}
+
+export interface SendInvoiceOptions {
+  chatId?: number | string;
+  title: string;
+  description: string;
+  payload: string;
+  currency: string;
+  prices: LabeledPrice[];
+  providerToken?: string;
+  maxTipAmount?: number;
+  suggestedTipAmounts?: number[];
+  startParameter?: string;
+  providerData?: string;
+  photoUrl?: string;
+  photoSize?: number;
+  photoWidth?: number;
+  photoHeight?: number;
+  needName?: boolean;
+  needPhoneNumber?: boolean;
+  needEmail?: boolean;
+  needShippingAddress?: boolean;
+  sendPhoneNumberToProvider?: boolean;
+  sendEmailToProvider?: boolean;
+  isFlexible?: boolean;
+  silent?: boolean;
+  protect?: boolean;
+  replyTo?: number;
+  replyMarkup?: InlineKeyboardMarkup;
+}
+
+export interface CreateInvoiceLinkOptions {
+  title: string;
+  description: string;
+  payload: string;
+  currency: string;
+  prices: LabeledPrice[];
+  providerToken?: string;
+  maxTipAmount?: number;
+  suggestedTipAmounts?: number[];
+  providerData?: string;
+  photoUrl?: string;
+  photoSize?: number;
+  photoWidth?: number;
+  photoHeight?: number;
+  needName?: boolean;
+  needPhoneNumber?: boolean;
+  needEmail?: boolean;
+  needShippingAddress?: boolean;
+  sendPhoneNumberToProvider?: boolean;
+  sendEmailToProvider?: boolean;
+  isFlexible?: boolean;
+}
+
+export interface AnswerShippingQueryOptions {
+  shippingQueryId: string;
+  ok: boolean;
+  shippingOptions?: ShippingOption[];
+  errorMessage?: string;
+}
+
+export interface AnswerPreCheckoutQueryOptions {
+  preCheckoutQueryId: string;
+  ok: boolean;
+  errorMessage?: string;
+}
+
+export interface SendChatActionOptions {
+  action: ChatAction;
+  chatId?: number | string;
+  messageThreadId?: number;
+  businessConnectionId?: string;
+}
+
+export interface CreateInviteLinkOptions {
+  chatId?: number | string;
+  name?: string;
+  expireDate?: number;
+  memberLimit?: number;
+  createsJoinRequest?: boolean;
 }
 
 export class GramClient {
@@ -966,6 +1051,163 @@ export class GramClient {
   async getMyShortDescription(languageCode?: string) {
     return this.api.getMyShortDescription({
       ...(languageCode ? { language_code: languageCode } : {}),
+    });
+  }
+
+  async sendInvoice(options: SendInvoiceOptions) {
+    const targetChatId = options.chatId ?? this.options.chatId;
+    if (targetChatId === undefined)
+      throw new Error("Missing chat id. Use gram.withChat(chatId).sendInvoice(...).");
+    return this.api.sendInvoice({
+      chat_id: targetChatId,
+      title: options.title,
+      description: options.description,
+      payload: options.payload,
+      currency: options.currency,
+      prices: options.prices,
+      ...(options.providerToken !== undefined ? { provider_token: options.providerToken } : {}),
+      ...(options.maxTipAmount !== undefined ? { max_tip_amount: options.maxTipAmount } : {}),
+      ...(options.suggestedTipAmounts !== undefined
+        ? { suggested_tip_amounts: options.suggestedTipAmounts }
+        : {}),
+      ...(options.startParameter !== undefined ? { start_parameter: options.startParameter } : {}),
+      ...(options.providerData !== undefined ? { provider_data: options.providerData } : {}),
+      ...(options.photoUrl !== undefined ? { photo_url: options.photoUrl } : {}),
+      ...(options.photoSize !== undefined ? { photo_size: options.photoSize } : {}),
+      ...(options.photoWidth !== undefined ? { photo_width: options.photoWidth } : {}),
+      ...(options.photoHeight !== undefined ? { photo_height: options.photoHeight } : {}),
+      ...(options.needName !== undefined ? { need_name: options.needName } : {}),
+      ...(options.needPhoneNumber !== undefined
+        ? { need_phone_number: options.needPhoneNumber }
+        : {}),
+      ...(options.needEmail !== undefined ? { need_email: options.needEmail } : {}),
+      ...(options.needShippingAddress !== undefined
+        ? { need_shipping_address: options.needShippingAddress }
+        : {}),
+      ...(options.sendPhoneNumberToProvider !== undefined
+        ? { send_phone_number_to_provider: options.sendPhoneNumberToProvider }
+        : {}),
+      ...(options.sendEmailToProvider !== undefined
+        ? { send_email_to_provider: options.sendEmailToProvider }
+        : {}),
+      ...(options.isFlexible !== undefined ? { is_flexible: options.isFlexible } : {}),
+      ...(options.silent !== undefined ? { disable_notification: options.silent } : {}),
+      ...(options.protect !== undefined ? { protect_content: options.protect } : {}),
+      ...(options.replyTo !== undefined ? { reply_to_message_id: options.replyTo } : {}),
+      ...(options.replyMarkup ? { reply_markup: options.replyMarkup } : {}),
+    });
+  }
+
+  async createInvoiceLink(options: CreateInvoiceLinkOptions): Promise<string> {
+    return this.api.createInvoiceLink({
+      title: options.title,
+      description: options.description,
+      payload: options.payload,
+      currency: options.currency,
+      prices: options.prices,
+      ...(options.providerToken !== undefined ? { provider_token: options.providerToken } : {}),
+      ...(options.maxTipAmount !== undefined ? { max_tip_amount: options.maxTipAmount } : {}),
+      ...(options.suggestedTipAmounts !== undefined
+        ? { suggested_tip_amounts: options.suggestedTipAmounts }
+        : {}),
+      ...(options.providerData !== undefined ? { provider_data: options.providerData } : {}),
+      ...(options.photoUrl !== undefined ? { photo_url: options.photoUrl } : {}),
+      ...(options.photoSize !== undefined ? { photo_size: options.photoSize } : {}),
+      ...(options.photoWidth !== undefined ? { photo_width: options.photoWidth } : {}),
+      ...(options.photoHeight !== undefined ? { photo_height: options.photoHeight } : {}),
+      ...(options.needName !== undefined ? { need_name: options.needName } : {}),
+      ...(options.needPhoneNumber !== undefined
+        ? { need_phone_number: options.needPhoneNumber }
+        : {}),
+      ...(options.needEmail !== undefined ? { need_email: options.needEmail } : {}),
+      ...(options.needShippingAddress !== undefined
+        ? { need_shipping_address: options.needShippingAddress }
+        : {}),
+      ...(options.sendPhoneNumberToProvider !== undefined
+        ? { send_phone_number_to_provider: options.sendPhoneNumberToProvider }
+        : {}),
+      ...(options.sendEmailToProvider !== undefined
+        ? { send_email_to_provider: options.sendEmailToProvider }
+        : {}),
+      ...(options.isFlexible !== undefined ? { is_flexible: options.isFlexible } : {}),
+    });
+  }
+
+  async answerShippingQuery(options: AnswerShippingQueryOptions) {
+    return this.api.answerShippingQuery({
+      shipping_query_id: options.shippingQueryId,
+      ok: options.ok,
+      ...(options.shippingOptions !== undefined
+        ? { shipping_options: options.shippingOptions }
+        : {}),
+      ...(options.errorMessage !== undefined ? { error_message: options.errorMessage } : {}),
+    });
+  }
+
+  async answerPreCheckoutQuery(options: AnswerPreCheckoutQueryOptions) {
+    return this.api.answerPreCheckoutQuery({
+      pre_checkout_query_id: options.preCheckoutQueryId,
+      ok: options.ok,
+      ...(options.errorMessage !== undefined ? { error_message: options.errorMessage } : {}),
+    });
+  }
+
+  async refundStarPayment(userId: number, telegramPaymentChargeId: string) {
+    return this.api.refundStarPayment({
+      user_id: userId,
+      telegram_payment_charge_id: telegramPaymentChargeId,
+    });
+  }
+
+  async sendChatAction(options: SendChatActionOptions) {
+    const targetChatId = options.chatId ?? this.options.chatId;
+    if (targetChatId === undefined)
+      throw new Error("Missing chat id. Use gram.withChat(chatId).sendChatAction(...).");
+    return this.api.sendChatAction({
+      chat_id: targetChatId,
+      action: options.action,
+      ...(options.messageThreadId !== undefined
+        ? { message_thread_id: options.messageThreadId }
+        : {}),
+      ...(options.businessConnectionId !== undefined
+        ? { business_connection_id: options.businessConnectionId }
+        : {}),
+    });
+  }
+
+  async getChat(chatId?: number | string): Promise<ChatFull> {
+    const targetChatId = chatId ?? this.options.chatId;
+    if (targetChatId === undefined)
+      throw new Error("Missing chat id. Use gram.withChat(chatId).getChat().");
+    return this.api.getChat({ chat_id: targetChatId });
+  }
+
+  async leaveChat(chatId?: number | string) {
+    const targetChatId = chatId ?? this.options.chatId;
+    if (targetChatId === undefined)
+      throw new Error("Missing chat id. Use gram.withChat(chatId).leaveChat().");
+    return this.api.leaveChat({ chat_id: targetChatId });
+  }
+
+  async exportInviteLink(chatId?: number | string): Promise<string> {
+    const targetChatId = chatId ?? this.options.chatId;
+    if (targetChatId === undefined)
+      throw new Error("Missing chat id. Use gram.withChat(chatId).exportInviteLink().");
+    return this.api.exportChatInviteLink({ chat_id: targetChatId });
+  }
+
+  async createInviteLink(options: CreateInviteLinkOptions = {}): Promise<ChatInviteLink> {
+    const targetChatId = options.chatId ?? this.options.chatId;
+    if (targetChatId === undefined)
+      throw new Error("Missing chat id. Use gram.withChat(chatId).createInviteLink(...).");
+    return this.api.createChatInviteLink({
+      chat_id: targetChatId,
+      ...(options.name !== undefined ? { name: options.name } : {}),
+      ...(options.expireDate !== undefined ? { expire_date: options.expireDate } : {}),
+      ...(options.memberLimit !== undefined ? { member_limit: options.memberLimit } : {}),
+      ...(options.createsJoinRequest !== undefined
+        ? { creates_join_request: options.createsJoinRequest }
+        : {}),
     });
   }
 }

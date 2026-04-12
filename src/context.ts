@@ -2,9 +2,11 @@ import type { ApiClient } from "./core/api-client";
 import {
   GramClient,
   type AnimationOptions,
+  type AnswerShippingQueryOptions,
   type AudioOptions,
   type BanMemberOptions,
   type CopyOptions,
+  type CreateInvoiceLinkOptions,
   type DeleteMessageOptions,
   type DeleteMessagesOptions,
   type DocOptions,
@@ -22,6 +24,9 @@ import {
   type PhotoOptions,
   type PromoteMemberOptions,
   type RestrictMemberOptions,
+  type CreateInviteLinkOptions,
+  type SendChatActionOptions,
+  type SendInvoiceOptions,
   type SendOptions,
   type SetMenuButtonOptions,
   type SetMyCommandsOptions,
@@ -40,14 +45,25 @@ import {
 import type { InputMediaPhoto } from "./types/api-methods";
 import type { MessageForKind } from "./types/context";
 import type {
+  ChatFull,
+  ChatInviteLink,
   InlineKeyboardMarkup,
   InlineQueryResult,
   InputFile,
   InputMedia,
   MessageContentKind,
+  PreCheckoutQuery,
   ReplyMarkup,
+  ShippingQuery,
   Update,
 } from "./types/telegram";
+
+export interface AnswerCallbackOptions {
+  text?: string;
+  showAlert?: boolean;
+  url?: string;
+  cacheTime?: number;
+}
 
 export interface SceneControl {
   name?: string;
@@ -72,6 +88,8 @@ export class BaseContext {
   public readonly message;
   public readonly callbackQuery;
   public readonly inlineQuery;
+  public readonly shippingQuery: ShippingQuery | undefined;
+  public readonly preCheckoutQuery: PreCheckoutQuery | undefined;
   public readonly scene: SceneControl;
   public match?: string[];
 
@@ -84,6 +102,8 @@ export class BaseContext {
     this.message = options.update.message;
     this.callbackQuery = options.update.callback_query;
     this.inlineQuery = options.update.inline_query;
+    this.shippingQuery = options.update.shipping_query;
+    this.preCheckoutQuery = options.update.pre_checkout_query;
     this.scene = options.scene ?? {
       state: {},
       enter: async () => {},
@@ -97,7 +117,13 @@ export class BaseContext {
     return this.message?.chat.id ?? this.callbackQuery?.message?.chat.id;
   }
   get fromId(): number | undefined {
-    return this.message?.from?.id ?? this.callbackQuery?.from.id ?? this.inlineQuery?.from.id;
+    return (
+      this.message?.from?.id ??
+      this.callbackQuery?.from.id ??
+      this.inlineQuery?.from.id ??
+      this.shippingQuery?.from.id ??
+      this.preCheckoutQuery?.from.id
+    );
   }
   get text(): string | undefined {
     return this.message && "text" in this.message ? this.message.text : undefined;
@@ -547,12 +573,23 @@ export class BaseContext {
     return this.gram.setAdminTitle(customTitleOrOptions);
   }
 
-  async answer(text?: string, show_alert?: boolean) {
+  async answer(options: AnswerCallbackOptions): Promise<unknown>;
+  async answer(text?: string, showAlert?: boolean): Promise<unknown>;
+  async answer(textOrOptions?: string | AnswerCallbackOptions, showAlert?: boolean) {
     if (!this.callbackQuery?.id) throw new Error("No callback query available in current context");
+    if (typeof textOrOptions === "object" && textOrOptions !== null) {
+      return this.api.answerCallbackQuery({
+        callback_query_id: this.callbackQuery.id,
+        ...(textOrOptions.text !== undefined ? { text: textOrOptions.text } : {}),
+        ...(textOrOptions.showAlert !== undefined ? { show_alert: textOrOptions.showAlert } : {}),
+        ...(textOrOptions.url !== undefined ? { url: textOrOptions.url } : {}),
+        ...(textOrOptions.cacheTime !== undefined ? { cache_time: textOrOptions.cacheTime } : {}),
+      });
+    }
     return this.api.answerCallbackQuery({
       callback_query_id: this.callbackQuery.id,
-      text,
-      show_alert,
+      text: textOrOptions,
+      ...(showAlert !== undefined ? { show_alert: showAlert } : {}),
     });
   }
 
@@ -568,6 +605,73 @@ export class BaseContext {
       ...(options?.isPersonal !== undefined ? { is_personal: options.isPersonal } : {}),
       ...(options?.nextOffset !== undefined ? { next_offset: options.nextOffset } : {}),
     });
+  }
+
+  async sendInvoice(options: SendInvoiceOptions) {
+    return this.gram.sendInvoice(options);
+  }
+
+  async createInvoiceLink(options: CreateInvoiceLinkOptions): Promise<string> {
+    return this.gram.createInvoiceLink(options);
+  }
+
+  async answerShippingQuery(options: AnswerShippingQueryOptions) {
+    return this.gram.answerShippingQuery(options);
+  }
+
+  async answerPreCheckoutQuery(ok: boolean, errorMessage?: string) {
+    if (!this.preCheckoutQuery?.id)
+      throw new Error("No pre-checkout query available in current context");
+    return this.gram.answerPreCheckoutQuery({
+      preCheckoutQueryId: this.preCheckoutQuery.id,
+      ok,
+      ...(errorMessage !== undefined ? { errorMessage } : {}),
+    });
+  }
+
+  async answerShipping(options: Omit<AnswerShippingQueryOptions, "shippingQueryId">) {
+    if (!this.shippingQuery?.id) throw new Error("No shipping query available in current context");
+    return this.gram.answerShippingQuery({
+      shippingQueryId: this.shippingQuery.id,
+      ...options,
+    });
+  }
+
+  async sendChatAction(
+    action: SendChatActionOptions["action"],
+    messageThreadId?: number,
+  ): Promise<unknown> {
+    return this.gram.sendChatAction({
+      action,
+      ...(this.chatId !== undefined ? { chatId: this.chatId } : {}),
+      ...(messageThreadId !== undefined ? { messageThreadId } : {}),
+    });
+  }
+
+  async getChat(): Promise<ChatFull> {
+    const id = this.chatId;
+    if (id === undefined) throw new Error("No chat_id available in current context");
+    return this.gram.getChat(id);
+  }
+
+  async leaveChat(): Promise<unknown> {
+    const id = this.chatId;
+    if (id === undefined) throw new Error("No chat_id available in current context");
+    return this.gram.leaveChat(id);
+  }
+
+  async exportInviteLink(): Promise<string> {
+    const id = this.chatId;
+    if (id === undefined) throw new Error("No chat_id available in current context");
+    return this.gram.exportInviteLink(id);
+  }
+
+  async createInviteLink(
+    options?: Omit<CreateInviteLinkOptions, "chatId">,
+  ): Promise<ChatInviteLink> {
+    const id = this.chatId;
+    if (id === undefined) throw new Error("No chat_id available in current context");
+    return this.gram.createInviteLink({ chatId: id, ...options });
   }
 }
 

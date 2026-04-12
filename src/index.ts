@@ -30,6 +30,7 @@ export {
   InlineContext,
   SceneContext,
 } from "./context";
+export type { AnswerCallbackOptions } from "./context";
 
 export { Keyboard } from "./keyboard";
 export { InlineResult, InlineResultBuilder } from "./inline-result";
@@ -43,6 +44,15 @@ export { formatProxyProbeMessage } from "./core/logger";
 export { logger } from "./middleware/built-in/logger";
 export { rateLimiter } from "./middleware/built-in/rate-limiter";
 export { errorHandler } from "./middleware/built-in/error-handler";
+
+export type {
+  SendInvoiceOptions,
+  CreateInvoiceLinkOptions,
+  CreateInviteLinkOptions,
+  SendChatActionOptions,
+  AnswerShippingQueryOptions,
+  AnswerPreCheckoutQueryOptions,
+} from "./core/gram-client";
 
 export type * from "./types/telegram";
 export type * from "./types/api-methods";

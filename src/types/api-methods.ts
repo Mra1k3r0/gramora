@@ -1,5 +1,8 @@
 import type {
   BotCommandScope,
+  ChatAction,
+  ChatFull,
+  ChatInviteLink,
   ChatMember,
   ChatPermissions,
   File,
@@ -8,12 +11,14 @@ import type {
   InlineKeyboardMarkup,
   InlineQueryResult,
   InputMedia,
+  LabeledPrice,
   MenuButton,
   Message,
   Poll,
   ReplyMarkup,
   ReplyKeyboardMarkup,
   ReplyKeyboardRemove,
+  ShippingOption,
   Update,
   User,
   InputFile,
@@ -156,6 +161,8 @@ export interface AnswerCallbackQueryParams {
   callback_query_id: string;
   text?: string;
   show_alert?: boolean;
+  url?: string;
+  cache_time?: number;
 }
 
 export interface AnswerInlineQueryParams {
@@ -410,6 +417,103 @@ export interface MessageId {
   message_id: number;
 }
 
+export interface SendInvoiceParams {
+  chat_id: number | string;
+  title: string;
+  description: string;
+  payload: string;
+  currency: string;
+  prices: LabeledPrice[];
+  provider_token?: string;
+  max_tip_amount?: number;
+  suggested_tip_amounts?: number[];
+  start_parameter?: string;
+  provider_data?: string;
+  photo_url?: string;
+  photo_size?: number;
+  photo_width?: number;
+  photo_height?: number;
+  need_name?: boolean;
+  need_phone_number?: boolean;
+  need_email?: boolean;
+  need_shipping_address?: boolean;
+  send_phone_number_to_provider?: boolean;
+  send_email_to_provider?: boolean;
+  is_flexible?: boolean;
+  disable_notification?: boolean;
+  protect_content?: boolean;
+  reply_to_message_id?: number;
+  reply_markup?: InlineKeyboardMarkup;
+}
+
+export interface CreateInvoiceLinkParams {
+  title: string;
+  description: string;
+  payload: string;
+  currency: string;
+  prices: LabeledPrice[];
+  provider_token?: string;
+  max_tip_amount?: number;
+  suggested_tip_amounts?: number[];
+  provider_data?: string;
+  photo_url?: string;
+  photo_size?: number;
+  photo_width?: number;
+  photo_height?: number;
+  need_name?: boolean;
+  need_phone_number?: boolean;
+  need_email?: boolean;
+  need_shipping_address?: boolean;
+  send_phone_number_to_provider?: boolean;
+  send_email_to_provider?: boolean;
+  is_flexible?: boolean;
+}
+
+export interface AnswerShippingQueryParams {
+  shipping_query_id: string;
+  ok: boolean;
+  shipping_options?: ShippingOption[];
+  error_message?: string;
+}
+
+export interface AnswerPreCheckoutQueryParams {
+  pre_checkout_query_id: string;
+  ok: boolean;
+  error_message?: string;
+}
+
+export interface RefundStarPaymentParams {
+  user_id: number;
+  telegram_payment_charge_id: string;
+}
+
+export interface SendChatActionParams {
+  chat_id: number | string;
+  action: ChatAction;
+  message_thread_id?: number;
+  business_connection_id?: string;
+}
+
+export interface GetChatParams {
+  chat_id: number | string;
+}
+
+export interface LeaveChatParams {
+  chat_id: number | string;
+}
+
+export interface ExportChatInviteLinkParams {
+  chat_id: number | string;
+}
+
+export interface CreateChatInviteLinkParams {
+  chat_id: number | string;
+  name?: string;
+  expire_date?: number;
+  member_limit?: number;
+  creates_join_request?: boolean;
+}
+
 export interface TelegramApiMethods {
   getMe: { params: void; result: User };
   getUpdates: { params: GetUpdatesParams; result: Update[] };
@@ -478,6 +582,16 @@ export interface TelegramApiMethods {
     params: { chat_id: number | string; message_id: number };
     result: Poll;
   };
+  sendInvoice: { params: SendInvoiceParams; result: Message };
+  createInvoiceLink: { params: CreateInvoiceLinkParams; result: string };
+  answerShippingQuery: { params: AnswerShippingQueryParams; result: true };
+  answerPreCheckoutQuery: { params: AnswerPreCheckoutQueryParams; result: true };
+  refundStarPayment: { params: RefundStarPaymentParams; result: true };
+  sendChatAction: { params: SendChatActionParams; result: true };
+  getChat: { params: GetChatParams; result: ChatFull };
+  leaveChat: { params: LeaveChatParams; result: true };
+  exportChatInviteLink: { params: ExportChatInviteLinkParams; result: string };
+  createChatInviteLink: { params: CreateChatInviteLinkParams; result: ChatInviteLink };
 }
 
 export type TelegramMethodName = keyof TelegramApiMethods;

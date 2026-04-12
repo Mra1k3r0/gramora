@@ -85,6 +85,14 @@ class Bot {
     this.router.registerSimpleHandler("inline_query", pattern, handler);
     return this;
   }
+  onShippingQuery(handler: (gram: BaseContext) => Promise<void> | void) {
+    this.router.registerSimpleHandler("shipping_query", "*", handler);
+    return this;
+  }
+  onPreCheckoutQuery(handler: (gram: BaseContext) => Promise<void> | void) {
+    this.router.registerSimpleHandler("pre_checkout_query", "*", handler);
+    return this;
+  }
   module(register: BotModule) {
     register(this);
     return this;
@@ -223,6 +231,8 @@ class Bot {
     if (update.callback_query) return "callback_query";
     if (update.inline_query) return "inline_query";
     if (update.chosen_inline_result) return "chosen_inline_result";
+    if (update.shipping_query) return "shipping_query";
+    if (update.pre_checkout_query) return "pre_checkout_query";
     if (update.message) return "message";
     if (update.edited_message) return "edited_message";
     if (update.poll_answer) return "poll_answer";

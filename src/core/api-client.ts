@@ -117,10 +117,7 @@ export class ApiClient {
 
   private async streamToBuffer(stream: NodeJS.ReadableStream): Promise<Buffer> {
     const chunks: Buffer[] = [];
-    for await (const chunk of stream) {
-      if (chunk instanceof Uint8Array) chunks.push(Buffer.from(chunk));
-      else chunks.push(Buffer.from(chunk));
-    }
+    for await (const chunk of stream) chunks.push(Buffer.from(chunk));
     return Buffer.concat(chunks);
   }
 
@@ -468,5 +465,35 @@ export class ApiClient {
   }
   stopPoll(params: TelegramApiMethods["stopPoll"]["params"]) {
     return this.call("stopPoll", params);
+  }
+  sendInvoice(params: TelegramApiMethods["sendInvoice"]["params"]) {
+    return this.call("sendInvoice", params);
+  }
+  createInvoiceLink(params: TelegramApiMethods["createInvoiceLink"]["params"]) {
+    return this.call("createInvoiceLink", params);
+  }
+  answerShippingQuery(params: TelegramApiMethods["answerShippingQuery"]["params"]) {
+    return this.call("answerShippingQuery", params);
+  }
+  answerPreCheckoutQuery(params: TelegramApiMethods["answerPreCheckoutQuery"]["params"]) {
+    return this.call("answerPreCheckoutQuery", params);
+  }
+  refundStarPayment(params: TelegramApiMethods["refundStarPayment"]["params"]) {
+    return this.call("refundStarPayment", params);
+  }
+  sendChatAction(params: TelegramApiMethods["sendChatAction"]["params"]) {
+    return this.call("sendChatAction", params);
+  }
+  getChat(params: TelegramApiMethods["getChat"]["params"]) {
+    return this.call("getChat", params);
+  }
+  leaveChat(params: TelegramApiMethods["leaveChat"]["params"]) {
+    return this.call("leaveChat", params);
+  }
+  exportChatInviteLink(params: TelegramApiMethods["exportChatInviteLink"]["params"]) {
+    return this.call("exportChatInviteLink", params);
+  }
+  createChatInviteLink(params: TelegramApiMethods["createChatInviteLink"]["params"]) {
+    return this.call("createChatInviteLink", params);
   }
 }
