@@ -368,12 +368,21 @@ export interface CreateInviteLinkOptions {
   createsJoinRequest?: boolean;
 }
 
+/** High-level send/edit helpers; uses default `chatId` from context when set. */
 export class GramClient {
+  /**
+   * @param api - Underlying API client
+   * @param options - Optional default chat for `send` and similar
+   */
   constructor(
     private readonly api: ApiClient,
     private readonly options: GramClientOptions = {},
   ) {}
 
+  /**
+   * @param chatId - Target chat for subsequent calls on the returned client
+   * @returns New client instance sharing the same API client
+   */
   withChat(chatId: number | string) {
     return new GramClient(this.api, { chatId });
   }

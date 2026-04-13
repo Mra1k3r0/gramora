@@ -30,6 +30,7 @@ type HandlerRunner = {
   callbackRegex?: RegExp;
 };
 
+/** Routes `Update` objects to controllers, scenes, and `bot.on*` handlers. */
 export class UpdateRouter {
   private readonly globalMiddleware: MiddlewareFn<BaseContext>[] = [];
   private readonly simpleHandlers: Array<{
@@ -54,15 +55,26 @@ export class UpdateRouter {
   private readonly deletedBusinessMessagesHandlers: HandlerRunner[] = [];
   private hasIndexedHandlers = false;
 
+  /**
+   * @param api - Shared API client for contexts
+   * @param sceneManager - Scene state and step handling
+   * @param options - `mode: 'core'` skips controller registration
+   */
   constructor(
     private readonly api: ApiClient,
     private readonly sceneManager: SceneManager,
     private readonly options: { mode?: RouterMode } = {},
   ) {}
+  /**
+   * @param mw - Runs before each dispatched handler (after scene short-circuit)
+   */
   use(mw: MiddlewareFn<BaseContext>) {
     this.globalMiddleware.push(mw);
   }
 
+  /**
+   * @param controllerClass - Class decorated with `@Controller`
+   */
   registerController(controllerClass: Constructor) {
     if (this.options.mode === "core") {
       return;
@@ -78,6 +90,11 @@ export class UpdateRouter {
     this.indexControllerHandlers(c);
   }
 
+  /**
+   * @param kind - Handler kind (command, on, callback_query, …)
+   * @param trigger - Command name, callback pattern, or `*`
+   * @param fn - Handler receiving a context
+   */
   registerSimpleHandler(kind: HandlerDefinition["kind"], trigger: string, fn: SimpleHandler) {
     this.simpleHandlers.push({
       def: {
@@ -92,6 +109,9 @@ export class UpdateRouter {
     });
   }
 
+  /**
+   * @param update - Telegram update payload
+   */
   async handleUpdate(update: Update) {
     const chatKey = String(
       update.message?.chat.id ??
@@ -123,6 +143,12 @@ export class UpdateRouter {
     }
   }
 
+  /**
+   * @param update - Current update
+   * @param handler - Matched handler metadata
+   * @param sceneControl - Scene API for this chat key
+   * @returns `CommandContext`, `MessageContext`, `BaseContext`, etc.
+   */
   private createContext(
     update: Update,
     handler: HandlerDefinition,

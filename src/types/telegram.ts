@@ -235,6 +235,7 @@ export interface PollAnswer {
   option_ids: number[];
 }
 
+/** Bot API update; which optional fields exist depends on `allowed_updates`. */
 export interface Update {
   update_id: number;
   message?: Message;

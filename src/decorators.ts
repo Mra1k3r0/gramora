@@ -53,6 +53,7 @@ const ensureControllerMeta = (target: object): ControllerMetadata => {
   return created;
 };
 
+/** Reflect metadata for `@Controller` / `@Scene` (see `registerHandler`). */
 export const metadata = {
   ensureControllerMeta,
   getControllerMeta(target: object) {
@@ -66,6 +67,12 @@ export const metadata = {
   },
 };
 
+/**
+ * @param target - Controller prototype
+ * @param methodName - Instance method key
+ * @param partial - Kind and optional trigger/step (no middleware/guards here)
+ * @returns New or updated handler row
+ */
 export function registerHandler(
   target: object,
   methodName: string,
@@ -92,12 +99,17 @@ export function registerHandler(
   return h;
 }
 
+/** @returns Class decorator; initializes controller metadata on the prototype */
 export function Controller(): ClassDecorator {
   return (target) => {
     metadata.ensureControllerMeta(target.prototype);
   };
 }
 
+/**
+ * @param command - Name without leading `/`
+ * @returns Method decorator
+ */
 export function Command(command: string): MethodDecorator {
   return (target, propertyKey) => {
     registerHandler(target, String(propertyKey), {
@@ -107,6 +119,10 @@ export function Command(command: string): MethodDecorator {
   };
 }
 
+/**
+ * @param trigger - Message content key, `message`, or `*`
+ * @returns Method decorator
+ */
 export function On(trigger: string): MethodDecorator {
   return (target, propertyKey) => {
     registerHandler(target, String(propertyKey), {
@@ -116,6 +132,10 @@ export function On(trigger: string): MethodDecorator {
   };
 }
 
+/**
+ * @param trigger - `callback_data` regex (use `*` segments for wildcards)
+ * @returns Method decorator
+ */
 export function CallbackQuery(trigger: string): MethodDecorator {
   return (target, propertyKey) => {
     registerHandler(target, String(propertyKey), {
@@ -125,6 +145,10 @@ export function CallbackQuery(trigger: string): MethodDecorator {
   };
 }
 
+/**
+ * @param trigger - Substring match on inline query text, or `*`
+ * @returns Method decorator
+ */
 export function InlineQuery(trigger = "*"): MethodDecorator {
   return (target, propertyKey) => {
     registerHandler(target, String(propertyKey), {
@@ -134,60 +158,73 @@ export function InlineQuery(trigger = "*"): MethodDecorator {
   };
 }
 
+/** @returns Method decorator; update field `chat_member` */
 export function OnChatMember(): MethodDecorator {
   return (target, propertyKey) => {
     registerHandler(target, String(propertyKey), { kind: "chat_member" });
   };
 }
 
+/** @returns Method decorator; update field `my_chat_member` */
 export function OnMyChatMember(): MethodDecorator {
   return (target, propertyKey) => {
     registerHandler(target, String(propertyKey), { kind: "my_chat_member" });
   };
 }
 
+/** @returns Method decorator; update field `chat_join_request` */
 export function OnChatJoinRequest(): MethodDecorator {
   return (target, propertyKey) => {
     registerHandler(target, String(propertyKey), { kind: "chat_join_request" });
   };
 }
 
+/** @returns Method decorator; update field `message_reaction` */
 export function OnMessageReaction(): MethodDecorator {
   return (target, propertyKey) => {
     registerHandler(target, String(propertyKey), { kind: "message_reaction" });
   };
 }
 
+/** @returns Method decorator; update field `message_reaction_count` */
 export function OnMessageReactionCount(): MethodDecorator {
   return (target, propertyKey) => {
     registerHandler(target, String(propertyKey), { kind: "message_reaction_count" });
   };
 }
 
+/** @returns Method decorator; update field `business_connection` */
 export function OnBusinessConnection(): MethodDecorator {
   return (target, propertyKey) => {
     registerHandler(target, String(propertyKey), { kind: "business_connection" });
   };
 }
 
+/** @returns Method decorator; update field `business_message` */
 export function OnBusinessMessage(): MethodDecorator {
   return (target, propertyKey) => {
     registerHandler(target, String(propertyKey), { kind: "business_message" });
   };
 }
 
+/** @returns Method decorator; update field `edited_business_message` */
 export function OnEditedBusinessMessage(): MethodDecorator {
   return (target, propertyKey) => {
     registerHandler(target, String(propertyKey), { kind: "edited_business_message" });
   };
 }
 
+/** @returns Method decorator; update field `deleted_business_messages` */
 export function OnDeletedBusinessMessages(): MethodDecorator {
   return (target, propertyKey) => {
     registerHandler(target, String(propertyKey), { kind: "deleted_business_messages" });
   };
 }
 
+/**
+ * @param guard - Return false to skip the handler
+ * @returns Method decorator
+ */
 export function Guard(guard: GuardFn): MethodDecorator {
   return (target, propertyKey) => {
     const methodName = String(propertyKey);
@@ -205,6 +242,10 @@ export function Guard(guard: GuardFn): MethodDecorator {
   };
 }
 
+/**
+ * @param mw - Per-method middleware, or class-wide if applied to the controller class
+ * @returns Method and class decorator
+ */
 export function UseMiddleware(mw: DecoratorMiddleware): MethodDecorator & ClassDecorator {
   return (target: object | { prototype: object }, propertyKey?: string | symbol) => {
     if (propertyKey) {
@@ -228,6 +269,10 @@ export function UseMiddleware(mw: DecoratorMiddleware): MethodDecorator & ClassD
   };
 }
 
+/**
+ * @param name - Scene id used with scene control
+ * @returns Class decorator
+ */
 export function Scene(name: string): ClassDecorator {
   return (target) => {
     const existing = metadata.getSceneMeta(target.prototype);
@@ -238,6 +283,10 @@ export function Scene(name: string): ClassDecorator {
   };
 }
 
+/**
+ * @param step - Step index inside the scene
+ * @returns Method decorator
+ */
 export function Step(step: number): MethodDecorator {
   return (target, propertyKey) => {
     const handler = registerHandler(target, String(propertyKey), {

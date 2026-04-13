@@ -23,6 +23,7 @@ import type {
 } from "./types";
 import type { Update, User } from "../types/telegram";
 
+/** Bot entry: API, routing, scenes, transport. */
 class Bot {
   public readonly api: ApiClient;
   public readonly gram: GramClient;
@@ -34,6 +35,9 @@ class Bot {
   private webhookConfig?: BotWebhookConfig;
   private debugEnabled: boolean;
 
+  /**
+   * @param options.token - Required; other fields optional (polling, proxy, `mode`, …)
+   */
   constructor(private readonly options: BotOptions) {
     this.api = new ApiClient(options.token, options.apiBaseUrl, {
       userAgent: options.userAgent,
@@ -159,6 +163,9 @@ class Bot {
     return createHash("sha256").update(this.options.token).digest("hex").slice(0, 32);
   }
 
+  /**
+   * @param options - `transport`, webhook config, or defaults to polling
+   */
   async launch(options?: LaunchOptions) {
     const started = Date.now();
     let me: User;

@@ -89,6 +89,7 @@ export interface BaseContextOptions {
   match?: string[];
 }
 
+/** Handler context: `update` plus `gram` with optional default chat from the payload. */
 export class BaseContext {
   public readonly update: Update;
   public readonly api: ApiClient;
@@ -110,6 +111,12 @@ export class BaseContext {
   public readonly scene: SceneControl;
   public match?: string[];
 
+  /**
+   * @param options.update - Raw Telegram update
+   * @param options.api - Bot API client
+   * @param options.scene - Scene control when inside a scene
+   * @param options.match - Regex groups from callback patterns
+   */
   constructor(options: BaseContextOptions) {
     this.update = options.update;
     this.api = options.api;

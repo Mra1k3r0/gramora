@@ -37,6 +37,7 @@ export class TelegramApiError extends Error {
   }
 }
 
+/** Typed Telegram Bot API HTTP client. */
 export class ApiClient {
   private readonly endpoint: string;
   private network: Required<Pick<ClientNetworkOptions, "userAgent" | "timeoutMs">> &
@@ -44,12 +45,20 @@ export class ApiClient {
   private dispatcher?: Dispatcher;
   private debugEnabled = false;
 
+  /**
+   * @param token - Bot token from BotFather
+   * @param baseUrl - API base URL
+   * @param network - User agent, timeout, optional proxy URL
+   */
   constructor(token: string, baseUrl = "https://api.telegram.org", network?: ClientNetworkOptions) {
     this.endpoint = `${baseUrl}/bot${token}`;
     this.network = { userAgent: DEFAULT_BOT_USER_AGENT, timeoutMs: 15000, proxy: undefined };
     this.configureNetwork(network ?? {});
   }
 
+  /**
+   * @param config - Merges user agent, timeout, proxy; rebuilds fetch dispatcher when proxy changes
+   */
   configureNetwork(config: BotRuntimeConfig) {
     this.network = {
       userAgent: config.userAgent ?? this.network.userAgent ?? DEFAULT_BOT_USER_AGENT,

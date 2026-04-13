@@ -38,7 +38,12 @@ export interface BotRuntimeConfig {
 export interface BotOptions {
   token: string;
   apiBaseUrl?: string;
-  polling?: { timeout?: number; limit?: number; allowedUpdates?: string[] };
+  polling?: {
+    timeout?: number;
+    limit?: number;
+    /** Update type strings for getUpdates, e.g. `message`, `chat_member`. */
+    allowedUpdates?: string[];
+  };
   userAgent?: string;
   timeoutMs?: number;
   proxy?: string;
