@@ -235,7 +235,10 @@ export interface PollAnswer {
   option_ids: number[];
 }
 
-/** Bot API update; which optional fields exist depends on `allowed_updates`. */
+/**
+ * Bot API update; which optional fields exist depends on `allowed_updates`.
+ * @see https://core.telegram.org/bots/api#update
+ */
 export interface Update {
   update_id: number;
   message?: Message;

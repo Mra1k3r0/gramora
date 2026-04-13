@@ -33,6 +33,10 @@ export class SceneManager {
 
   constructor(private readonly sessionStore: SessionStore = new MemorySessionStore()) {}
 
+  /**
+   * @param sceneClass - Class decorated with `@Scene`
+   * @throws {Error} When the class has no `@Scene` name metadata
+   */
   register(sceneClass: Constructor) {
     const meta = metadata.getSceneMeta(sceneClass.prototype);
     if (!meta?.name) throw new Error("Scene class is missing @Scene decorator");

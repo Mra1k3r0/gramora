@@ -41,7 +41,10 @@ export interface BotOptions {
   polling?: {
     timeout?: number;
     limit?: number;
-    /** Update type strings for getUpdates, e.g. `message`, `chat_member`. */
+    /**
+     * Update type strings for getUpdates, e.g. `message`, `chat_member`.
+     * @see https://core.telegram.org/bots/api#getupdates
+     */
     allowedUpdates?: string[];
   };
   userAgent?: string;

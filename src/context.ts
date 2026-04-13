@@ -89,7 +89,10 @@ export interface BaseContextOptions {
   match?: string[];
 }
 
-/** Handler context: `update` plus `gram` with optional default chat from the payload. */
+/**
+ * Handler context: `update` plus `gram` with optional default chat from the payload.
+ * @remarks Helpers such as `answerCallback`, `forward`, and admin methods throw if the current update lacks the required ids (see each method).
+ */
 export class BaseContext {
   public readonly update: Update;
   public readonly api: ApiClient;

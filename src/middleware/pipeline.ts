@@ -3,6 +3,7 @@ import type { MiddlewareFn, NextFn } from "./types";
 /**
  * @param middleware - Outer-first list (first runs first on the way in)
  * @returns Single middleware that runs the chain
+ * @throws {Error} When `next()` is called more than once in the same middleware frame
  */
 export function compose<C>(middleware: Array<MiddlewareFn<C>>): MiddlewareFn<C> {
   return async (ctx: C, next: NextFn) => {

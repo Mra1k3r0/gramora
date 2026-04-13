@@ -111,6 +111,7 @@ export class UpdateRouter {
 
   /**
    * @param update - Telegram update payload
+   * @see https://core.telegram.org/bots/api#update
    */
   async handleUpdate(update: Update) {
     const chatKey = String(

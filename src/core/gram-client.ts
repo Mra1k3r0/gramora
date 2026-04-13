@@ -368,7 +368,10 @@ export interface CreateInviteLinkOptions {
   createsJoinRequest?: boolean;
 }
 
-/** High-level send/edit helpers; uses default `chatId` from context when set. */
+/**
+ * High-level send/edit helpers; uses default `chatId` from context when set.
+ * @throws {Error} When a method needs `chat_id` and neither the call options nor {@link GramClientOptions.chatId} set it — use `withChat` or `ctx.gram` from a message/callback context.
+ */
 export class GramClient {
   /**
    * @param api - Underlying API client

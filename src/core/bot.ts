@@ -165,6 +165,7 @@ class Bot {
 
   /**
    * @param options - `transport`, webhook config, or defaults to polling
+   * @throws {Error} Webhook transport when neither `options.webhook` nor `configureWebhook` was set
    */
   async launch(options?: LaunchOptions) {
     const started = Date.now();

@@ -26,6 +26,7 @@ const UPLOAD_FIELDS = new Set([
   "sticker",
 ]);
 
+/** Telegram returned an error payload or the HTTP status was not OK. */
 export class TelegramApiError extends Error {
   constructor(
     message: string,
@@ -37,7 +38,10 @@ export class TelegramApiError extends Error {
   }
 }
 
-/** Typed Telegram Bot API HTTP client. */
+/**
+ * Typed Telegram Bot API HTTP client.
+ * @see https://core.telegram.org/bots/api
+ */
 export class ApiClient {
   private readonly endpoint: string;
   private network: Required<Pick<ClientNetworkOptions, "userAgent" | "timeoutMs">> &
@@ -212,6 +216,13 @@ export class ApiClient {
     return { body: form, isMultipart: true };
   }
 
+  /**
+   * @param method - Bot API method name
+   * @param params - Optional request body
+   * @returns The API `result` field
+   * @throws {TelegramApiError} When HTTP fails or `ok` is false in the JSON body
+   * @throws Re-throws fetch, timeout (`AbortSignal`), and other network errors
+   */
   async call<M extends TelegramMethodName>(
     method: M,
     params?: TelegramApiMethods[M]["params"],
