@@ -50,8 +50,10 @@
     "url": "https://github.com/Mra1k3r0/gramora"
   },
   "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "dependencies": {
-    "reflect-metadata": "^0.2.2",
     "undici": "^8.0.2"
   },
   "devDependencies": {

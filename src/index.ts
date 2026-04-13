@@ -1,5 +1,3 @@
-import "reflect-metadata";
-
 export { Gramora } from "./core/bot";
 export { ApiClient } from "./core/api-client";
 export { DEFAULT_BOT_USER_AGENT } from "./core/api-client";

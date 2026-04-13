@@ -1,4 +1,5 @@
 import type { BaseContext } from "./context";
+import { defineMetadata, getMetadata } from "./core/metadata-store";
 
 export type GuardFn = (ctx: BaseContext) => boolean | Promise<boolean>;
 export type DecoratorMiddleware = (
@@ -46,24 +47,23 @@ const CONTROLLER = Symbol("gramora:controller");
 const SCENE = Symbol("gramora:scene");
 
 const ensureControllerMeta = (target: object): ControllerMetadata => {
-  const existing = Reflect.getMetadata(CONTROLLER, target) as ControllerMetadata | undefined;
+  const existing = getMetadata(CONTROLLER, target) as ControllerMetadata | undefined;
   if (existing) return existing;
   const created: ControllerMetadata = { handlers: [], middleware: [] };
-  Reflect.defineMetadata(CONTROLLER, created, target);
+  defineMetadata(CONTROLLER, created, target);
   return created;
 };
 
-/** Reflect metadata for `@Controller` / `@Scene` (see `registerHandler`). */
 export const metadata = {
   ensureControllerMeta,
   getControllerMeta(target: object) {
-    return Reflect.getMetadata(CONTROLLER, target) as ControllerMetadata | undefined;
+    return getMetadata(CONTROLLER, target) as ControllerMetadata | undefined;
   },
   setSceneMeta(target: object, data: SceneMetadata) {
-    Reflect.defineMetadata(SCENE, data, target);
+    defineMetadata(SCENE, data, target);
   },
   getSceneMeta(target: object) {
-    return Reflect.getMetadata(SCENE, target) as SceneMetadata | undefined;
+    return getMetadata(SCENE, target) as SceneMetadata | undefined;
   },
 };
 
