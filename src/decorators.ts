@@ -12,6 +12,15 @@ export type HandlerKind =
   | "inline_query"
   | "shipping_query"
   | "pre_checkout_query"
+  | "chat_member"
+  | "my_chat_member"
+  | "chat_join_request"
+  | "message_reaction"
+  | "message_reaction_count"
+  | "business_connection"
+  | "business_message"
+  | "edited_business_message"
+  | "deleted_business_messages"
   | "scene_step";
 
 export interface HandlerDefinition {
@@ -122,6 +131,60 @@ export function InlineQuery(trigger = "*"): MethodDecorator {
       kind: "inline_query",
       trigger,
     });
+  };
+}
+
+export function OnChatMember(): MethodDecorator {
+  return (target, propertyKey) => {
+    registerHandler(target, String(propertyKey), { kind: "chat_member" });
+  };
+}
+
+export function OnMyChatMember(): MethodDecorator {
+  return (target, propertyKey) => {
+    registerHandler(target, String(propertyKey), { kind: "my_chat_member" });
+  };
+}
+
+export function OnChatJoinRequest(): MethodDecorator {
+  return (target, propertyKey) => {
+    registerHandler(target, String(propertyKey), { kind: "chat_join_request" });
+  };
+}
+
+export function OnMessageReaction(): MethodDecorator {
+  return (target, propertyKey) => {
+    registerHandler(target, String(propertyKey), { kind: "message_reaction" });
+  };
+}
+
+export function OnMessageReactionCount(): MethodDecorator {
+  return (target, propertyKey) => {
+    registerHandler(target, String(propertyKey), { kind: "message_reaction_count" });
+  };
+}
+
+export function OnBusinessConnection(): MethodDecorator {
+  return (target, propertyKey) => {
+    registerHandler(target, String(propertyKey), { kind: "business_connection" });
+  };
+}
+
+export function OnBusinessMessage(): MethodDecorator {
+  return (target, propertyKey) => {
+    registerHandler(target, String(propertyKey), { kind: "business_message" });
+  };
+}
+
+export function OnEditedBusinessMessage(): MethodDecorator {
+  return (target, propertyKey) => {
+    registerHandler(target, String(propertyKey), { kind: "edited_business_message" });
+  };
+}
+
+export function OnDeletedBusinessMessages(): MethodDecorator {
+  return (target, propertyKey) => {
+    registerHandler(target, String(propertyKey), { kind: "deleted_business_messages" });
   };
 }
 

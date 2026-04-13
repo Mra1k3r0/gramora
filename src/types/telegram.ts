@@ -246,6 +246,15 @@ export interface Update {
   poll?: Poll;
   shipping_query?: ShippingQuery;
   pre_checkout_query?: PreCheckoutQuery;
+  chat_member?: ChatMemberUpdated;
+  my_chat_member?: ChatMemberUpdated;
+  chat_join_request?: ChatJoinRequest;
+  message_reaction?: MessageReactionUpdated;
+  message_reaction_count?: MessageReactionCountUpdated;
+  business_connection?: BusinessConnection;
+  business_message?: Message;
+  edited_business_message?: Message;
+  deleted_business_messages?: BusinessMessagesDeleted;
 }
 
 export interface InlineKeyboardButton {
@@ -421,6 +430,66 @@ export type ChatMember =
   | ChatMemberRestricted
   | ChatMemberLeft
   | ChatMemberBanned;
+
+export interface ChatMemberUpdated {
+  chat: Chat;
+  from: User;
+  date: number;
+  old_chat_member: ChatMember;
+  new_chat_member: ChatMember;
+  invite_link?: ChatInviteLink;
+}
+
+export interface ChatJoinRequest {
+  chat: Chat;
+  from: User;
+  user_chat_id: number;
+  date: number;
+  bio?: string;
+  invite_link?: ChatInviteLink;
+}
+
+export type ReactionType =
+  | { type: "emoji"; emoji: string }
+  | { type: "custom_emoji"; custom_emoji_id: string }
+  | { type: "paid" };
+
+export interface MessageReactionUpdated {
+  chat: Chat;
+  message_id: number;
+  date: number;
+  old_reaction: ReactionType[];
+  new_reaction: ReactionType[];
+  user?: User;
+  actor_chat?: Chat;
+}
+
+export interface ReactionCount {
+  type: ReactionType;
+  total_count: number;
+}
+
+export interface MessageReactionCountUpdated {
+  chat: Chat;
+  message_id: number;
+  date: number;
+  reactions: ReactionCount[];
+}
+
+export interface BusinessConnection {
+  id: string;
+  user: User;
+  user_chat_id: number;
+  date: number;
+  can_reply: boolean;
+  is_enabled: boolean;
+}
+
+export interface BusinessMessagesDeleted {
+  business_connection_id: string;
+  chat: Chat;
+  message_ids: number[];
+}
 
 export interface ForumTopic {
   message_thread_id: number;

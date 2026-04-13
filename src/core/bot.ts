@@ -93,6 +93,42 @@ class Bot {
     this.router.registerSimpleHandler("pre_checkout_query", "*", handler);
     return this;
   }
+  onChatMember(handler: (gram: BaseContext) => Promise<void> | void) {
+    this.router.registerSimpleHandler("chat_member", "*", handler);
+    return this;
+  }
+  onMyChatMember(handler: (gram: BaseContext) => Promise<void> | void) {
+    this.router.registerSimpleHandler("my_chat_member", "*", handler);
+    return this;
+  }
+  onChatJoinRequest(handler: (gram: BaseContext) => Promise<void> | void) {
+    this.router.registerSimpleHandler("chat_join_request", "*", handler);
+    return this;
+  }
+  onMessageReaction(handler: (gram: BaseContext) => Promise<void> | void) {
+    this.router.registerSimpleHandler("message_reaction", "*", handler);
+    return this;
+  }
+  onMessageReactionCount(handler: (gram: BaseContext) => Promise<void> | void) {
+    this.router.registerSimpleHandler("message_reaction_count", "*", handler);
+    return this;
+  }
+  onBusinessConnection(handler: (gram: BaseContext) => Promise<void> | void) {
+    this.router.registerSimpleHandler("business_connection", "*", handler);
+    return this;
+  }
+  onBusinessMessage(handler: (gram: BaseContext) => Promise<void> | void) {
+    this.router.registerSimpleHandler("business_message", "*", handler);
+    return this;
+  }
+  onEditedBusinessMessage(handler: (gram: BaseContext) => Promise<void> | void) {
+    this.router.registerSimpleHandler("edited_business_message", "*", handler);
+    return this;
+  }
+  onDeletedBusinessMessages(handler: (gram: BaseContext) => Promise<void> | void) {
+    this.router.registerSimpleHandler("deleted_business_messages", "*", handler);
+    return this;
+  }
   module(register: BotModule) {
     register(this);
     return this;
@@ -233,6 +269,15 @@ class Bot {
     if (update.chosen_inline_result) return "chosen_inline_result";
     if (update.shipping_query) return "shipping_query";
     if (update.pre_checkout_query) return "pre_checkout_query";
+    if (update.chat_member) return "chat_member";
+    if (update.my_chat_member) return "my_chat_member";
+    if (update.chat_join_request) return "chat_join_request";
+    if (update.message_reaction) return "message_reaction";
+    if (update.message_reaction_count) return "message_reaction_count";
+    if (update.business_connection) return "business_connection";
+    if (update.business_message) return "business_message";
+    if (update.edited_business_message) return "edited_business_message";
+    if (update.deleted_business_messages) return "deleted_business_messages";
     if (update.message) return "message";
     if (update.edited_message) return "edited_message";
     if (update.poll_answer) return "poll_answer";

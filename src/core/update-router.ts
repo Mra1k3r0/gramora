@@ -43,6 +43,15 @@ export class UpdateRouter {
   private readonly onKindHandlers = new Map<string, HandlerRunner[]>();
   private readonly callbackHandlers: HandlerRunner[] = [];
   private readonly inlineHandlers: HandlerRunner[] = [];
+  private readonly chatMemberHandlers: HandlerRunner[] = [];
+  private readonly myChatMemberHandlers: HandlerRunner[] = [];
+  private readonly chatJoinRequestHandlers: HandlerRunner[] = [];
+  private readonly messageReactionHandlers: HandlerRunner[] = [];
+  private readonly messageReactionCountHandlers: HandlerRunner[] = [];
+  private readonly businessConnectionHandlers: HandlerRunner[] = [];
+  private readonly businessMessageHandlers: HandlerRunner[] = [];
+  private readonly editedBusinessMessageHandlers: HandlerRunner[] = [];
+  private readonly deletedBusinessMessagesHandlers: HandlerRunner[] = [];
   private hasIndexedHandlers = false;
 
   constructor(
@@ -85,7 +94,17 @@ export class UpdateRouter {
 
   async handleUpdate(update: Update) {
     const chatKey = String(
-      update.message?.chat.id ?? update.callback_query?.message?.chat.id ?? "global",
+      update.message?.chat.id ??
+        update.callback_query?.message?.chat.id ??
+        update.chat_member?.chat.id ??
+        update.my_chat_member?.chat.id ??
+        update.chat_join_request?.chat.id ??
+        update.message_reaction?.chat.id ??
+        update.message_reaction_count?.chat.id ??
+        update.business_message?.chat.id ??
+        update.edited_business_message?.chat.id ??
+        update.deleted_business_messages?.chat.id ??
+        "global",
     );
     const sceneControl = await this.sceneManager.buildControl(chatKey);
     if (this.options.mode !== "core") {
@@ -115,6 +134,21 @@ export class UpdateRouter {
       return new CallbackContext({ update, api: this.api, scene: sceneControl });
     if (handler.kind === "inline_query")
       return new InlineContext({ update, api: this.api, scene: sceneControl });
+    if (
+      handler.kind === "chat_member" ||
+      handler.kind === "my_chat_member" ||
+      handler.kind === "chat_join_request" ||
+      handler.kind === "message_reaction" ||
+      handler.kind === "message_reaction_count" ||
+      handler.kind === "business_connection" ||
+      handler.kind === "business_message" ||
+      handler.kind === "edited_business_message" ||
+      handler.kind === "deleted_business_messages" ||
+      handler.kind === "shipping_query" ||
+      handler.kind === "pre_checkout_query"
+    ) {
+      return new BaseContext({ update, api: this.api, scene: sceneControl });
+    }
     if (handler.kind === "scene_step")
       return new SceneContext({ update, api: this.api, scene: sceneControl });
     return new MessageContext<MessageContentKind>({
@@ -150,6 +184,18 @@ export class UpdateRouter {
     }
     if (handler.kind === "shipping_query") return { ok: Boolean(update.shipping_query) };
     if (handler.kind === "pre_checkout_query") return { ok: Boolean(update.pre_checkout_query) };
+    if (handler.kind === "chat_member") return { ok: Boolean(update.chat_member) };
+    if (handler.kind === "my_chat_member") return { ok: Boolean(update.my_chat_member) };
+    if (handler.kind === "chat_join_request") return { ok: Boolean(update.chat_join_request) };
+    if (handler.kind === "message_reaction") return { ok: Boolean(update.message_reaction) };
+    if (handler.kind === "message_reaction_count")
+      return { ok: Boolean(update.message_reaction_count) };
+    if (handler.kind === "business_connection") return { ok: Boolean(update.business_connection) };
+    if (handler.kind === "business_message") return { ok: Boolean(update.business_message) };
+    if (handler.kind === "edited_business_message")
+      return { ok: Boolean(update.edited_business_message) };
+    if (handler.kind === "deleted_business_messages")
+      return { ok: Boolean(update.deleted_business_messages) };
     return { ok: false };
   }
 
@@ -209,6 +255,24 @@ export class UpdateRouter {
         this.callbackHandlers.push(runner);
       } else if (handler.kind === "inline_query") {
         this.inlineHandlers.push(runner);
+      } else if (handler.kind === "chat_member") {
+        this.chatMemberHandlers.push(runner);
+      } else if (handler.kind === "my_chat_member") {
+        this.myChatMemberHandlers.push(runner);
+      } else if (handler.kind === "chat_join_request") {
+        this.chatJoinRequestHandlers.push(runner);
+      } else if (handler.kind === "message_reaction") {
+        this.messageReactionHandlers.push(runner);
+      } else if (handler.kind === "message_reaction_count") {
+        this.messageReactionCountHandlers.push(runner);
+      } else if (handler.kind === "business_connection") {
+        this.businessConnectionHandlers.push(runner);
+      } else if (handler.kind === "business_message") {
+        this.businessMessageHandlers.push(runner);
+      } else if (handler.kind === "edited_business_message") {
+        this.editedBusinessMessageHandlers.push(runner);
+      } else if (handler.kind === "deleted_business_messages") {
+        this.deletedBusinessMessagesHandlers.push(runner);
       }
     }
 
@@ -256,6 +320,52 @@ export class UpdateRouter {
         const pattern = runner.def.trigger ?? "*";
         if (pattern !== "*" && pattern !== "" && !update.inline_query.query.includes(pattern))
           continue;
+        await this.runControllerRunner(update, runner, sceneControl);
+      }
+    }
+
+    if (update.chat_member) {
+      for (const runner of this.chatMemberHandlers) {
+        await this.runControllerRunner(update, runner, sceneControl);
+      }
+    }
+    if (update.my_chat_member) {
+      for (const runner of this.myChatMemberHandlers) {
+        await this.runControllerRunner(update, runner, sceneControl);
+      }
+    }
+    if (update.chat_join_request) {
+      for (const runner of this.chatJoinRequestHandlers) {
+        await this.runControllerRunner(update, runner, sceneControl);
+      }
+    }
+    if (update.message_reaction) {
+      for (const runner of this.messageReactionHandlers) {
+        await this.runControllerRunner(update, runner, sceneControl);
+      }
+    }
+    if (update.message_reaction_count) {
+      for (const runner of this.messageReactionCountHandlers) {
+        await this.runControllerRunner(update, runner, sceneControl);
+      }
+    }
+    if (update.business_connection) {
+      for (const runner of this.businessConnectionHandlers) {
+        await this.runControllerRunner(update, runner, sceneControl);
+      }
+    }
+    if (update.business_message) {
+      for (const runner of this.businessMessageHandlers) {
+        await this.runControllerRunner(update, runner, sceneControl);
+      }
+    }
+    if (update.edited_business_message) {
+      for (const runner of this.editedBusinessMessageHandlers) {
+        await this.runControllerRunner(update, runner, sceneControl);
+      }
+    }
+    if (update.deleted_business_messages) {
+      for (const runner of this.deletedBusinessMessagesHandlers) {
         await this.runControllerRunner(update, runner, sceneControl);
       }
     }

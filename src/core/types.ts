@@ -14,6 +14,17 @@ export interface BotModuleHost {
   ) => BotModuleHost;
   onShippingQuery: (handler: (gram: BaseContext) => Promise<void> | void) => BotModuleHost;
   onPreCheckoutQuery: (handler: (gram: BaseContext) => Promise<void> | void) => BotModuleHost;
+  onChatMember: (handler: (gram: BaseContext) => Promise<void> | void) => BotModuleHost;
+  onMyChatMember: (handler: (gram: BaseContext) => Promise<void> | void) => BotModuleHost;
+  onChatJoinRequest: (handler: (gram: BaseContext) => Promise<void> | void) => BotModuleHost;
+  onMessageReaction: (handler: (gram: BaseContext) => Promise<void> | void) => BotModuleHost;
+  onMessageReactionCount: (handler: (gram: BaseContext) => Promise<void> | void) => BotModuleHost;
+  onBusinessConnection: (handler: (gram: BaseContext) => Promise<void> | void) => BotModuleHost;
+  onBusinessMessage: (handler: (gram: BaseContext) => Promise<void> | void) => BotModuleHost;
+  onEditedBusinessMessage: (handler: (gram: BaseContext) => Promise<void> | void) => BotModuleHost;
+  onDeletedBusinessMessages: (
+    handler: (gram: BaseContext) => Promise<void> | void,
+  ) => BotModuleHost;
 }
 
 export type BotModule = (bot: BotModuleHost) => void;

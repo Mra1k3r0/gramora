@@ -45,13 +45,21 @@ import {
 import type { InputMediaPhoto } from "./types/api-methods";
 import type { MessageForKind } from "./types/context";
 import type {
+  BusinessConnection,
+  BusinessMessagesDeleted,
   ChatFull,
   ChatInviteLink,
+  ChatJoinRequest,
+  ChatMemberUpdated,
   InlineKeyboardMarkup,
   InlineQueryResult,
   InputFile,
   InputMedia,
+  Message,
   MessageContentKind,
+  MessageReactionCountUpdated,
+  MessageReactionUpdated,
+  TextMessage,
   PreCheckoutQuery,
   ReplyMarkup,
   ShippingQuery,
@@ -90,20 +98,49 @@ export class BaseContext {
   public readonly inlineQuery;
   public readonly shippingQuery: ShippingQuery | undefined;
   public readonly preCheckoutQuery: PreCheckoutQuery | undefined;
+  public readonly chatMember: ChatMemberUpdated | undefined;
+  public readonly myChatMember: ChatMemberUpdated | undefined;
+  public readonly chatJoinRequest: ChatJoinRequest | undefined;
+  public readonly messageReaction: MessageReactionUpdated | undefined;
+  public readonly messageReactionCount: MessageReactionCountUpdated | undefined;
+  public readonly businessConnection: BusinessConnection | undefined;
+  public readonly businessMessage: Message | undefined;
+  public readonly editedBusinessMessage: Message | undefined;
+  public readonly deletedBusinessMessages: BusinessMessagesDeleted | undefined;
   public readonly scene: SceneControl;
   public match?: string[];
 
   constructor(options: BaseContextOptions) {
     this.update = options.update;
     this.api = options.api;
-    this.gram = new GramClient(options.api, {
-      chatId: options.update.message?.chat.id ?? options.update.callback_query?.message?.chat.id,
+    const u = options.update;
+    this.gram = new GramClient(this.api, {
+      chatId:
+        u.message?.chat.id ??
+        u.callback_query?.message?.chat.id ??
+        u.chat_member?.chat.id ??
+        u.my_chat_member?.chat.id ??
+        u.chat_join_request?.chat.id ??
+        u.message_reaction?.chat.id ??
+        u.message_reaction_count?.chat.id ??
+        u.business_message?.chat.id ??
+        u.edited_business_message?.chat.id ??
+        u.deleted_business_messages?.chat.id,
     });
-    this.message = options.update.message;
-    this.callbackQuery = options.update.callback_query;
-    this.inlineQuery = options.update.inline_query;
-    this.shippingQuery = options.update.shipping_query;
-    this.preCheckoutQuery = options.update.pre_checkout_query;
+    this.message = u.message;
+    this.callbackQuery = u.callback_query;
+    this.inlineQuery = u.inline_query;
+    this.shippingQuery = u.shipping_query;
+    this.preCheckoutQuery = u.pre_checkout_query;
+    this.chatMember = u.chat_member;
+    this.myChatMember = u.my_chat_member;
+    this.chatJoinRequest = u.chat_join_request;
+    this.messageReaction = u.message_reaction;
+    this.messageReactionCount = u.message_reaction_count;
+    this.businessConnection = u.business_connection;
+    this.businessMessage = u.business_message;
+    this.editedBusinessMessage = u.edited_business_message;
+    this.deletedBusinessMessages = u.deleted_business_messages;
     this.scene = options.scene ?? {
       state: {},
       enter: async () => {},
@@ -114,7 +151,18 @@ export class BaseContext {
   }
 
   get chatId(): number | undefined {
-    return this.message?.chat.id ?? this.callbackQuery?.message?.chat.id;
+    return (
+      this.message?.chat.id ??
+      this.callbackQuery?.message?.chat.id ??
+      this.chatMember?.chat.id ??
+      this.myChatMember?.chat.id ??
+      this.chatJoinRequest?.chat.id ??
+      this.messageReaction?.chat.id ??
+      this.messageReactionCount?.chat.id ??
+      this.businessMessage?.chat.id ??
+      this.editedBusinessMessage?.chat.id ??
+      this.deletedBusinessMessages?.chat.id
+    );
   }
   get fromId(): number | undefined {
     return (
@@ -122,17 +170,26 @@ export class BaseContext {
       this.callbackQuery?.from.id ??
       this.inlineQuery?.from.id ??
       this.shippingQuery?.from.id ??
-      this.preCheckoutQuery?.from.id
+      this.preCheckoutQuery?.from.id ??
+      this.chatMember?.from.id ??
+      this.myChatMember?.from.id ??
+      this.chatJoinRequest?.from.id ??
+      this.messageReaction?.user?.id ??
+      this.businessConnection?.user.id
     );
   }
   get text(): string | undefined {
-    return this.message && "text" in this.message ? this.message.text : undefined;
+    const m = this.message ?? this.businessMessage ?? this.editedBusinessMessage;
+    return m && "text" in m ? (m as TextMessage).text : undefined;
   }
 
   async reply(text: string, replyMarkup?: ReplyMarkup): Promise<unknown>;
   async reply(options: SendOptions): Promise<unknown>;
   async reply(textOrOptions: string | SendOptions, replyMarkup?: ReplyMarkup) {
-    const replyTo = this.message?.message_id;
+    const replyTo =
+      this.message?.message_id ??
+      this.businessMessage?.message_id ??
+      this.editedBusinessMessage?.message_id;
     if (typeof textOrOptions === "string") {
       return this.gram.send({
         text: textOrOptions,
