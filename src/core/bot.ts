@@ -235,7 +235,9 @@ class Bot {
       return;
     }
     this.debug("transport", "launching polling transport");
-    this.polling = new PollingTransport(this.api, (update) => this.processUpdate(update));
+    this.polling = new PollingTransport(this.api, (update) => this.processUpdate(update), {
+      onPollingError: this.options.hooks?.onPollingError,
+    });
     await this.polling.start({
       timeout: this.options.polling?.timeout,
       limit: this.options.polling?.limit,
@@ -261,13 +263,16 @@ class Bot {
           : payload;
       this.debug("payload", `body:\n${truncated}`);
       await this.router.handleUpdate(update);
-      this.debug("update", `handled id=${update.update_id} in ${Date.now() - startedAt}ms`);
+      const durationMs = Date.now() - startedAt;
+      this.debug("update", `handled id=${update.update_id} in ${durationMs}ms`);
+      this.options.hooks?.onUpdateProcessed?.(update, durationMs);
     } catch (error) {
       this.debug(
         "error",
         `update id=${update.update_id} failed: ${(error as Error)?.message ?? "unknown error"}`,
       );
-      throw error;
+      this.options.hooks?.onUpdateError?.(update, error);
+      // do not rethrow: let polling continue the batch and webhook return 200
     }
   }
 

@@ -1,7 +1,21 @@
 import type { BaseContext } from "../context";
 import type { MiddlewareFn } from "../middleware/types";
+import type { Update } from "../types/telegram";
 
 export type Constructor<T = object> = new (...args: unknown[]) => T;
+
+/**
+ * Lifecycle hooks for observing updates without coupling to middleware.
+ * @see BotOptions.hooks
+ */
+export interface BotHooks {
+  /** Called when a handler or middleware throws during update processing. */
+  onUpdateError?: (update: Update, error: unknown) => void;
+  /** Called after an update is fully processed. @param durationMs - Handler wall time in ms. */
+  onUpdateProcessed?: (update: Update, durationMs: number) => void;
+  /** Called when a `getUpdates` network request fails (polling transport only). @param retryDelayMs - How long polling will wait before retrying. */
+  onPollingError?: (error: unknown, retryDelayMs: number) => void;
+}
 
 export interface BotModuleHost {
   use: (mw: MiddlewareFn<BaseContext>) => BotModuleHost;
@@ -38,6 +52,8 @@ export interface BotRuntimeConfig {
 export interface BotOptions {
   token: string;
   apiBaseUrl?: string;
+  /** Observability hooks; called by the bot runtime, not middleware. */
+  hooks?: BotHooks;
   polling?: {
     timeout?: number;
     limit?: number;

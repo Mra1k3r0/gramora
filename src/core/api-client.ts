@@ -11,6 +11,9 @@ import { fetch, FormData, ProxyAgent, Socks5ProxyAgent, type Dispatcher } from "
 import type { InputFile } from "../types/telegram";
 import type { BotOptions, BotRuntimeConfig } from "./types";
 import { log, stringifyForLog } from "./logger";
+import { TelegramApiError, RateLimitError } from "./errors";
+
+export { TelegramApiError } from "./errors";
 
 export const DEFAULT_BOT_USER_AGENT =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
@@ -25,18 +28,6 @@ const UPLOAD_FIELDS = new Set([
   "voice",
   "sticker",
 ]);
-
-/** Telegram returned an error payload or the HTTP status was not OK. */
-export class TelegramApiError extends Error {
-  constructor(
-    message: string,
-    public readonly errorCode?: number,
-    public readonly method?: string,
-  ) {
-    super(message);
-    this.name = "TelegramApiError";
-  }
-}
 
 /**
  * Typed Telegram Bot API HTTP client.
@@ -279,6 +270,13 @@ export class ApiClient {
             "error",
             "api.response",
             `${String(method)} failed in ${Date.now() - startedAt}ms:\n${stringifyForLog(payload)}`,
+          );
+        }
+        if (payload.error_code === 429) {
+          throw new RateLimitError(
+            payload.description ?? "Too Many Requests",
+            payload.parameters?.retry_after ?? 1,
+            String(method),
           );
         }
         throw new TelegramApiError(

@@ -1,7 +1,9 @@
 import { timingSafeEqual } from "node:crypto";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import type { ApiClient } from "./api-client";
+import type { BotHooks } from "./types";
 import type { Update } from "../types/telegram";
+import { RateLimitError } from "./errors";
 
 type UpdateHandler = (update: Update) => Promise<void>;
 
@@ -21,9 +23,16 @@ function timingSafeSecretEqual(incoming: string, expected: string): boolean {
 export class PollingTransport {
   private running = false;
   private offset?: number;
+
+  /**
+   * @param api - API client for getUpdates
+   * @param onUpdate - Called per update; must never throw (bot handles errors internally)
+   * @param hooks - Optional polling-level hooks
+   */
   constructor(
     private readonly api: ApiClient,
     private readonly onUpdate: UpdateHandler,
+    private readonly hooks?: Pick<BotHooks, "onPollingError">,
   ) {}
 
   async start(options?: { timeout?: number; limit?: number; allowedUpdates?: string[] }) {
@@ -45,12 +54,18 @@ export class PollingTransport {
           this.offset = update.update_id + 1;
           await this.onUpdate(update);
         }
-      } catch {
-        if (!this.running) {
-          break;
+      } catch (error) {
+        if (!this.running) break;
+
+        // 429: use Telegram's retry_after instead of exponential backoff
+        const delayMs = error instanceof RateLimitError ? error.retryAfter * 1000 : retryDelayMs;
+
+        this.hooks?.onPollingError?.(error, delayMs);
+        await new Promise<void>((resolve) => setTimeout(resolve, delayMs));
+
+        if (!(error instanceof RateLimitError)) {
+          retryDelayMs = Math.min(retryDelayMs * 2, maxRetryDelayMs);
         }
-        await new Promise<void>((resolve) => setTimeout(resolve, retryDelayMs));
-        retryDelayMs = Math.min(retryDelayMs * 2, maxRetryDelayMs);
       }
     }
   }
@@ -99,16 +114,20 @@ export class WebhookTransport {
           req.destroy();
         }
       });
-      req.on("end", async () => {
+      req.on("end", () => {
+        let update: Update;
         try {
-          const update = JSON.parse(Buffer.concat(chunks).toString("utf8")) as Update;
-          await this.onUpdate(update);
-          res.statusCode = 200;
-          res.end("ok");
+          update = JSON.parse(Buffer.concat(chunks).toString("utf8")) as Update;
         } catch {
           res.statusCode = 400;
           res.end("bad request");
+          return;
         }
+        // acknowledge immediately so Telegram does not retry on handler errors
+        res.statusCode = 200;
+        res.end("ok");
+        // onUpdate is processUpdate which handles errors internally and never throws
+        void this.onUpdate(update);
       });
     });
 

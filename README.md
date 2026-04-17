@@ -393,6 +393,68 @@ const results = InlineResult.builder()
 
 </details>
 
+### Observability hooks
+
+```ts
+import type { BotHooks } from "@mra1k3r0/gramora";
+
+const hooks: BotHooks = {
+  onUpdateError(update, error) {
+    console.error(`update ${update.update_id} failed`, error);
+  },
+  onUpdateProcessed(update, durationMs) {
+    console.log(`update ${update.update_id} handled in ${durationMs}ms`);
+  },
+  onPollingError(error, retryDelayMs) {
+    console.warn(`polling error, retrying in ${retryDelayMs}ms`, error);
+  },
+};
+
+const bot = new Gramora({ token: process.env.TELEGRAM_BOT_TOKEN!, hooks });
+```
+
+Hooks fire from the bot runtime, not the middleware chain. `onUpdateError` is called after the built-in debug log but before the update is discarded, so you can forward errors to Sentry / Datadog without middleware.
+
+### Rate limiter profiles
+
+```ts
+import { rateLimiter, type RateProfile } from "@mra1k3r0/gramora";
+
+// simple: 30 actions per minute per user (backwards-compatible shorthand)
+bot.use(rateLimiter(30));
+
+// profile: 5 per 10 seconds per chat, custom exceeded handler
+const profile: RateProfile = {
+  maxPerWindow: 5,
+  windowMs: 10_000,
+  by: "chat",
+  onExceeded: async (ctx) => {
+    await ctx.reply("slow down please");
+  },
+};
+bot.use(rateLimiter(profile));
+```
+
+### Structured errors
+
+```ts
+import { TelegramApiError, RateLimitError, ValidationError } from "@mra1k3r0/gramora";
+
+try {
+  await gram.send({ text: "hello" });
+} catch (err) {
+  if (err instanceof RateLimitError) {
+    console.warn(`rate limited, retry after ${err.retryAfter}s`);
+  } else if (err instanceof ValidationError) {
+    console.error(`bad input field="${err.field}": ${err.message}`);
+  } else if (err instanceof TelegramApiError) {
+    console.error(`telegram error ${String(err.errorCode)}: ${err.message}`);
+  }
+}
+```
+
+`RateLimitError` extends `TelegramApiError` and carries `retryAfter` (seconds from Telegram's `parameters.retry_after`). `ValidationError` is thrown by `GramClient` and `BaseContext` before the network call when text/caption/answer text exceeds Telegram's limits (4096 / 1024 / 200 chars).
+
 ### Modules and lazy modules
 
 ```ts
@@ -499,24 +561,26 @@ Compared to [Telegraf’s `debug` namespaces](https://github.com/telegraf/telegr
 <details>
 <summary><strong>Show Telegram coverage matrix</strong></summary>
 
-| Area                                    | Status                                                                                                                       |
-| --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| Core messaging                          | Implemented                                                                                                                  |
-| Media sending                           | Implemented (major methods)                                                                                                  |
-| Edit/delete messages                    | Implemented                                                                                                                  |
-| Forward/copy messages                   | Implemented                                                                                                                  |
-| Callback queries                        | Implemented                                                                                                                  |
-| Inline mode                             | Implemented                                                                                                                  |
-| Scenes/session                          | Implemented (core)                                                                                                           |
-| Middleware                              | Implemented                                                                                                                  |
-| Polling/webhook transports              | Implemented (core)                                                                                                           |
-| Chat admin/moderation                   | Implemented (core methods)                                                                                                   |
-| Group utilities                         | Implemented (core methods)                                                                                                   |
-| Bot profile/commands                    | Implemented (core methods)                                                                                                   |
-| Payments                                | Implemented (sendInvoice, createInvoiceLink, shipping/pre-checkout answers, star refunds)                                    |
-| Full update/event coverage              | Improved (chat_member, my_chat_member, chat_join_request, reactions, business updates typed + routed; use `allowed_updates`) |
-| High-frequency chat APIs                | Partial (join-request approve/decline and reaction _send_ APIs on `ApiClient` still mostly missing; shortcut sends, etc.)    |
-| Dev ergonomics (filters/session/format) | Partial (middleware + scenes; no Telegraf-style filters/session/MarkdownV2 escaper bundle)                                   |
+| Area                                    | Status                                                                                                                         |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Core messaging                          | Implemented                                                                                                                    |
+| Media sending                           | Implemented (major methods)                                                                                                    |
+| Edit/delete messages                    | Implemented                                                                                                                    |
+| Forward/copy messages                   | Implemented                                                                                                                    |
+| Callback queries                        | Implemented                                                                                                                    |
+| Inline mode                             | Implemented                                                                                                                    |
+| Scenes/session                          | Implemented (core)                                                                                                             |
+| Middleware                              | Implemented                                                                                                                    |
+| Polling/webhook transports              | Implemented (core)                                                                                                             |
+| Chat admin/moderation                   | Implemented (core methods)                                                                                                     |
+| Group utilities                         | Implemented (core methods)                                                                                                     |
+| Bot profile/commands                    | Implemented (core methods)                                                                                                     |
+| Payments                                | Implemented (sendInvoice, createInvoiceLink, shipping/pre-checkout answers, star refunds)                                      |
+| Full update/event coverage              | Improved (chat_member, my_chat_member, chat_join_request, reactions, business updates typed + routed; use `allowed_updates`)   |
+| High-frequency chat APIs                | Partial (join-request approve/decline and reaction _send_ APIs on `ApiClient` still mostly missing; shortcut sends, etc.)      |
+| Webhook hardening                       | Implemented (200-first ack; handler errors don't trigger Telegram retries; 429 `retry_after` respected in polling)             |
+| Production safety                       | Implemented (`RateLimitError`+`ValidationError`; per-user/chat rate profiles; pre-flight length checks on text/caption/answer) |
+| Dev ergonomics (filters/session/format) | Partial (middleware + scenes; no Telegraf-style filters/session/MarkdownV2 escaper bundle)                                     |
 
 </details>
 
@@ -530,8 +594,8 @@ Compared to [Telegraf’s `debug` namespaces](https://github.com/telegraf/telegr
 6. Bot profile + command management (scopes, localized commands, menu buttons) ![implemented](https://img.shields.io/badge/implemented-10b981)
 7. Payments and commerce flow (invoice, shipping, pre-checkout) ![implemented](https://img.shields.io/badge/implemented-10b981)
 8. Advanced update types (chat_member, reactions, join requests, business events) ![implemented](https://img.shields.io/badge/implemented-10b981)
-9. Webhook hardening (retry strategy, observability hooks) ![soon](https://img.shields.io/badge/soon-6366f1)
-10. Production safety layer (rate profiles, validation, structured errors) ![soon](https://img.shields.io/badge/soon-6366f1)
+9. Webhook hardening (retry strategy, observability hooks) ![implemented](https://img.shields.io/badge/implemented-10b981)
+10. Production safety layer (rate profiles, validation, structured errors) ![implemented](https://img.shields.io/badge/implemented-10b981)
 11. High-frequency Bot API + sender parity (remaining: join-request approve/decline, reactions, `sendLocation` / `sendVenue` / `sendContact` / `sendDice`, broader `TelegramApiMethods` + `GramClient`; note `sendPoll` / `stopPoll` are on `ApiClient` only today) ![planned](https://img.shields.io/badge/planned-64748b)
 12. Router ergonomics (typed update filters / narrowing, optional pluggable session outside scenes, MarkdownV2-safe escapers alongside `renderTelegramRichText`) ![planned](https://img.shields.io/badge/planned-64748b)
 13. Operations/debug parity (optional debug logs for webhook path/secret mismatches, configurable handler timeout + timeout logs, quieter or structured polling retry logging) ![planned](https://img.shields.io/badge/planned-64748b)

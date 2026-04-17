@@ -1,4 +1,5 @@
 import type { ApiClient } from "./core/api-client";
+import { ValidationError } from "./core/errors";
 import {
   GramClient,
   type AnimationOptions,
@@ -644,6 +645,10 @@ export class BaseContext {
   async answer(text?: string, showAlert?: boolean): Promise<unknown>;
   async answer(textOrOptions?: string | AnswerCallbackOptions, showAlert?: boolean) {
     if (!this.callbackQuery?.id) throw new Error("No callback query available in current context");
+    const answerText = typeof textOrOptions === "string" ? textOrOptions : textOrOptions?.text;
+    if (answerText !== undefined && answerText.length > 200) {
+      throw new ValidationError("callback answer text exceeds 200 chars", "text");
+    }
     if (typeof textOrOptions === "object" && textOrOptions !== null) {
       return this.api.answerCallbackQuery({
         callback_query_id: this.callbackQuery.id,

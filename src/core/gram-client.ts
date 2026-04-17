@@ -1,4 +1,5 @@
 import type { ApiClient } from "./api-client";
+import { ValidationError } from "./errors";
 import type {
   BotCommandScope,
   ChatAction,
@@ -383,6 +384,18 @@ export class GramClient {
   ) {}
 
   /**
+   * @param value - String to check; skipped when undefined
+   * @param max - Telegram's character limit for this field
+   * @param field - Field name for the error message
+   * @throws {ValidationError} When the value exceeds the limit
+   */
+  private static assertLen(value: string | undefined, max: number, field: string): void {
+    if (value !== undefined && value.length > max) {
+      throw new ValidationError(`${field} exceeds ${max} chars (got ${value.length})`, field);
+    }
+  }
+
+  /**
    * @param chatId - Target chat for subsequent calls on the returned client
    * @returns New client instance sharing the same API client
    */
@@ -401,6 +414,7 @@ export class GramClient {
       typeof textOrOptions === "string"
         ? { text: textOrOptions, replyMarkup, chatId }
         : textOrOptions;
+    GramClient.assertLen(normalized.text, 4096, "text");
     const targetChatId = normalized.chatId ?? this.options.chatId;
     if (targetChatId === undefined) {
       throw new Error("Missing chat id. Use ctx.gram or call gram.withChat(chatId).send(...).");
@@ -428,6 +442,7 @@ export class GramClient {
       typeof photoOrOptions !== "string" && "photo" in photoOrOptions
         ? photoOrOptions
         : { photo: photoOrOptions as InputFile, caption, chatId };
+    GramClient.assertLen(normalized.caption, 1024, "caption");
     const targetChatId = normalized.chatId ?? this.options.chatId;
     if (targetChatId === undefined) {
       throw new Error("Missing chat id. Use ctx.gram or call gram.withChat(chatId).photo(...).");
@@ -452,6 +467,7 @@ export class GramClient {
       typeof documentOrOptions !== "string" && "document" in documentOrOptions
         ? documentOrOptions
         : { document: documentOrOptions as InputFile, caption, chatId };
+    GramClient.assertLen(normalized.caption, 1024, "caption");
     const targetChatId = normalized.chatId ?? this.options.chatId;
     if (targetChatId === undefined) {
       throw new Error("Missing chat id. Use ctx.gram or call gram.withChat(chatId).doc(...).");
@@ -480,6 +496,7 @@ export class GramClient {
       typeof audioOrOptions !== "string" && "audio" in audioOrOptions
         ? audioOrOptions
         : { audio: audioOrOptions as InputFile, caption, chatId };
+    GramClient.assertLen(normalized.caption, 1024, "caption");
     const targetChatId = normalized.chatId ?? this.options.chatId;
     if (targetChatId === undefined)
       throw new Error("Missing chat id. Use gram.withChat(chatId).audio(...).");
@@ -506,6 +523,7 @@ export class GramClient {
       typeof videoOrOptions !== "string" && "video" in videoOrOptions
         ? videoOrOptions
         : { video: videoOrOptions as InputFile, caption, chatId };
+    GramClient.assertLen(normalized.caption, 1024, "caption");
     const targetChatId = normalized.chatId ?? this.options.chatId;
     if (targetChatId === undefined)
       throw new Error("Missing chat id. Use gram.withChat(chatId).video(...).");
@@ -536,6 +554,7 @@ export class GramClient {
       typeof animationOrOptions !== "string" && "animation" in animationOrOptions
         ? animationOrOptions
         : { animation: animationOrOptions as InputFile, caption, chatId };
+    GramClient.assertLen(normalized.caption, 1024, "caption");
     const targetChatId = normalized.chatId ?? this.options.chatId;
     if (targetChatId === undefined)
       throw new Error("Missing chat id. Use gram.withChat(chatId).animation(...).");
@@ -562,6 +581,7 @@ export class GramClient {
       typeof voiceOrOptions !== "string" && "voice" in voiceOrOptions
         ? voiceOrOptions
         : { voice: voiceOrOptions as InputFile, caption, chatId };
+    GramClient.assertLen(normalized.caption, 1024, "caption");
     const targetChatId = normalized.chatId ?? this.options.chatId;
     if (targetChatId === undefined)
       throw new Error("Missing chat id. Use gram.withChat(chatId).voice(...).");

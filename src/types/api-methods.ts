@@ -29,6 +29,8 @@ export interface TelegramResponse<T> {
   result: T;
   description?: string;
   error_code?: number;
+  /** Present on error responses; `retry_after` is set on 429 responses. */
+  parameters?: { retry_after?: number; migrate_to_chat_id?: number };
 }
 
 export interface GetUpdatesParams {
