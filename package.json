@@ -30,7 +30,7 @@
     "example:rich-text": "npm run build:examples && node dist/examples/rich-text-bot.js",
     "changeset": "changeset",
     "version-packages": "changeset version",
-    "release": "changeset publish"
+    "release": "changeset publish --access public"
   },
   "keywords": [
     "telegram",
@@ -51,6 +51,10 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/Mra1k3r0/gramora"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
   },
   "license": "MIT",
   "engines": {
