@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.0.9](https://github.com/Mra1k3r0/gramora/compare/v0.0.8...v0.0.9) (2026-04-19)
+
+### What's Changed
+
+- roadmap [#11](https://github.com/Mra1k3r0/gramora/issues/11) — join requests, reactions, and richer chat sends on api and gram clients — [`498098a`](https://github.com/Mra1k3r0/gramora/commit/498098a73e573d79d03f015f2614ff1f71f50a2f)
+
 ## [0.0.8](https://github.com/mra1k3r0/gramora/compare/v0.0.7...v0.0.8) (2026-04-17)
 
 ### What's Changed

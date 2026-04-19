@@ -1,6 +1,6 @@
 {
   "name": "@mra1k3r0/gramora",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "description": "Telegram bot framework for TypeScript: a small API for everyday bots, stronger types when you need them, and practical runtime controls.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
