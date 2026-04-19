@@ -62,6 +62,14 @@ export type {
   SendChatActionOptions,
   AnswerShippingQueryOptions,
   AnswerPreCheckoutQueryOptions,
+  JoinRequestUserOptions,
+  SetMessageReactionOptions,
+  SendLocationOptions,
+  SendVenueOptions,
+  SendContactOptions,
+  SendDiceOptions,
+  SendPollOptions,
+  StopPollOptions,
 } from "./core/gram-client";
 
 export type * from "./types/telegram";

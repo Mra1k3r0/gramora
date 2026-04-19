@@ -14,6 +14,7 @@ import type {
   LabeledPrice,
   MenuButton,
   ForumTopic,
+  ReactionType,
   ReplyMarkup,
   ShippingOption,
 } from "../types/telegram";
@@ -367,6 +368,104 @@ export interface CreateInviteLinkOptions {
   expireDate?: number;
   memberLimit?: number;
   createsJoinRequest?: boolean;
+}
+
+export interface JoinRequestUserOptions {
+  userId: number;
+  chatId?: number | string;
+}
+
+export interface SetMessageReactionOptions {
+  messageId: number;
+  reaction: ReactionType[];
+  chatId?: number | string;
+  isBig?: boolean;
+}
+
+export interface SendLocationOptions {
+  latitude: number;
+  longitude: number;
+  chatId?: number | string;
+  horizontalAccuracy?: number;
+  livePeriod?: number;
+  heading?: number;
+  proximityAlertRadius?: number;
+  silent?: boolean;
+  protect?: boolean;
+  replyTo?: number;
+  replyMarkup?: ReplyMarkup;
+  messageThreadId?: number;
+  businessConnectionId?: string;
+}
+
+export interface SendVenueOptions {
+  latitude: number;
+  longitude: number;
+  title: string;
+  address: string;
+  chatId?: number | string;
+  foursquareId?: string;
+  foursquareType?: string;
+  googlePlaceId?: string;
+  googlePlaceType?: string;
+  silent?: boolean;
+  protect?: boolean;
+  replyTo?: number;
+  replyMarkup?: ReplyMarkup;
+  messageThreadId?: number;
+  businessConnectionId?: string;
+}
+
+export interface SendContactOptions {
+  phoneNumber: string;
+  firstName: string;
+  chatId?: number | string;
+  lastName?: string;
+  vcard?: string;
+  silent?: boolean;
+  protect?: boolean;
+  replyTo?: number;
+  replyMarkup?: ReplyMarkup;
+  messageThreadId?: number;
+  businessConnectionId?: string;
+}
+
+export interface SendDiceOptions {
+  chatId?: number | string;
+  emoji?: string;
+  silent?: boolean;
+  protect?: boolean;
+  replyTo?: number;
+  replyMarkup?: ReplyMarkup;
+  messageThreadId?: number;
+  businessConnectionId?: string;
+}
+
+export interface SendPollOptions {
+  question: string;
+  options: string[];
+  chatId?: number | string;
+  isAnonymous?: boolean;
+  pollType?: "quiz" | "regular";
+  allowsMultipleAnswers?: boolean;
+  correctOptionId?: number;
+  explanation?: string;
+  explanationParseMode?: "Markdown" | "MarkdownV2" | "HTML";
+  openPeriod?: number;
+  closeDate?: number;
+  isClosed?: boolean;
+  silent?: boolean;
+  protect?: boolean;
+  replyTo?: number;
+  replyMarkup?: ReplyMarkup;
+  messageThreadId?: number;
+  businessConnectionId?: string;
+}
+
+export interface StopPollOptions {
+  messageId: number;
+  chatId?: number | string;
+  replyMarkup?: InlineKeyboardMarkup;
 }
 
 /**
@@ -1240,6 +1339,252 @@ export class GramClient {
       ...(options.createsJoinRequest !== undefined
         ? { creates_join_request: options.createsJoinRequest }
         : {}),
+    });
+  }
+
+  async approveJoinRequest(userId: number, chatId?: number | string): Promise<unknown>;
+  async approveJoinRequest(options: JoinRequestUserOptions): Promise<unknown>;
+  async approveJoinRequest(
+    userIdOrOptions: number | JoinRequestUserOptions,
+    chatId?: number | string,
+  ) {
+    const normalized: JoinRequestUserOptions =
+      typeof userIdOrOptions === "number" ? { userId: userIdOrOptions, chatId } : userIdOrOptions;
+    const targetChatId = normalized.chatId ?? this.options.chatId;
+    if (targetChatId === undefined) {
+      throw new Error("Missing chat id. Use gram.withChat(chatId).approveJoinRequest(...).");
+    }
+    return this.api.approveChatJoinRequest({
+      chat_id: targetChatId,
+      user_id: normalized.userId,
+    });
+  }
+
+  async declineJoinRequest(userId: number, chatId?: number | string): Promise<unknown>;
+  async declineJoinRequest(options: JoinRequestUserOptions): Promise<unknown>;
+  async declineJoinRequest(
+    userIdOrOptions: number | JoinRequestUserOptions,
+    chatId?: number | string,
+  ) {
+    const normalized: JoinRequestUserOptions =
+      typeof userIdOrOptions === "number" ? { userId: userIdOrOptions, chatId } : userIdOrOptions;
+    const targetChatId = normalized.chatId ?? this.options.chatId;
+    if (targetChatId === undefined) {
+      throw new Error("Missing chat id. Use gram.withChat(chatId).declineJoinRequest(...).");
+    }
+    return this.api.declineChatJoinRequest({
+      chat_id: targetChatId,
+      user_id: normalized.userId,
+    });
+  }
+
+  async setMessageReaction(options: SetMessageReactionOptions) {
+    const targetChatId = options.chatId ?? this.options.chatId;
+    if (targetChatId === undefined) {
+      throw new Error("Missing chat id. Use gram.withChat(chatId).setMessageReaction(...).");
+    }
+    return this.api.setMessageReaction({
+      chat_id: targetChatId,
+      message_id: options.messageId,
+      reaction: options.reaction,
+      ...(options.isBig !== undefined ? { is_big: options.isBig } : {}),
+    });
+  }
+
+  async location(latitude: number, longitude: number, chatId?: number | string): Promise<unknown>;
+  async location(options: SendLocationOptions): Promise<unknown>;
+  async location(
+    latOrOptions: number | SendLocationOptions,
+    longitude?: number,
+    chatId?: number | string,
+  ) {
+    const normalized: SendLocationOptions =
+      typeof latOrOptions === "number"
+        ? { latitude: latOrOptions, longitude: longitude as number, chatId }
+        : latOrOptions;
+    const targetChatId = normalized.chatId ?? this.options.chatId;
+    if (targetChatId === undefined) {
+      throw new Error("Missing chat id. Use gram.withChat(chatId).location(...).");
+    }
+    return this.api.sendLocation({
+      chat_id: targetChatId,
+      latitude: normalized.latitude,
+      longitude: normalized.longitude,
+      ...(normalized.horizontalAccuracy !== undefined
+        ? { horizontal_accuracy: normalized.horizontalAccuracy }
+        : {}),
+      ...(normalized.livePeriod !== undefined ? { live_period: normalized.livePeriod } : {}),
+      ...(normalized.heading !== undefined ? { heading: normalized.heading } : {}),
+      ...(normalized.proximityAlertRadius !== undefined
+        ? { proximity_alert_radius: normalized.proximityAlertRadius }
+        : {}),
+      ...(normalized.silent !== undefined ? { disable_notification: normalized.silent } : {}),
+      ...(normalized.protect !== undefined ? { protect_content: normalized.protect } : {}),
+      ...(normalized.replyTo !== undefined ? { reply_to_message_id: normalized.replyTo } : {}),
+      ...(normalized.replyMarkup ? { reply_markup: normalized.replyMarkup } : {}),
+      ...(normalized.messageThreadId !== undefined
+        ? { message_thread_id: normalized.messageThreadId }
+        : {}),
+      ...(normalized.businessConnectionId !== undefined
+        ? { business_connection_id: normalized.businessConnectionId }
+        : {}),
+    });
+  }
+
+  async venue(options: SendVenueOptions) {
+    GramClient.assertLen(options.title, 64, "title");
+    GramClient.assertLen(options.address, 64, "address");
+    const targetChatId = options.chatId ?? this.options.chatId;
+    if (targetChatId === undefined) {
+      throw new Error("Missing chat id. Use gram.withChat(chatId).venue(...).");
+    }
+    return this.api.sendVenue({
+      chat_id: targetChatId,
+      latitude: options.latitude,
+      longitude: options.longitude,
+      title: options.title,
+      address: options.address,
+      ...(options.foursquareId !== undefined ? { foursquare_id: options.foursquareId } : {}),
+      ...(options.foursquareType !== undefined ? { foursquare_type: options.foursquareType } : {}),
+      ...(options.googlePlaceId !== undefined ? { google_place_id: options.googlePlaceId } : {}),
+      ...(options.googlePlaceType !== undefined
+        ? { google_place_type: options.googlePlaceType }
+        : {}),
+      ...(options.silent !== undefined ? { disable_notification: options.silent } : {}),
+      ...(options.protect !== undefined ? { protect_content: options.protect } : {}),
+      ...(options.replyTo !== undefined ? { reply_to_message_id: options.replyTo } : {}),
+      ...(options.replyMarkup ? { reply_markup: options.replyMarkup } : {}),
+      ...(options.messageThreadId !== undefined
+        ? { message_thread_id: options.messageThreadId }
+        : {}),
+      ...(options.businessConnectionId !== undefined
+        ? { business_connection_id: options.businessConnectionId }
+        : {}),
+    });
+  }
+
+  async contact(phoneNumber: string, firstName: string, chatId?: number | string): Promise<unknown>;
+  async contact(options: SendContactOptions): Promise<unknown>;
+  async contact(
+    phoneOrOptions: string | SendContactOptions,
+    firstName?: string,
+    chatId?: number | string,
+  ) {
+    const normalized: SendContactOptions =
+      typeof phoneOrOptions === "string"
+        ? { phoneNumber: phoneOrOptions, firstName: firstName as string, chatId }
+        : phoneOrOptions;
+    GramClient.assertLen(normalized.firstName, 64, "firstName");
+    GramClient.assertLen(normalized.lastName, 64, "lastName");
+    GramClient.assertLen(normalized.vcard, 2048, "vcard");
+    const targetChatId = normalized.chatId ?? this.options.chatId;
+    if (targetChatId === undefined) {
+      throw new Error("Missing chat id. Use gram.withChat(chatId).contact(...).");
+    }
+    return this.api.sendContact({
+      chat_id: targetChatId,
+      phone_number: normalized.phoneNumber,
+      first_name: normalized.firstName,
+      ...(normalized.lastName !== undefined ? { last_name: normalized.lastName } : {}),
+      ...(normalized.vcard !== undefined ? { vcard: normalized.vcard } : {}),
+      ...(normalized.silent !== undefined ? { disable_notification: normalized.silent } : {}),
+      ...(normalized.protect !== undefined ? { protect_content: normalized.protect } : {}),
+      ...(normalized.replyTo !== undefined ? { reply_to_message_id: normalized.replyTo } : {}),
+      ...(normalized.replyMarkup ? { reply_markup: normalized.replyMarkup } : {}),
+      ...(normalized.messageThreadId !== undefined
+        ? { message_thread_id: normalized.messageThreadId }
+        : {}),
+      ...(normalized.businessConnectionId !== undefined
+        ? { business_connection_id: normalized.businessConnectionId }
+        : {}),
+    });
+  }
+
+  async dice(emoji?: string, chatId?: number | string): Promise<unknown>;
+  async dice(options: SendDiceOptions): Promise<unknown>;
+  async dice(emojiOrOptions?: string | SendDiceOptions, chatId?: number | string) {
+    const normalized: SendDiceOptions =
+      typeof emojiOrOptions === "string" || emojiOrOptions === undefined
+        ? { emoji: emojiOrOptions, chatId }
+        : emojiOrOptions;
+    const targetChatId = normalized.chatId ?? this.options.chatId;
+    if (targetChatId === undefined) {
+      throw new Error("Missing chat id. Use gram.withChat(chatId).dice(...).");
+    }
+    return this.api.sendDice({
+      chat_id: targetChatId,
+      ...(normalized.emoji !== undefined ? { emoji: normalized.emoji } : {}),
+      ...(normalized.silent !== undefined ? { disable_notification: normalized.silent } : {}),
+      ...(normalized.protect !== undefined ? { protect_content: normalized.protect } : {}),
+      ...(normalized.replyTo !== undefined ? { reply_to_message_id: normalized.replyTo } : {}),
+      ...(normalized.replyMarkup ? { reply_markup: normalized.replyMarkup } : {}),
+      ...(normalized.messageThreadId !== undefined
+        ? { message_thread_id: normalized.messageThreadId }
+        : {}),
+      ...(normalized.businessConnectionId !== undefined
+        ? { business_connection_id: normalized.businessConnectionId }
+        : {}),
+    });
+  }
+
+  async poll(options: SendPollOptions) {
+    GramClient.assertLen(options.question, 300, "question");
+    GramClient.assertLen(options.explanation, 200, "explanation");
+    const optCount = options.options.length;
+    if (optCount < 2 || optCount > 10) {
+      throw new ValidationError(`poll must have 2–10 options (got ${optCount})`, "options");
+    }
+    const targetChatId = options.chatId ?? this.options.chatId;
+    if (targetChatId === undefined) {
+      throw new Error("Missing chat id. Use gram.withChat(chatId).poll(...).");
+    }
+    return this.api.sendPoll({
+      chat_id: targetChatId,
+      question: options.question,
+      options: options.options,
+      ...(options.isAnonymous !== undefined ? { is_anonymous: options.isAnonymous } : {}),
+      ...(options.pollType !== undefined ? { type: options.pollType } : {}),
+      ...(options.allowsMultipleAnswers !== undefined
+        ? { allows_multiple_answers: options.allowsMultipleAnswers }
+        : {}),
+      ...(options.correctOptionId !== undefined
+        ? { correct_option_id: options.correctOptionId }
+        : {}),
+      ...(options.explanation !== undefined ? { explanation: options.explanation } : {}),
+      ...(options.explanationParseMode !== undefined
+        ? { explanation_parse_mode: options.explanationParseMode }
+        : {}),
+      ...(options.openPeriod !== undefined ? { open_period: options.openPeriod } : {}),
+      ...(options.closeDate !== undefined ? { close_date: options.closeDate } : {}),
+      ...(options.isClosed !== undefined ? { is_closed: options.isClosed } : {}),
+      ...(options.silent !== undefined ? { disable_notification: options.silent } : {}),
+      ...(options.protect !== undefined ? { protect_content: options.protect } : {}),
+      ...(options.replyTo !== undefined ? { reply_to_message_id: options.replyTo } : {}),
+      ...(options.replyMarkup ? { reply_markup: options.replyMarkup } : {}),
+      ...(options.messageThreadId !== undefined
+        ? { message_thread_id: options.messageThreadId }
+        : {}),
+      ...(options.businessConnectionId !== undefined
+        ? { business_connection_id: options.businessConnectionId }
+        : {}),
+    });
+  }
+
+  async stopPoll(messageId: number, chatId?: number | string): Promise<unknown>;
+  async stopPoll(options: StopPollOptions): Promise<unknown>;
+  async stopPoll(messageIdOrOptions: number | StopPollOptions, chatId?: number | string) {
+    const normalized: StopPollOptions =
+      typeof messageIdOrOptions === "number"
+        ? { messageId: messageIdOrOptions, chatId }
+        : messageIdOrOptions;
+    const targetChatId = normalized.chatId ?? this.options.chatId;
+    if (targetChatId === undefined) {
+      throw new Error("Missing chat id. Use gram.withChat(chatId).stopPoll(...).");
+    }
+    return this.api.stopPoll({
+      chat_id: targetChatId,
+      message_id: normalized.messageId,
+      ...(normalized.replyMarkup ? { reply_markup: normalized.replyMarkup } : {}),
     });
   }
 }

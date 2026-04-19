@@ -478,6 +478,27 @@ export class ApiClient {
   deleteForumTopic(params: TelegramApiMethods["deleteForumTopic"]["params"]) {
     return this.call("deleteForumTopic", params);
   }
+  approveChatJoinRequest(params: TelegramApiMethods["approveChatJoinRequest"]["params"]) {
+    return this.call("approveChatJoinRequest", params);
+  }
+  declineChatJoinRequest(params: TelegramApiMethods["declineChatJoinRequest"]["params"]) {
+    return this.call("declineChatJoinRequest", params);
+  }
+  setMessageReaction(params: TelegramApiMethods["setMessageReaction"]["params"]) {
+    return this.call("setMessageReaction", params);
+  }
+  sendLocation(params: TelegramApiMethods["sendLocation"]["params"]) {
+    return this.call("sendLocation", params);
+  }
+  sendVenue(params: TelegramApiMethods["sendVenue"]["params"]) {
+    return this.call("sendVenue", params);
+  }
+  sendContact(params: TelegramApiMethods["sendContact"]["params"]) {
+    return this.call("sendContact", params);
+  }
+  sendDice(params: TelegramApiMethods["sendDice"]["params"]) {
+    return this.call("sendDice", params);
+  }
   sendPoll(params: TelegramApiMethods["sendPoll"]["params"]) {
     return this.call("sendPoll", params);
   }

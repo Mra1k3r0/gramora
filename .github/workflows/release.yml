@@ -1,21 +1,29 @@
-name: changesets
+name: release
 
 on:
   push:
-    branches: [main, master]
-  workflow_dispatch:
+    branches: [master, main]
 
 permissions:
   contents: write
+  issues: write
   pull-requests: write
   id-token: write
 
+concurrency:
+  group: semantic-release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   release:
+    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
     runs-on: ubuntu-latest
     steps:
       - name: checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
 
       - name: setup node
         uses: actions/setup-node@v4
@@ -28,24 +36,14 @@ jobs:
       - name: install
         run: npm ci
 
-      - name: verify npm auth identity
-        run: npm whoami
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
       - name: verify
         run: npm run verify
 
       - name: build
         run: npm run build
 
-      - name: create release pr or publish
-        uses: changesets/action@v1
-        with:
-          version: npm run version-packages
-          publish: npm run release
-          title: "chore: release"
-          commit: "chore: release"
+      - name: semantic-release
+        run: npx semantic-release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

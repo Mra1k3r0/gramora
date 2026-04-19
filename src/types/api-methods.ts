@@ -15,6 +15,7 @@ import type {
   MenuButton,
   Message,
   Poll,
+  ReactionType,
   ReplyMarkup,
   ReplyKeyboardMarkup,
   ReplyKeyboardRemove,
@@ -516,6 +517,109 @@ export interface CreateChatInviteLinkParams {
   creates_join_request?: boolean;
 }
 
+export interface ApproveChatJoinRequestParams {
+  chat_id: number | string;
+  user_id: number;
+}
+
+export interface DeclineChatJoinRequestParams {
+  chat_id: number | string;
+  user_id: number;
+}
+
+export interface SetMessageReactionParams {
+  chat_id: number | string;
+  message_id: number;
+  reaction: ReactionType[];
+  is_big?: boolean;
+}
+
+export interface SendLocationParams {
+  chat_id: number | string;
+  latitude: number;
+  longitude: number;
+  horizontal_accuracy?: number;
+  live_period?: number;
+  heading?: number;
+  proximity_alert_radius?: number;
+  disable_notification?: boolean;
+  protect_content?: boolean;
+  reply_to_message_id?: number;
+  reply_markup?: ReplyMarkup;
+  message_thread_id?: number;
+  business_connection_id?: string;
+}
+
+export interface SendVenueParams {
+  chat_id: number | string;
+  latitude: number;
+  longitude: number;
+  title: string;
+  address: string;
+  foursquare_id?: string;
+  foursquare_type?: string;
+  google_place_id?: string;
+  google_place_type?: string;
+  disable_notification?: boolean;
+  protect_content?: boolean;
+  reply_to_message_id?: number;
+  reply_markup?: ReplyMarkup;
+  message_thread_id?: number;
+  business_connection_id?: string;
+}
+
+export interface SendContactParams {
+  chat_id: number | string;
+  phone_number: string;
+  first_name: string;
+  last_name?: string;
+  vcard?: string;
+  disable_notification?: boolean;
+  protect_content?: boolean;
+  reply_to_message_id?: number;
+  reply_markup?: ReplyMarkup;
+  message_thread_id?: number;
+  business_connection_id?: string;
+}
+
+export interface SendDiceParams {
+  chat_id: number | string;
+  emoji?: string;
+  disable_notification?: boolean;
+  protect_content?: boolean;
+  reply_to_message_id?: number;
+  reply_markup?: ReplyMarkup;
+  message_thread_id?: number;
+  business_connection_id?: string;
+}
+
+export interface SendPollParams {
+  chat_id: number | string;
+  question: string;
+  options: string[];
+  is_anonymous?: boolean;
+  type?: "quiz" | "regular";
+  allows_multiple_answers?: boolean;
+  correct_option_id?: number;
+  explanation?: string;
+  explanation_parse_mode?: "Markdown" | "MarkdownV2" | "HTML";
+  open_period?: number;
+  close_date?: number;
+  is_closed?: boolean;
+  disable_notification?: boolean;
+  protect_content?: boolean;
+  reply_to_message_id?: number;
+  reply_markup?: ReplyMarkup;
+  message_thread_id?: number;
+  business_connection_id?: string;
+}
+
+export interface StopPollParams {
+  chat_id: number | string;
+  message_id: number;
+  reply_markup?: InlineKeyboardMarkup;
+}
+
 export interface TelegramApiMethods {
   getMe: { params: void; result: User };
   getUpdates: { params: GetUpdatesParams; result: Update[] };
@@ -570,20 +674,15 @@ export interface TelegramApiMethods {
   closeForumTopic: { params: CloseForumTopicParams; result: true };
   reopenForumTopic: { params: ReopenForumTopicParams; result: true };
   deleteForumTopic: { params: DeleteForumTopicParams; result: true };
-  sendPoll: {
-    params: {
-      chat_id: number | string;
-      question: string;
-      options: string[];
-      is_anonymous?: boolean;
-      allows_multiple_answers?: boolean;
-    };
-    result: Message;
-  };
-  stopPoll: {
-    params: { chat_id: number | string; message_id: number };
-    result: Poll;
-  };
+  approveChatJoinRequest: { params: ApproveChatJoinRequestParams; result: true };
+  declineChatJoinRequest: { params: DeclineChatJoinRequestParams; result: true };
+  setMessageReaction: { params: SetMessageReactionParams; result: true };
+  sendLocation: { params: SendLocationParams; result: Message };
+  sendVenue: { params: SendVenueParams; result: Message };
+  sendContact: { params: SendContactParams; result: Message };
+  sendDice: { params: SendDiceParams; result: Message };
+  sendPoll: { params: SendPollParams; result: Message };
+  stopPoll: { params: StopPollParams; result: Poll };
   sendInvoice: { params: SendInvoiceParams; result: Message };
   createInvoiceLink: { params: CreateInvoiceLinkParams; result: string };
   answerShippingQuery: { params: AnswerShippingQueryParams; result: true };
