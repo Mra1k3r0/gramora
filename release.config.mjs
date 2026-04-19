@@ -23,6 +23,7 @@ export default {
       "@semantic-release/changelog",
       {
         changelogFile: "CHANGELOG.md",
+        changelogTitle: "# Changelog",
       },
     ],
     ["@semantic-release/npm", { npmPublishArgs: ["--access", "public"] }],

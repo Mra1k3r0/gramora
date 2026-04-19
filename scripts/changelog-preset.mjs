@@ -1,11 +1,11 @@
 import createPreset from "conventional-changelog-conventionalcommits";
 
 const types = [
-  { type: "feat", section: "what's changed" },
-  { type: "feature", section: "what's changed" },
-  { type: "fix", section: "what's changed" },
-  { type: "perf", section: "what's changed" },
-  { type: "revert", section: "what's changed" },
+  { type: "feat", section: "What's Changed" },
+  { type: "feature", section: "What's Changed" },
+  { type: "fix", section: "What's Changed" },
+  { type: "perf", section: "What's Changed" },
+  { type: "revert", section: "What's Changed" },
   { type: "docs", section: "Documentation", hidden: true },
   { type: "style", section: "Styles", hidden: true },
   { type: "chore", section: "Miscellaneous Chores", hidden: true },
@@ -16,13 +16,16 @@ const types = [
 ];
 
 const mainTemplate = `{{> header}}
+
+### What's Changed
+
 {{#if noteGroups}}
 {{#each noteGroups}}
 
 ### ⚠ {{title}}
 
 {{#each notes}}
-* {{#if commit.scope}}**{{commit.scope}}:** {{/if}}{{text}}
+- {{#if commit.scope}}**{{commit.scope}}:** {{/if}}{{text}}
 {{/each}}
 {{/each}}
 {{/if}}
@@ -34,17 +37,32 @@ const mainTemplate = `{{> header}}
 {{> footer}}
 `;
 
+const commitPartial = `- {{#if scope}}**{{scope}}:** {{/if}}{{#if subject}}{{~subject}}{{else}}{{~header}}{{/if}}{{#if hash}}{{#if @root.linkReferences}} — [\`{{shortHash}}\`]({{~@root.host}}/{{#if this.owner}}{{~this.owner}}{{else}}{{~@root.owner}}{{/if}}/{{#if this.repository}}{{~this.repository}}{{else}}{{~@root.repository}}{{/if}}/commit/{{hash}}){{else}} — {{shortHash}}{{/if}}{{/if}}
+
+{{~#if references~}}
+  , closes
+  {{~#each references}} {{#if @root.linkReferences~}}
+    [
+    {{~#if this.owner}}
+      {{~this.owner}}/
+    {{~/if}}
+    {{~this.repository}}{{this.prefix}}{{this.issue}}]({{~@root.host}}/{{#if this.owner}}{{~this.owner}}{{else}}{{~@root.owner}}{{/if}}/{{#if this.repository}}{{~this.repository}}{{else}}{{~@root.repository}}{{/if}}/issues/{{this.issue}})
+  {{~else}}
+    {{~#if this.owner}}
+      {{~this.owner}}/
+    {{~/if}}
+    {{~this.repository}}{{this.prefix}}{{this.issue}}
+  {{~/if}}{{/each}}
+{{~/if}}
+
+`;
+
 /**
  * Preset for `@semantic-release/release-notes-generator` `config` option:
- * one "## what's changed" section, no per-type subheadings, lowercase subjects.
+ * version as the main header, then ### What's Changed, then list items with — [`hash`](url).
  */
 export default function changelogPreset() {
   const base = createPreset({ types });
-  const baseTransform = base.writer.transform;
-
-  const headerPartial = `## what's changed
-
-${base.writer.headerPartial.replace(/^##/m, "###")}`;
 
   return {
     commits: base.commits,
@@ -52,14 +70,8 @@ ${base.writer.headerPartial.replace(/^##/m, "###")}`;
     writer: {
       ...base.writer,
       mainTemplate,
-      headerPartial,
-      transform(commit, context) {
-        const out = baseTransform(commit, context);
-        if (out?.subject) {
-          out.subject = String(out.subject).toLowerCase();
-        }
-        return out;
-      },
+      headerPartial: base.writer.headerPartial,
+      commitPartial,
     },
   };
 }
