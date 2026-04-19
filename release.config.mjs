@@ -6,7 +6,13 @@ export default {
   branches: ["master", "main"],
   tagFormat: "v${version}",
   plugins: [
-    "@semantic-release/commit-analyzer",
+    [
+      "@semantic-release/commit-analyzer",
+      {
+        // Before 1.0 we still ship small increments: feat → patch (e.g. 0.0.8 → 0.0.9), not minor.
+        releaseRules: [{ type: "feat", release: "patch" }],
+      },
+    ],
     [
       "@semantic-release/release-notes-generator",
       {
