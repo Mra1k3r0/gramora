@@ -40,7 +40,7 @@ const mainTemplate = `{{> header}}
 const commitPartial = `- {{#if scope}}**{{scope}}:** {{/if}}{{#if subject}}{{~subject}}{{else}}{{~header}}{{/if}}{{#if hash}}{{#if @root.linkReferences}} — [\`{{shortHash}}\`]({{~@root.host}}/{{#if this.owner}}{{~this.owner}}{{else}}{{~@root.owner}}{{/if}}/{{#if this.repository}}{{~this.repository}}{{else}}{{~@root.repository}}{{/if}}/commit/{{hash}}){{else}} — {{shortHash}}{{/if}}{{/if}}
 
 {{~#if references~}}
-  , closes
+  , {{#if referenceAction}}{{referenceAction}}{{else}}closes{{/if}}
   {{~#each references}} {{#if @root.linkReferences~}}
     [
     {{~#if this.owner}}
@@ -63,6 +63,7 @@ const commitPartial = `- {{#if scope}}**{{scope}}:** {{/if}}{{#if subject}}{{~su
  */
 export default function changelogPreset() {
   const base = createPreset({ types });
+  const baseTransform = base.writer.transform;
 
   return {
     commits: base.commits,
@@ -72,6 +73,13 @@ export default function changelogPreset() {
       mainTemplate,
       headerPartial: base.writer.headerPartial,
       commitPartial,
+      transform(commit, context) {
+        const rendered = baseTransform ? baseTransform(commit, context) : commit;
+        if (!rendered) return rendered;
+        const text = `${rendered.subject ?? ""} ${rendered.header ?? ""}`;
+        rendered.referenceAction = /\broadmap\s*#\d+\b/i.test(text) ? "roadmap" : "closes";
+        return rendered;
+      },
     },
   };
 }
