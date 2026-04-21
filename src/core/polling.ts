@@ -32,7 +32,9 @@ export class PollingTransport {
   constructor(
     private readonly api: ApiClient,
     private readonly onUpdate: UpdateHandler,
-    private readonly hooks?: Pick<BotHooks, "onPollingError">,
+    private readonly options?: Pick<BotHooks, "onPollingError"> & {
+      onRetryLog?: (error: unknown, retryDelayMs: number) => void;
+    },
   ) {}
 
   async start(options?: { timeout?: number; limit?: number; allowedUpdates?: string[] }) {
@@ -60,7 +62,8 @@ export class PollingTransport {
         // 429: use Telegram's retry_after instead of exponential backoff
         const delayMs = error instanceof RateLimitError ? error.retryAfter * 1000 : retryDelayMs;
 
-        this.hooks?.onPollingError?.(error, delayMs);
+        this.options?.onPollingError?.(error, delayMs);
+        this.options?.onRetryLog?.(error, delayMs);
         await new Promise<void>((resolve) => setTimeout(resolve, delayMs));
 
         if (!(error instanceof RateLimitError)) {
@@ -77,13 +80,17 @@ export class PollingTransport {
 
 export class WebhookTransport {
   private closeServer?: () => void;
-  constructor(private readonly onUpdate: UpdateHandler) {}
+  constructor(
+    private readonly onUpdate: UpdateHandler,
+    private readonly onReject?: (kind: "path" | "secret", req: IncomingMessage) => void,
+  ) {}
 
   async start(options: { port: number; path?: string; secretToken?: string }) {
     const targetPath = options.path ?? "/webhook";
     const server = createServer((req: IncomingMessage, res: ServerResponse) => {
       const pathOnly = (req.url ?? "").split("?")[0] ?? "";
       if (req.method !== "POST" || pathOnly !== targetPath) {
+        this.onReject?.("path", req);
         res.statusCode = 404;
         res.end("not found");
         return;
@@ -91,6 +98,7 @@ export class WebhookTransport {
       if (options.secretToken) {
         const incoming = headerSingleValue(req.headers["x-telegram-bot-api-secret-token"]);
         if (typeof incoming !== "string" || !timingSafeSecretEqual(incoming, options.secretToken)) {
+          this.onReject?.("secret", req);
           res.statusCode = 401;
           res.end("unauthorized");
           return;

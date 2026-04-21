@@ -133,6 +133,15 @@ class Bot {
     this.router.registerSimpleHandler("deleted_business_messages", "*", handler);
     return this;
   }
+  onFilter<T extends Update>(
+    filter: (update: Update) => update is T,
+    handler: (gram: BaseContext & { update: T }) => Promise<void> | void,
+  ) {
+    this.router.registerFilteredHandler(filter, async (gram) =>
+      handler(gram as BaseContext & { update: T }),
+    );
+    return this;
+  }
   module(register: BotModule) {
     register(this);
     return this;
@@ -223,7 +232,18 @@ class Bot {
         });
       }
 
-      this.webhook = new WebhookTransport((update) => this.processUpdate(update));
+      this.webhook = new WebhookTransport(
+        (update) => this.processUpdate(update),
+        this.options.operations?.logWebhookRejects
+          ? (kind, req) => {
+              const pathOnly = (req.url ?? "").split("?")[0] ?? "";
+              this.debug(
+                "webhook",
+                `rejected ${kind} mismatch method=${req.method ?? "unknown"} path=${pathOnly}`,
+              );
+            }
+          : undefined,
+      );
       await this.webhook.start({
         ...webhookConfig,
         path: resolvedPath,
@@ -237,6 +257,20 @@ class Bot {
     this.debug("transport", "launching polling transport");
     this.polling = new PollingTransport(this.api, (update) => this.processUpdate(update), {
       onPollingError: this.options.hooks?.onPollingError,
+      onRetryLog:
+        this.options.operations?.pollingRetryLogs === "quiet"
+          ? undefined
+          : (error, retryDelayMs) => {
+              const reason = error instanceof Error ? error.message : String(error);
+              this.debug(
+                "polling",
+                stringifyForLog({
+                  event: "retry",
+                  delayMs: retryDelayMs,
+                  reason,
+                }),
+              );
+            },
     });
     await this.polling.start({
       timeout: this.options.polling?.timeout,
@@ -253,6 +287,7 @@ class Bot {
 
   private async processUpdate(update: Update) {
     const startedAt = Date.now();
+    const timeoutMs = this.options.operations?.handlerTimeoutMs;
     try {
       this.debug("update", `received id=${update.update_id} kind=${this.detectUpdateKind(update)}`);
       const payload = stringifyForLog(this.sanitizeForLog(update));
@@ -262,7 +297,7 @@ class Bot {
           ? `${payload.slice(0, maxPayloadChars)}\n… (truncated, ${String(payload.length)} chars)`
           : payload;
       this.debug("payload", `body:\n${truncated}`);
-      await this.router.handleUpdate(update);
+      await this.runWithHandlerTimeout(update, timeoutMs);
       const durationMs = Date.now() - startedAt;
       this.debug("update", `handled id=${update.update_id} in ${durationMs}ms`);
       this.options.hooks?.onUpdateProcessed?.(update, durationMs);
@@ -273,6 +308,26 @@ class Bot {
       );
       this.options.hooks?.onUpdateError?.(update, error);
       // do not rethrow: let polling continue the batch and webhook return 200
+    }
+  }
+
+  private async runWithHandlerTimeout(update: Update, timeoutMs?: number) {
+    if (!timeoutMs || timeoutMs <= 0) {
+      await this.router.handleUpdate(update);
+      return;
+    }
+
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      timeoutId = setTimeout(() => {
+        reject(new Error(`handler timeout after ${timeoutMs}ms`));
+      }, timeoutMs);
+    });
+
+    try {
+      await Promise.race([this.router.handleUpdate(update), timeoutPromise]);
+    } finally {
+      if (timeoutId) clearTimeout(timeoutId);
     }
   }
 

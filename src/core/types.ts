@@ -39,6 +39,10 @@ export interface BotModuleHost {
   onDeletedBusinessMessages: (
     handler: (gram: BaseContext) => Promise<void> | void,
   ) => BotModuleHost;
+  onFilter: <T extends Update>(
+    filter: (update: Update) => update is T,
+    handler: (gram: BaseContext & { update: T }) => Promise<void> | void,
+  ) => BotModuleHost;
 }
 
 export type BotModule = (bot: BotModuleHost) => void;
@@ -68,6 +72,14 @@ export interface BotOptions {
   proxy?: string;
   debug?: boolean;
   mode?: "full" | "core";
+  operations?: {
+    /** Per-update handler timeout in milliseconds. Disabled when undefined or <= 0. */
+    handlerTimeoutMs?: number;
+    /** Emit debug logs when webhook path or secret token mismatches. */
+    logWebhookRejects?: boolean;
+    /** Polling error logs mode. `quiet` disables runtime logs, hooks still fire. */
+    pollingRetryLogs?: "quiet" | "structured";
+  };
 }
 
 export interface LaunchOptions {
