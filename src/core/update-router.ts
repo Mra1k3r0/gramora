@@ -21,6 +21,10 @@ interface RegisteredController {
   classMiddleware: MiddlewareFn<BaseContext>[];
 }
 type SimpleHandler = (gram: BaseContext) => Promise<void> | void;
+type FilteredHandler<T extends Update = Update> = {
+  filter: (update: Update) => update is T;
+  fn: (gram: BaseContext) => Promise<void> | void;
+};
 type RouterMode = "full" | "core";
 type HandlerRunner = {
   def: HandlerDefinition;
@@ -38,6 +42,7 @@ export class UpdateRouter {
     fn: SimpleHandler;
     callbackRegex?: RegExp;
   }> = [];
+  private readonly filteredHandlers: FilteredHandler[] = [];
 
   private readonly commandHandlers = new Map<string, HandlerRunner[]>();
   private readonly onMessageHandlers: HandlerRunner[] = [];
@@ -109,6 +114,13 @@ export class UpdateRouter {
     });
   }
 
+  registerFilteredHandler<T extends Update>(
+    filter: (update: Update) => update is T,
+    fn: (gram: BaseContext) => Promise<void> | void,
+  ) {
+    this.filteredHandlers.push({ filter, fn });
+  }
+
   /**
    * @param update - Telegram update payload
    * @see https://core.telegram.org/bots/api#update
@@ -136,10 +148,24 @@ export class UpdateRouter {
     await this.dispatchIndexedHandlers(update, sceneControl);
 
     for (const item of this.simpleHandlers) {
-      const match = this.matches(update, item.def);
+      const match =
+        item.def.kind === "callback_query" && item.callbackRegex
+          ? (() => {
+              const data = update.callback_query?.data;
+              if (!data) return { ok: false } as const;
+              const matched = data.match(item.callbackRegex);
+              return { ok: Boolean(matched), groups: matched ? matched.slice(1) : undefined };
+            })()
+          : this.matches(update, item.def);
       if (!match.ok) continue;
       const gram = this.createContext(update, item.def, sceneControl);
       if (match.groups) gram.match = match.groups;
+      await this.runWithGlobalMiddleware(gram, async () => item.fn(gram));
+    }
+
+    for (const item of this.filteredHandlers) {
+      if (!item.filter(update)) continue;
+      const gram = new BaseContext({ update, api: this.api, scene: sceneControl });
       await this.runWithGlobalMiddleware(gram, async () => item.fn(gram));
     }
   }

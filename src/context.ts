@@ -113,6 +113,7 @@ export class BaseContext {
   public readonly editedBusinessMessage: Message | undefined;
   public readonly deletedBusinessMessages: BusinessMessagesDeleted | undefined;
   public readonly scene: SceneControl;
+  public session: Record<string, unknown>;
   public match?: string[];
 
   /**
@@ -158,6 +159,7 @@ export class BaseContext {
       leave: async () => {},
       next: async () => {},
     };
+    this.session = {};
     this.match = options.match;
   }
 

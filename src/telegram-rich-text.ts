@@ -30,6 +30,14 @@ export function escapeTelegramHtml(text: string): string {
   return escapeHtml(text);
 }
 
+/**
+ * Escapes user input for Telegram MarkdownV2 parse mode.
+ * @see https://core.telegram.org/bots/api#markdownv2-style
+ */
+export function escapeTelegramMarkdownV2(text: string): string {
+  return text.replace(/([_*\[\]()~`>#+\-=|{}.!\\])/g, "\\$1");
+}
+
 /** Markdown-ish input → Telegram HTML (`parseMode: "HTML"`). */
 export function renderTelegramRichText(
   input: string,

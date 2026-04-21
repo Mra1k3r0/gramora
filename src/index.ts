@@ -44,8 +44,14 @@ export type { AnswerCallbackOptions } from "./context";
 
 export { Keyboard } from "./keyboard";
 export { InlineResult, InlineResultBuilder } from "./inline-result";
-export { escapeTelegramHtml, renderTelegramRichText } from "./telegram-rich-text";
+export {
+  escapeTelegramHtml,
+  escapeTelegramMarkdownV2,
+  renderTelegramRichText,
+} from "./telegram-rich-text";
 export type { RenderTelegramRichTextOptions } from "./telegram-rich-text";
+export { isMessageKind, isUpdateType } from "./update-filters";
+export type { UpdateByType, UpdateFilter, UpdateType } from "./update-filters";
 
 export { Composer } from "./middleware/composer";
 export type { MiddlewareFn } from "./middleware/types";
@@ -54,6 +60,8 @@ export { formatProxyProbeMessage } from "./core/logger";
 export { logger } from "./middleware/built-in/logger";
 export { rateLimiter } from "./middleware/built-in/rate-limiter";
 export { errorHandler } from "./middleware/built-in/error-handler";
+export { session } from "./middleware/built-in/session";
+export type { SessionOptions, SessionStore } from "./middleware/built-in/session";
 
 export type {
   SendInvoiceOptions,
