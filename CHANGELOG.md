@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.10](https://github.com/Mra1k3r0/gramora/compare/v0.0.9...v0.0.10) (2026-04-21)
+
+### What's Changed
+
+- implement roadmap [#12](https://github.com/Mra1k3r0/gramora/issues/12) router ergonomics — [`616cdc0`](https://github.com/Mra1k3r0/gramora/commit/616cdc01aceb23ddd7524bab6e1daf1a94bb81a5)
+- implement roadmap [#13](https://github.com/Mra1k3r0/gramora/issues/13) operations debug parity — [`de81e04`](https://github.com/Mra1k3r0/gramora/commit/de81e04f02b02c56a280f304738170272a2746b7)
+
 ## [0.0.9](https://github.com/Mra1k3r0/gramora/compare/v0.0.8...v0.0.9) (2026-04-19)
 
 ### What's Changed
