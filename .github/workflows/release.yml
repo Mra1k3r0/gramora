@@ -42,35 +42,17 @@ jobs:
       - name: build
         run: npm run build
 
-      # Optional verified commits: repo secrets SSH_COMMIT_SIGNING_KEY, GIT_COMMIT_USER_NAME, GIT_COMMIT_USER_EMAIL (GitHub-verified email). Skip if unset.
-      - name: configure ssh commit signing
-        run: |
-          set -euo pipefail
-          if [ -z "${SSH_COMMIT_SIGNING_KEY}" ]; then
-            echo "::notice::SSH_COMMIT_SIGNING_KEY not set — skipping SSH commit signing."
-            exit 0
-          fi
-          if [ -z "${GIT_COMMIT_USER_NAME}" ] || [ -z "${GIT_COMMIT_USER_EMAIL}" ]; then
-            echo "::error::With SSH_COMMIT_SIGNING_KEY set, you must also set GIT_COMMIT_USER_NAME and GIT_COMMIT_USER_EMAIL (GitHub-verified email)."
-            exit 1
-          fi
-          mkdir -p ~/.ssh
-          chmod 700 ~/.ssh
-          KEY_FILE="${HOME}/.ssh/git_commit_signing"
-          printf '%s\n' "${SSH_COMMIT_SIGNING_KEY}" | tr -d '\r' > "${KEY_FILE}"
-          chmod 600 "${KEY_FILE}"
-          PUB="$(ssh-keygen -y -f "${KEY_FILE}")"
-          echo "${GIT_COMMIT_USER_EMAIL} ${PUB}" > ~/.ssh/allowed_signers
-          git config --local gpg.ssh.allowedSignersFile ~/.ssh/allowed_signers
-          git config --local gpg.format ssh
-          git config --local user.signingkey "${KEY_FILE}"
-          git config --local commit.gpgsign true
-          git config --local user.name "${GIT_COMMIT_USER_NAME}"
-          git config --local user.email "${GIT_COMMIT_USER_EMAIL}"
-        env:
-          SSH_COMMIT_SIGNING_KEY: ${{ secrets.SSH_COMMIT_SIGNING_KEY }}
-          GIT_COMMIT_USER_NAME: ${{ secrets.GIT_COMMIT_USER_NAME }}
-          GIT_COMMIT_USER_EMAIL: ${{ secrets.GIT_COMMIT_USER_EMAIL }}
+      - name: configure gpg commit signing
+        uses: crazy-max/ghaction-import-gpg@v6
+        with:
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.GPG_PASSPHRASE }}
+          git_user_signingkey: true
+          git_commit_gpgsign: true
+          git_tag_gpgsign: true
+          git_config_global: false
+          git_user_name: ${{ secrets.GIT_COMMIT_USER_NAME }}
+          git_user_email: ${{ secrets.GIT_COMMIT_USER_EMAIL }}
 
       - name: semantic-release
         run: npx semantic-release
