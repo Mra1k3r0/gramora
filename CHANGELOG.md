@@ -4,13 +4,7 @@
 
 ### What's Changed
 
-- add resilience defaults and ci artifacts — [`5c61014`](https://github.com/Mra1k3r0/gramora/commit/5c6101424b50e975fd522b73cc8d1cbd527171e6), closes [#15](https://github.com/Mra1k3r0/gramora/issues/15)
-
-## [0.0.12](https://github.com/Mra1k3r0/gramora/compare/v0.0.11...v0.0.12) (2026-04-21)
-
-### What's Changed
-
-- add resilience defaults and ci artifacts — [`5c61014`](https://github.com/Mra1k3r0/gramora/commit/5c6101424b50e975fd522b73cc8d1cbd527171e6), closes [#15](https://github.com/Mra1k3r0/gramora/issues/15)
+- add resilience defaults and ci artifacts for roadmap #15 — [`5c61014`](https://github.com/Mra1k3r0/gramora/commit/5c6101424b50e975fd522b73cc8d1cbd527171e6)
 
 ## [0.0.11](https://github.com/Mra1k3r0/gramora/compare/v0.0.10...v0.0.11) (2026-04-21)
 
@@ -22,14 +16,14 @@
 
 ### What's Changed
 
-- implement roadmap [#12](https://github.com/Mra1k3r0/gramora/issues/12) router ergonomics — [`616cdc0`](https://github.com/Mra1k3r0/gramora/commit/616cdc01aceb23ddd7524bab6e1daf1a94bb81a5)
-- implement roadmap [#13](https://github.com/Mra1k3r0/gramora/issues/13) operations debug parity — [`de81e04`](https://github.com/Mra1k3r0/gramora/commit/de81e04f02b02c56a280f304738170272a2746b7)
+- implement roadmap #12 router ergonomics — [`616cdc0`](https://github.com/Mra1k3r0/gramora/commit/616cdc01aceb23ddd7524bab6e1daf1a94bb81a5)
+- implement roadmap #13 operations debug parity — [`de81e04`](https://github.com/Mra1k3r0/gramora/commit/de81e04f02b02c56a280f304738170272a2746b7)
 
 ## [0.0.9](https://github.com/Mra1k3r0/gramora/compare/v0.0.8...v0.0.9) (2026-04-19)
 
 ### What's Changed
 
-- roadmap [#11](https://github.com/Mra1k3r0/gramora/issues/11) — join requests, reactions, and richer chat sends on api and gram clients — [`498098a`](https://github.com/Mra1k3r0/gramora/commit/498098a73e573d79d03f015f2614ff1f71f50a2f)
+- roadmap #11 — join requests, reactions, and richer chat sends on api and gram clients — [`498098a`](https://github.com/Mra1k3r0/gramora/commit/498098a73e573d79d03f015f2614ff1f71f50a2f)
 
 ## [0.0.8](https://github.com/mra1k3r0/gramora/compare/v0.0.7...v0.0.8) (2026-04-17)
 

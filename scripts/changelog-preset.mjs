@@ -40,6 +40,7 @@ const mainTemplate = `{{> header}}
 const commitPartial = `- {{#if scope}}**{{scope}}:** {{/if}}{{#if subject}}{{~subject}}{{else}}{{~header}}{{/if}}{{#if hash}}{{#if @root.linkReferences}} — [\`{{shortHash}}\`]({{~@root.host}}/{{#if this.owner}}{{~this.owner}}{{else}}{{~@root.owner}}{{/if}}/{{#if this.repository}}{{~this.repository}}{{else}}{{~@root.repository}}{{/if}}/commit/{{hash}}){{else}} — {{shortHash}}{{/if}}{{/if}}
 
 {{~#if references~}}
+{{~#unless isRoadmapReference~}}
   , {{#if referenceAction}}{{referenceAction}}{{else}}closes{{/if}}
   {{~#each references}} {{#if @root.linkReferences~}}
     [
@@ -53,6 +54,7 @@ const commitPartial = `- {{#if scope}}**{{scope}}:** {{/if}}{{#if subject}}{{~su
     {{~/if}}
     {{~this.repository}}{{this.prefix}}{{this.issue}}
   {{~/if}}{{/each}}
+{{~/unless~}}
 {{~/if}}
 
 `;
@@ -77,7 +79,9 @@ export default function changelogPreset() {
         const rendered = baseTransform ? baseTransform(commit, context) : commit;
         if (!rendered) return rendered;
         const text = `${rendered.subject ?? ""} ${rendered.header ?? ""}`;
-        rendered.referenceAction = /\broadmap\s*#\d+\b/i.test(text) ? "roadmap" : "closes";
+        const isRoadmapReference = /\broadmap\s*#\d+\b/i.test(text);
+        rendered.referenceAction = isRoadmapReference ? "roadmap" : "closes";
+        rendered.isRoadmapReference = isRoadmapReference;
         return rendered;
       },
     },
