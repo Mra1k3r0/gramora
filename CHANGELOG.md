@@ -6,6 +6,12 @@
 
 - complete stars paid-flow api coverage — [`586d179`](https://github.com/Mra1k3r0/gramora/commit/586d1791ed9fb8ce15c6c9405c26dde04b769b9d)
 
+## [0.0.11](https://github.com/Mra1k3r0/gramora/compare/v0.0.10...v0.0.11) (2026-04-21)
+
+### What's Changed
+
+- complete stars paid-flow api coverage — [`586d179`](https://github.com/Mra1k3r0/gramora/commit/586d1791ed9fb8ce15c6c9405c26dde04b769b9d)
+
 ## [0.0.10](https://github.com/Mra1k3r0/gramora/compare/v0.0.9...v0.0.10) (2026-04-21)
 
 ### What's Changed
