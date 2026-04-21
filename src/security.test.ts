@@ -18,7 +18,7 @@ describe("Security Log Redaction", () => {
       token: "secret-token",
       password: "my-password",
       provider_token: "p-token",
-      normal_field: "public"
+      normal_field: "public",
     };
 
     const result = stringifyForLog(obj);
