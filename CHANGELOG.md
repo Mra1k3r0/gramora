@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.0.12](https://github.com/Mra1k3r0/gramora/compare/v0.0.11...v0.0.12) (2026-04-21)
+
+### What's Changed
+
+- add resilience defaults and ci artifacts — [`5c61014`](https://github.com/Mra1k3r0/gramora/commit/5c6101424b50e975fd522b73cc8d1cbd527171e6), closes [#15](https://github.com/Mra1k3r0/gramora/issues/15)
+
 ## [0.0.11](https://github.com/Mra1k3r0/gramora/compare/v0.0.10...v0.0.11) (2026-04-21)
 
 ### What's Changed
