@@ -1,9 +1,10 @@
 import { timingSafeEqual } from "node:crypto";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import type { ApiClient } from "./api-client";
+import { TelegramApiError, RateLimitError } from "./errors";
 import type { BotHooks } from "./types";
 import type { Update } from "../types/telegram";
-import { RateLimitError } from "./errors";
+import type { HookErrorClass, HookErrorEnvelope } from "./types";
 
 type UpdateHandler = (update: Update) => Promise<void>;
 
@@ -34,13 +35,17 @@ export class PollingTransport {
     private readonly onUpdate: UpdateHandler,
     private readonly options?: Pick<BotHooks, "onPollingError"> & {
       onRetryLog?: (error: unknown, retryDelayMs: number) => void;
+      onRuntimeError?: (meta: HookErrorEnvelope, error: unknown, update?: Update) => void;
+      retryBaseMs?: number;
+      retryMaxMs?: number;
+      retryOn?: Set<HookErrorClass>;
     },
   ) {}
 
   async start(options?: { timeout?: number; limit?: number; allowedUpdates?: string[] }) {
     this.running = true;
-    let retryDelayMs = 1000;
-    const maxRetryDelayMs = 30000;
+    let retryDelayMs = this.options?.retryBaseMs ?? 1000;
+    const maxRetryDelayMs = this.options?.retryMaxMs ?? 30000;
 
     while (this.running) {
       try {
@@ -59,10 +64,29 @@ export class PollingTransport {
       } catch (error) {
         if (!this.running) break;
 
-        // 429: use Telegram's retry_after instead of exponential backoff
-        const delayMs = error instanceof RateLimitError ? error.retryAfter * 1000 : retryDelayMs;
+        const errorClass = classifyError(error);
+        const retryOn =
+          this.options?.retryOn ??
+          new Set<HookErrorClass>(["rate_limit", "network", "api", "unknown"]);
+        const retryable = retryOn.has(errorClass);
+        const delayMs = retryable
+          ? error instanceof RateLimitError
+            ? error.retryAfter * 1000
+            : retryDelayMs
+          : 0;
+        const meta: HookErrorEnvelope = {
+          source: "polling",
+          class: errorClass,
+          retryable,
+          message: error instanceof Error ? error.message : String(error),
+          timestamp: Date.now(),
+        };
 
-        this.options?.onPollingError?.(error, delayMs);
+        this.options?.onPollingError?.(error, delayMs, meta);
+        this.options?.onRuntimeError?.(meta, error);
+        if (!retryable) {
+          throw error;
+        }
         this.options?.onRetryLog?.(error, delayMs);
         await new Promise<void>((resolve) => setTimeout(resolve, delayMs));
 
@@ -83,10 +107,17 @@ export class WebhookTransport {
   constructor(
     private readonly onUpdate: UpdateHandler,
     private readonly onReject?: (kind: "path" | "secret", req: IncomingMessage) => void,
+    private readonly webhookOptions?: {
+      maxBodyBytes?: number;
+      allowedContentTypes?: string[];
+      onRuntimeError?: (meta: HookErrorEnvelope, error: unknown, update?: Update) => void;
+    },
   ) {}
 
   async start(options: { port: number; path?: string; secretToken?: string }) {
     const targetPath = options.path ?? "/webhook";
+    const maxBodyBytes = this.webhookOptions?.maxBodyBytes ?? 1_048_576;
+    const allowedContentTypes = this.webhookOptions?.allowedContentTypes ?? ["application/json"];
     const server = createServer((req: IncomingMessage, res: ServerResponse) => {
       const pathOnly = (req.url ?? "").split("?")[0] ?? "";
       if (req.method !== "POST" || pathOnly !== targetPath) {
@@ -104,19 +135,62 @@ export class WebhookTransport {
           return;
         }
       }
-      const contentType = req.headers["content-type"];
-      if (typeof contentType !== "string" || !contentType.includes("application/json")) {
+      const contentType = headerSingleValue(req.headers["content-type"]);
+      const isAllowedType =
+        typeof contentType === "string" &&
+        allowedContentTypes.some((type) => contentType.toLowerCase().includes(type.toLowerCase()));
+      if (!isAllowedType) {
+        this.webhookOptions?.onRuntimeError?.(
+          {
+            source: "webhook",
+            class: "validation",
+            retryable: false,
+            message: "unsupported media type",
+            timestamp: Date.now(),
+          },
+          new Error("unsupported media type"),
+        );
         res.statusCode = 415;
         res.end("unsupported media type");
         return;
       }
       const chunks: Buffer[] = [];
       let totalSize = 0;
-      const maxBodyBytes = 1_048_576;
+      const contentLengthRaw = headerSingleValue(req.headers["content-length"]);
+      const contentLength = contentLengthRaw ? Number(contentLengthRaw) : undefined;
+      if (
+        typeof contentLength === "number" &&
+        Number.isFinite(contentLength) &&
+        contentLength > maxBodyBytes
+      ) {
+        this.webhookOptions?.onRuntimeError?.(
+          {
+            source: "webhook",
+            class: "validation",
+            retryable: false,
+            message: "payload too large",
+            timestamp: Date.now(),
+          },
+          new Error("payload too large"),
+        );
+        res.statusCode = 413;
+        res.end("payload too large");
+        return;
+      }
       req.on("data", (chunk) => {
         chunks.push(Buffer.from(chunk));
         totalSize += Buffer.byteLength(chunk);
         if (totalSize > maxBodyBytes) {
+          this.webhookOptions?.onRuntimeError?.(
+            {
+              source: "webhook",
+              class: "validation",
+              retryable: false,
+              message: "payload too large",
+              timestamp: Date.now(),
+            },
+            new Error("payload too large"),
+          );
           res.statusCode = 413;
           res.end("payload too large");
           req.destroy();
@@ -127,6 +201,16 @@ export class WebhookTransport {
         try {
           update = JSON.parse(Buffer.concat(chunks).toString("utf8")) as Update;
         } catch {
+          this.webhookOptions?.onRuntimeError?.(
+            {
+              source: "webhook",
+              class: "validation",
+              retryable: false,
+              message: "bad request",
+              timestamp: Date.now(),
+            },
+            new Error("bad request"),
+          );
           res.statusCode = 400;
           res.end("bad request");
           return;
@@ -148,4 +232,15 @@ export class WebhookTransport {
   stop() {
     this.closeServer?.();
   }
+}
+
+function classifyError(error: unknown): HookErrorClass {
+  if (error instanceof RateLimitError) return "rate_limit";
+  if (error instanceof TelegramApiError) return "api";
+  if (error instanceof Error) {
+    const msg = error.message.toLowerCase();
+    if (msg.includes("network") || msg.includes("fetch") || msg.includes("socket"))
+      return "network";
+  }
+  return "unknown";
 }

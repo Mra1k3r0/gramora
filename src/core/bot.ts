@@ -19,6 +19,8 @@ import type {
   BotRuntimeConfig,
   BotWebhookConfig,
   Constructor,
+  HookErrorClass,
+  HookErrorEnvelope,
   LaunchOptions,
 } from "./types";
 import type { Update, User } from "../types/telegram";
@@ -243,6 +245,11 @@ class Bot {
               );
             }
           : undefined,
+        {
+          maxBodyBytes: this.options.operations?.webhookMaxBodyBytes,
+          allowedContentTypes: this.options.operations?.webhookAllowedContentTypes,
+          onRuntimeError: (meta, error) => this.options.hooks?.onRuntimeError?.(meta, error),
+        },
       );
       await this.webhook.start({
         ...webhookConfig,
@@ -257,6 +264,12 @@ class Bot {
     this.debug("transport", "launching polling transport");
     this.polling = new PollingTransport(this.api, (update) => this.processUpdate(update), {
       onPollingError: this.options.hooks?.onPollingError,
+      onRuntimeError: this.options.hooks?.onRuntimeError,
+      retryBaseMs: this.options.operations?.pollingRetryBaseMs,
+      retryMaxMs: this.options.operations?.pollingRetryMaxMs,
+      retryOn: this.options.operations?.pollingRetryOn
+        ? new Set<HookErrorClass>(this.options.operations.pollingRetryOn)
+        : undefined,
       onRetryLog:
         this.options.operations?.pollingRetryLogs === "quiet"
           ? undefined
@@ -306,7 +319,15 @@ class Bot {
         "error",
         `update id=${update.update_id} failed: ${(error as Error)?.message ?? "unknown error"}`,
       );
-      this.options.hooks?.onUpdateError?.(update, error);
+      const meta: HookErrorEnvelope = {
+        source: "update",
+        class: this.classifyUpdateError(error),
+        retryable: false,
+        message: error instanceof Error ? error.message : String(error),
+        timestamp: Date.now(),
+      };
+      this.options.hooks?.onUpdateError?.(update, error, meta);
+      this.options.hooks?.onRuntimeError?.(meta, error, update);
       // do not rethrow: let polling continue the batch and webhook return 200
     }
   }
@@ -376,6 +397,11 @@ class Bot {
       out[key] = this.sanitizeForLog(nested);
     }
     return out;
+  }
+
+  private classifyUpdateError(error: unknown): HookErrorClass {
+    if (error instanceof Error && error.message.toLowerCase().includes("timeout")) return "timeout";
+    return "unknown";
   }
 }
 

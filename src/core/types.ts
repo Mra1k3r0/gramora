@@ -4,17 +4,36 @@ import type { Update } from "../types/telegram";
 
 export type Constructor<T = object> = new (...args: unknown[]) => T;
 
+export type HookErrorSource = "update" | "polling" | "webhook";
+export type HookErrorClass =
+  | "rate_limit"
+  | "network"
+  | "api"
+  | "validation"
+  | "timeout"
+  | "unknown";
+
+export interface HookErrorEnvelope {
+  source: HookErrorSource;
+  class: HookErrorClass;
+  retryable: boolean;
+  message: string;
+  timestamp: number;
+}
+
 /**
  * Lifecycle hooks for observing updates without coupling to middleware.
  * @see BotOptions.hooks
  */
 export interface BotHooks {
   /** Called when a handler or middleware throws during update processing. */
-  onUpdateError?: (update: Update, error: unknown) => void;
+  onUpdateError?: (update: Update, error: unknown, meta: HookErrorEnvelope) => void;
   /** Called after an update is fully processed. @param durationMs - Handler wall time in ms. */
   onUpdateProcessed?: (update: Update, durationMs: number) => void;
   /** Called when a `getUpdates` network request fails (polling transport only). @param retryDelayMs - How long polling will wait before retrying. */
-  onPollingError?: (error: unknown, retryDelayMs: number) => void;
+  onPollingError?: (error: unknown, retryDelayMs: number, meta: HookErrorEnvelope) => void;
+  /** Optional unified hook for structured runtime errors across transports. */
+  onRuntimeError?: (meta: HookErrorEnvelope, error: unknown, update?: Update) => void;
 }
 
 export interface BotModuleHost {
@@ -79,6 +98,16 @@ export interface BotOptions {
     logWebhookRejects?: boolean;
     /** Polling error logs mode. `quiet` disables runtime logs, hooks still fire. */
     pollingRetryLogs?: "quiet" | "structured";
+    /** Max accepted webhook body size in bytes. Defaults to 1 MiB. */
+    webhookMaxBodyBytes?: number;
+    /** Allowed webhook content types. Defaults to `["application/json"]`. */
+    webhookAllowedContentTypes?: string[];
+    /** Polling retry backoff start in milliseconds. Defaults to 1000. */
+    pollingRetryBaseMs?: number;
+    /** Polling retry backoff max in milliseconds. Defaults to 30000. */
+    pollingRetryMaxMs?: number;
+    /** Error classes eligible for polling retries. Defaults to all common retry classes. */
+    pollingRetryOn?: Array<"rate_limit" | "network" | "api" | "unknown">;
   };
 }
 

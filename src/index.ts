@@ -9,6 +9,7 @@ export type { BotOptions } from "./core/types";
 export type { BotRuntimeConfig } from "./core/types";
 export type { BotWebhookConfig } from "./core/types";
 export type { BotHooks } from "./core/types";
+export type { HookErrorClass, HookErrorEnvelope, HookErrorSource } from "./core/types";
 export type { RateProfile } from "./middleware/built-in/rate-limiter";
 
 export {

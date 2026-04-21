@@ -50,17 +50,22 @@ Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)
 
 ### Constructor options
 
-| Option                         | Type                     | Default          | Description                                                                                  |
-| ------------------------------ | ------------------------ | ---------------- | -------------------------------------------------------------------------------------------- |
-| `token`                        | `string`                 | required         | Telegram bot token                                                                           |
-| `mode`                         | `"full" \| "core"`       | `"full"`         | `core` keeps runtime lightweight                                                             |
-| `polling.timeout`              | `number`                 | `20`             | Long-poll timeout (seconds)                                                                  |
-| `polling.limit`                | `number`                 | Telegram default | Max updates per poll                                                                         |
-| `polling.allowedUpdates`       | `string[]`               | Telegram default | Include e.g. `chat_member`, `chat_join_request`, `message_reaction` to receive those updates |
-| `debug`                        | `boolean`                | `false`          | Enable runtime debug logs                                                                    |
-| `operations.handlerTimeoutMs`  | `number`                 | disabled         | Per-update handler timeout in ms (logs timeout via `onUpdateError`)                          |
-| `operations.logWebhookRejects` | `boolean`                | `false`          | Debug-log webhook path/secret mismatches                                                     |
-| `operations.pollingRetryLogs`  | `"quiet"\| "structured"` | `"structured"`   | Control polling retry debug logs                                                             |
+| Option                                  | Type                                               | Default                | Description                                                                                  |
+| --------------------------------------- | -------------------------------------------------- | ---------------------- | -------------------------------------------------------------------------------------------- |
+| `token`                                 | `string`                                           | required               | Telegram bot token                                                                           |
+| `mode`                                  | `"full" \| "core"`                                 | `"full"`               | `core` keeps runtime lightweight                                                             |
+| `polling.timeout`                       | `number`                                           | `20`                   | Long-poll timeout (seconds)                                                                  |
+| `polling.limit`                         | `number`                                           | Telegram default       | Max updates per poll                                                                         |
+| `polling.allowedUpdates`                | `string[]`                                         | Telegram default       | Include e.g. `chat_member`, `chat_join_request`, `message_reaction` to receive those updates |
+| `debug`                                 | `boolean`                                          | `false`                | Enable runtime debug logs                                                                    |
+| `operations.handlerTimeoutMs`           | `number`                                           | disabled               | Per-update handler timeout in ms (logs timeout via `onUpdateError`)                          |
+| `operations.logWebhookRejects`          | `boolean`                                          | `false`                | Debug-log webhook path/secret mismatches                                                     |
+| `operations.pollingRetryLogs`           | `"quiet"\| "structured"`                           | `"structured"`         | Control polling retry debug logs                                                             |
+| `operations.webhookMaxBodyBytes`        | `number`                                           | `1048576`              | Max webhook request body size before `413`                                                   |
+| `operations.webhookAllowedContentTypes` | `string[]`                                         | `["application/json"]` | Allowed webhook content types                                                                |
+| `operations.pollingRetryBaseMs`         | `number`                                           | `1000`                 | Base polling retry delay in milliseconds                                                     |
+| `operations.pollingRetryMaxMs`          | `number`                                           | `30000`                | Max polling retry delay in milliseconds                                                      |
+| `operations.pollingRetryOn`             | `("rate_limit"\| "network"\| "api"\| "unknown")[]` | all listed             | Retry-eligible polling error classes                                                         |
 
 ### Runtime config (`.configure`)
 
@@ -628,6 +633,7 @@ Compared to [Telegraf’s `debug` namespaces](https://github.com/telegraf/telegr
 12. Router ergonomics (typed update filters / narrowing, optional pluggable session outside scenes, MarkdownV2-safe escapers alongside `renderTelegramRichText`) ![implemented](https://img.shields.io/badge/implemented-10b981)
 13. Operations/debug parity (optional debug logs for webhook path/secret mismatches, configurable handler timeout + timeout logs, quieter or structured polling retry logging) ![implemented](https://img.shields.io/badge/implemented-10b981)
 14. Stars/paid flow completion (`SuccessfulPayment` recurring fields, `getMyStarBalance`, `getStarTransactions`, `editUserStarSubscription`; `GramClient`: `getMyStarBalance`, `getStarTransactions`, `editUserStarSubscription`) ![implemented](https://img.shields.io/badge/implemented-10b981)
+15. Resilience defaults (tighter webhook request validation knobs, safe polling retry policy by error class, structured runtime error envelopes for hooks) ![implemented](https://img.shields.io/badge/implemented-10b981)
 
 ## Run and Test
 
