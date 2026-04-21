@@ -19,6 +19,25 @@ const TOKEN_COLORS = {
   punctuation: "#C7C7C7",
 };
 
+const REDACTION_TOKENS = new Set<string>();
+const SENSITIVE_KEYS = new Set(["token", "secret_token", "provider_token", "password", "secret"]);
+
+/** Registers a sensitive token (like the bot token) to be replaced with [REDACTED] in all logs. */
+export const addRedactionToken = (token: string) => {
+  if (token && token.length > 5) {
+    REDACTION_TOKENS.add(token);
+  }
+};
+
+const redact = (text: unknown): string => {
+  const str = typeof text === "string" ? text : String(text);
+  let result = str;
+  for (const token of REDACTION_TOKENS) {
+    result = result.split(token).join("[REDACTED]");
+  }
+  return result;
+};
+
 const hexToRgb = (hex: string) => {
   const normalized = hex.replace("#", "");
   return {
@@ -65,7 +84,7 @@ export function formatProxyProbeMessage(input: {
   const speedPart = colorize(`${String(input.speedMs)}ms`, proxySpeedHex(input.speedMs));
   let body = `${p("{")} ${key("is_working")}${p(":")} ${boolPart}${p(",")} ${key("speed")}${p(":")} ${speedPart}`;
   if (input.error !== undefined) {
-    body += `${p(",")} ${key("error")}${p(":")} ${colorize(JSON.stringify(input.error), TOKEN_COLORS.string)}`;
+    body += `${p(",")} ${key("error")}${p(":")} ${colorize(JSON.stringify(redact(input.error)), TOKEN_COLORS.string)}`;
   }
   return `${body} ${p("}")}`;
 }
@@ -73,7 +92,8 @@ export function formatProxyProbeMessage(input: {
 export const log = (level: LogLevel, scope: string, message: string) => {
   const levelTag = colorizeBg(` ${level} `, HEX_COLORS[level]);
   const scopeTag = colorize(`${scope}:`, TOKEN_COLORS.scope);
-  const line = `${levelTag} ${scopeTag} ${message}`;
+  const redactedMessage = redact(message);
+  const line = `${levelTag} ${scopeTag} ${redactedMessage}`;
   if (level === "warn") {
     console.warn(line);
     return;
@@ -88,7 +108,7 @@ export const log = (level: LogLevel, scope: string, message: string) => {
 const indent = (depth: number) => "  ".repeat(depth);
 
 const stringifyPrimitive = (value: unknown) => {
-  if (typeof value === "string") return colorize(`"${value}"`, TOKEN_COLORS.string);
+  if (typeof value === "string") return colorize(`"${redact(value)}"`, TOKEN_COLORS.string);
   if (typeof value === "number") return colorize(String(value), TOKEN_COLORS.number);
   if (typeof value === "boolean") return colorize(String(value), TOKEN_COLORS.boolean);
   if (value === null) return colorize("null", TOKEN_COLORS.null);
@@ -110,7 +130,11 @@ const prettyObject = (value: unknown, depth = 0): string => {
   if (entries.length === 0) return colorize("{}", TOKEN_COLORS.punctuation);
   const lines = entries.map(([k, v]) => {
     const key = colorize(`"${k}"`, TOKEN_COLORS.key);
-    return `${indent(depth + 1)}${key}${colorize(":", TOKEN_COLORS.punctuation)} ${prettyObject(v, depth + 1)}`;
+    const isSensitive = SENSITIVE_KEYS.has(k.toLowerCase());
+    const val = isSensitive
+      ? colorize('"[MASKED]"', TOKEN_COLORS.string)
+      : prettyObject(v, depth + 1);
+    return `${indent(depth + 1)}${key}${colorize(":", TOKEN_COLORS.punctuation)} ${val}`;
   });
   return `${colorize("{", TOKEN_COLORS.punctuation)}\n${lines.join(",\n")}\n${indent(depth)}${colorize("}", TOKEN_COLORS.punctuation)}`;
 };
@@ -119,6 +143,6 @@ export const stringifyForLog = (value: unknown) => {
   try {
     return prettyObject(value);
   } catch {
-    return colorize(String(value), TOKEN_COLORS.string);
+    return colorize(redact(String(value)), TOKEN_COLORS.string);
   }
 };
