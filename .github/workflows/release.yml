@@ -51,8 +51,8 @@ jobs:
           git_commit_gpgsign: true
           git_tag_gpgsign: true
           git_config_global: false
-          git_user_name: ${{ secrets.GIT_COMMIT_USER_NAME }}
-          git_user_email: ${{ secrets.GIT_COMMIT_USER_EMAIL }}
+          git_committer_name: ${{ secrets.GIT_COMMIT_USER_NAME }}
+          git_committer_email: ${{ secrets.GIT_COMMIT_USER_EMAIL }}
 
       - name: semantic-release
         run: npx semantic-release
