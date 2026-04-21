@@ -17,6 +17,8 @@ import type {
   ReactionType,
   ReplyMarkup,
   ShippingOption,
+  StarAmount,
+  StarTransactions,
 } from "../types/telegram";
 import type { InputMediaPhoto } from "../types/api-methods";
 
@@ -360,6 +362,17 @@ export interface SendChatActionOptions {
   chatId?: number | string;
   messageThreadId?: number;
   businessConnectionId?: string;
+}
+
+export interface GetStarTransactionsOptions {
+  offset?: number;
+  limit?: number;
+}
+
+export interface EditUserStarSubscriptionOptions {
+  userId: number;
+  telegramPaymentChargeId: string;
+  isCanceled: boolean;
 }
 
 export interface CreateInviteLinkOptions {
@@ -1287,6 +1300,25 @@ export class GramClient {
     return this.api.refundStarPayment({
       user_id: userId,
       telegram_payment_charge_id: telegramPaymentChargeId,
+    });
+  }
+
+  async getMyStarBalance(): Promise<StarAmount> {
+    return this.api.getMyStarBalance();
+  }
+
+  async getStarTransactions(options: GetStarTransactionsOptions = {}): Promise<StarTransactions> {
+    return this.api.getStarTransactions({
+      ...(options.offset !== undefined ? { offset: options.offset } : {}),
+      ...(options.limit !== undefined ? { limit: options.limit } : {}),
+    });
+  }
+
+  async editUserStarSubscription(options: EditUserStarSubscriptionOptions) {
+    return this.api.editUserStarSubscription({
+      user_id: options.userId,
+      telegram_payment_charge_id: options.telegramPaymentChargeId,
+      is_canceled: options.isCanceled,
     });
   }
 

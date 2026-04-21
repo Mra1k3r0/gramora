@@ -517,8 +517,17 @@ export class ApiClient {
   answerPreCheckoutQuery(params: TelegramApiMethods["answerPreCheckoutQuery"]["params"]) {
     return this.call("answerPreCheckoutQuery", params);
   }
+  getMyStarBalance() {
+    return this.call("getMyStarBalance");
+  }
+  getStarTransactions(params: TelegramApiMethods["getStarTransactions"]["params"] = {}) {
+    return this.call("getStarTransactions", params);
+  }
   refundStarPayment(params: TelegramApiMethods["refundStarPayment"]["params"]) {
     return this.call("refundStarPayment", params);
+  }
+  editUserStarSubscription(params: TelegramApiMethods["editUserStarSubscription"]["params"]) {
+    return this.call("editUserStarSubscription", params);
   }
   sendChatAction(params: TelegramApiMethods["sendChatAction"]["params"]) {
     return this.call("sendChatAction", params);

@@ -78,6 +78,8 @@ export type {
   SendDiceOptions,
   SendPollOptions,
   StopPollOptions,
+  GetStarTransactionsOptions,
+  EditUserStarSubscriptionOptions,
 } from "./core/gram-client";
 
 export type * from "./types/telegram";

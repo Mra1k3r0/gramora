@@ -19,6 +19,8 @@ import type {
   ReplyMarkup,
   ReplyKeyboardMarkup,
   ReplyKeyboardRemove,
+  StarAmount,
+  StarTransactions,
   ShippingOption,
   Update,
   User,
@@ -490,6 +492,17 @@ export interface RefundStarPaymentParams {
   telegram_payment_charge_id: string;
 }
 
+export interface GetStarTransactionsParams {
+  offset?: number;
+  limit?: number;
+}
+
+export interface EditUserStarSubscriptionParams {
+  user_id: number;
+  telegram_payment_charge_id: string;
+  is_canceled: boolean;
+}
+
 export interface SendChatActionParams {
   chat_id: number | string;
   action: ChatAction;
@@ -687,7 +700,10 @@ export interface TelegramApiMethods {
   createInvoiceLink: { params: CreateInvoiceLinkParams; result: string };
   answerShippingQuery: { params: AnswerShippingQueryParams; result: true };
   answerPreCheckoutQuery: { params: AnswerPreCheckoutQueryParams; result: true };
+  getMyStarBalance: { params: void; result: StarAmount };
+  getStarTransactions: { params: GetStarTransactionsParams; result: StarTransactions };
   refundStarPayment: { params: RefundStarPaymentParams; result: true };
+  editUserStarSubscription: { params: EditUserStarSubscriptionParams; result: true };
   sendChatAction: { params: SendChatActionParams; result: true };
   getChat: { params: GetChatParams; result: ChatFull };
   leaveChat: { params: LeaveChatParams; result: true };

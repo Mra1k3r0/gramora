@@ -825,10 +825,84 @@ export interface SuccessfulPayment {
   currency: string;
   total_amount: number;
   invoice_payload: string;
+  subscription_expiration_date?: number;
+  is_recurring?: true;
+  is_first_recurring?: true;
   shipping_option_id?: string;
   order_info?: OrderInfo;
   telegram_payment_charge_id: string;
   provider_payment_charge_id: string;
+}
+
+export interface StarAmount {
+  amount: number;
+  nanostar_amount?: number;
+}
+
+export interface TransactionPartnerUser {
+  type: "user";
+  transaction_type:
+    | "invoice_payment"
+    | "paid_media_payment"
+    | "gift_purchase"
+    | "premium_purchase"
+    | "business_account_transfer";
+  user: User;
+  invoice_payload?: string;
+  paid_media_payload?: string;
+  subscription_period?: number;
+  premium_subscription_duration?: number;
+}
+
+export interface TransactionPartnerChat {
+  type: "chat";
+  chat: Chat;
+}
+
+export interface TransactionPartnerAffiliateProgram {
+  type: "affiliate_program";
+  sponsor_user?: User;
+  commission_per_mille: number;
+}
+
+export interface TransactionPartnerFragment {
+  type: "fragment";
+  withdrawal_state?: unknown;
+}
+
+export interface TransactionPartnerTelegramAds {
+  type: "telegram_ads";
+}
+
+export interface TransactionPartnerTelegramApi {
+  type: "telegram_api";
+  request_count: number;
+}
+
+export interface TransactionPartnerOther {
+  type: "other";
+}
+
+export type TransactionPartner =
+  | TransactionPartnerUser
+  | TransactionPartnerChat
+  | TransactionPartnerAffiliateProgram
+  | TransactionPartnerFragment
+  | TransactionPartnerTelegramAds
+  | TransactionPartnerTelegramApi
+  | TransactionPartnerOther;
+
+export interface StarTransaction {
+  id: string;
+  amount: number;
+  nanostar_amount?: number;
+  date: number;
+  source?: TransactionPartner;
+  receiver?: TransactionPartner;
+}
+
+export interface StarTransactions {
+  transactions: StarTransaction[];
 }
 
 export interface ShippingQuery {
