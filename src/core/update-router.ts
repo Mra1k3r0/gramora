@@ -37,11 +37,6 @@ type HandlerRunner = {
 /** Routes `Update` objects to controllers, scenes, and `bot.on*` handlers. */
 export class UpdateRouter {
   private readonly globalMiddleware: MiddlewareFn<BaseContext>[] = [];
-  private readonly simpleHandlers: Array<{
-    def: HandlerDefinition;
-    fn: SimpleHandler;
-    callbackRegex?: RegExp;
-  }> = [];
   private readonly filteredHandlers: FilteredHandler[] = [];
 
   private readonly commandHandlers = new Map<string, HandlerRunner[]>();
@@ -49,6 +44,8 @@ export class UpdateRouter {
   private readonly onKindHandlers = new Map<string, HandlerRunner[]>();
   private readonly callbackHandlers: HandlerRunner[] = [];
   private readonly inlineHandlers: HandlerRunner[] = [];
+  private readonly shippingQueryHandlers: HandlerRunner[] = [];
+  private readonly preCheckoutQueryHandlers: HandlerRunner[] = [];
   private readonly chatMemberHandlers: HandlerRunner[] = [];
   private readonly myChatMemberHandlers: HandlerRunner[] = [];
   private readonly chatJoinRequestHandlers: HandlerRunner[] = [];
@@ -101,17 +98,21 @@ export class UpdateRouter {
    * @param fn - Handler receiving a context
    */
   registerSimpleHandler(kind: HandlerDefinition["kind"], trigger: string, fn: SimpleHandler) {
-    this.simpleHandlers.push({
-      def: {
-        methodName: "__simple__",
-        kind,
-        trigger,
-        middleware: [],
-        guards: [],
-      },
-      fn,
+    const def: HandlerDefinition = {
+      methodName: "__simple__",
+      kind,
+      trigger,
+      middleware: [],
+      guards: [],
+    };
+    const runner: HandlerRunner = {
+      def,
+      run: async (ctx) => fn(ctx),
+      middleware: [],
+      guards: [],
       callbackRegex: kind === "callback_query" ? this.toRegex(trigger) : undefined,
-    });
+    };
+    this.addToIndices(runner);
   }
 
   registerFilteredHandler<T extends Update>(
@@ -146,22 +147,6 @@ export class UpdateRouter {
     }
 
     await this.dispatchIndexedHandlers(update, sceneControl);
-
-    for (const item of this.simpleHandlers) {
-      const match =
-        item.def.kind === "callback_query" && item.callbackRegex
-          ? (() => {
-              const data = update.callback_query?.data;
-              if (!data) return { ok: false } as const;
-              const matched = data.match(item.callbackRegex);
-              return { ok: Boolean(matched), groups: matched ? matched.slice(1) : undefined };
-            })()
-          : this.matches(update, item.def);
-      if (!match.ok) continue;
-      const gram = this.createContext(update, item.def, sceneControl);
-      if (match.groups) gram.match = match.groups;
-      await this.runWithGlobalMiddleware(gram, async () => item.fn(gram));
-    }
 
     for (const item of this.filteredHandlers) {
       if (!item.filter(update)) continue;
@@ -274,6 +259,50 @@ export class UpdateRouter {
     return { command, mention };
   }
 
+  private addToIndices(runner: HandlerRunner) {
+    const handler = runner.def;
+    if (handler.kind === "command" && handler.trigger) {
+      const current = this.commandHandlers.get(handler.trigger) ?? [];
+      current.push(runner);
+      this.commandHandlers.set(handler.trigger, current);
+    } else if (handler.kind === "on") {
+      if (handler.trigger === "message" || handler.trigger === "*" || !handler.trigger) {
+        this.onMessageHandlers.push(runner);
+      } else {
+        const current = this.onKindHandlers.get(handler.trigger) ?? [];
+        current.push(runner);
+        this.onKindHandlers.set(handler.trigger, current);
+      }
+    } else if (handler.kind === "callback_query") {
+      this.callbackHandlers.push(runner);
+    } else if (handler.kind === "inline_query") {
+      this.inlineHandlers.push(runner);
+    } else if (handler.kind === "shipping_query") {
+      this.shippingQueryHandlers.push(runner);
+    } else if (handler.kind === "pre_checkout_query") {
+      this.preCheckoutQueryHandlers.push(runner);
+    } else if (handler.kind === "chat_member") {
+      this.chatMemberHandlers.push(runner);
+    } else if (handler.kind === "my_chat_member") {
+      this.myChatMemberHandlers.push(runner);
+    } else if (handler.kind === "chat_join_request") {
+      this.chatJoinRequestHandlers.push(runner);
+    } else if (handler.kind === "message_reaction") {
+      this.messageReactionHandlers.push(runner);
+    } else if (handler.kind === "message_reaction_count") {
+      this.messageReactionCountHandlers.push(runner);
+    } else if (handler.kind === "business_connection") {
+      this.businessConnectionHandlers.push(runner);
+    } else if (handler.kind === "business_message") {
+      this.businessMessageHandlers.push(runner);
+    } else if (handler.kind === "edited_business_message") {
+      this.editedBusinessMessageHandlers.push(runner);
+    } else if (handler.kind === "deleted_business_messages") {
+      this.deletedBusinessMessagesHandlers.push(runner);
+    }
+    this.hasIndexedHandlers = true;
+  }
+
   private indexControllerHandlers(controller: RegisteredController) {
     for (const handler of controller.handlers) {
       const method = (
@@ -292,68 +321,40 @@ export class UpdateRouter {
         run: async (ctx) => method.call(controller.instance, ctx),
       };
 
-      if (handler.kind === "command" && handler.trigger) {
-        const current = this.commandHandlers.get(handler.trigger) ?? [];
-        current.push(runner);
-        this.commandHandlers.set(handler.trigger, current);
-      } else if (handler.kind === "on") {
-        if (handler.trigger === "message" || handler.trigger === "*" || !handler.trigger) {
-          this.onMessageHandlers.push(runner);
-        } else {
-          const current = this.onKindHandlers.get(handler.trigger) ?? [];
-          current.push(runner);
-          this.onKindHandlers.set(handler.trigger, current);
-        }
-      } else if (handler.kind === "callback_query") {
-        this.callbackHandlers.push(runner);
-      } else if (handler.kind === "inline_query") {
-        this.inlineHandlers.push(runner);
-      } else if (handler.kind === "chat_member") {
-        this.chatMemberHandlers.push(runner);
-      } else if (handler.kind === "my_chat_member") {
-        this.myChatMemberHandlers.push(runner);
-      } else if (handler.kind === "chat_join_request") {
-        this.chatJoinRequestHandlers.push(runner);
-      } else if (handler.kind === "message_reaction") {
-        this.messageReactionHandlers.push(runner);
-      } else if (handler.kind === "message_reaction_count") {
-        this.messageReactionCountHandlers.push(runner);
-      } else if (handler.kind === "business_connection") {
-        this.businessConnectionHandlers.push(runner);
-      } else if (handler.kind === "business_message") {
-        this.businessMessageHandlers.push(runner);
-      } else if (handler.kind === "edited_business_message") {
-        this.editedBusinessMessageHandlers.push(runner);
-      } else if (handler.kind === "deleted_business_messages") {
-        this.deletedBusinessMessagesHandlers.push(runner);
-      }
+      this.addToIndices(runner);
     }
-
-    this.hasIndexedHandlers = true;
   }
 
   private async dispatchIndexedHandlers(update: Update, sceneControl: SceneControl) {
     if (!this.hasIndexedHandlers) return;
 
-    const text = update.message && "text" in update.message ? update.message.text : undefined;
-    const parsedCommand = this.parseCommand(text);
-    if (parsedCommand) {
-      const commandName = parsedCommand.command;
-      const commandRunners = this.commandHandlers.get(commandName);
-      if (commandRunners) {
-        for (const runner of commandRunners) {
-          await this.runControllerRunner(update, runner, sceneControl);
+    if (update.message) {
+      const text = "text" in update.message ? update.message.text : undefined;
+      const parsedCommand = this.parseCommand(text);
+      if (parsedCommand) {
+        const commandRunners = this.commandHandlers.get(parsedCommand.command);
+        if (commandRunners) {
+          for (const runner of commandRunners) {
+            await this.runControllerRunner(update, runner, sceneControl);
+          }
         }
       }
-    }
 
-    if (update.message) {
       for (const runner of this.onMessageHandlers) {
         await this.runControllerRunner(update, runner, sceneControl);
       }
 
-      for (const [kind, runners] of this.onKindHandlers.entries()) {
-        if (!this.messageHasKind(update.message, kind)) continue;
+      for (const [kind, runners] of this.onKindHandlers) {
+        if (this.messageHasKind(update.message, kind)) {
+          for (const runner of runners) {
+            await this.runControllerRunner(update, runner, sceneControl);
+          }
+        }
+      }
+    }
+
+    for (const [kind, runners] of this.onKindHandlers) {
+      if (kind in update && kind !== "message") {
         for (const runner of runners) {
           await this.runControllerRunner(update, runner, sceneControl);
         }
@@ -377,6 +378,16 @@ export class UpdateRouter {
       }
     }
 
+    if (update.shipping_query) {
+      for (const runner of this.shippingQueryHandlers) {
+        await this.runControllerRunner(update, runner, sceneControl);
+      }
+    }
+    if (update.pre_checkout_query) {
+      for (const runner of this.preCheckoutQueryHandlers) {
+        await this.runControllerRunner(update, runner, sceneControl);
+      }
+    }
     if (update.chat_member) {
       for (const runner of this.chatMemberHandlers) {
         await this.runControllerRunner(update, runner, sceneControl);
