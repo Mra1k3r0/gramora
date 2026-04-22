@@ -1,4 +1,4 @@
-import { timingSafeEqual } from "node:crypto";
+import { createHash, timingSafeEqual } from "node:crypto";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import type { ApiClient } from "./api-client";
 import { TelegramApiError, RateLimitError } from "./errors";
@@ -13,12 +13,11 @@ function headerSingleValue(value: string | string[] | undefined): string | undef
   return Array.isArray(value) ? value[0] : value;
 }
 
-/** Compare webhook secret without early exit on first differing byte (length must match). */
+/** Compare webhook secret without early exit on first differing byte; uses hashing to avoid length leaks. */
 function timingSafeSecretEqual(incoming: string, expected: string): boolean {
-  const a = Buffer.from(incoming, "utf8");
-  const b = Buffer.from(expected, "utf8");
-  if (a.length !== b.length) return false;
-  return timingSafeEqual(a, b);
+  const hashA = createHash("sha256").update(incoming).digest();
+  const hashB = createHash("sha256").update(expected).digest();
+  return timingSafeEqual(hashA, hashB);
 }
 
 export class PollingTransport {

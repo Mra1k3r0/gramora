@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { ApiClient } from "./api-client";
 import { GramClient } from "./gram-client";
 import {
+  addRedactionToken,
   formatProxyProbeMessage,
   highlightId,
   highlightUsername,
@@ -41,6 +42,7 @@ class Bot {
    * @param options.token - Required; other fields optional (polling, proxy, `mode`, …)
    */
   constructor(private readonly options: BotOptions) {
+    addRedactionToken(options.token);
     this.api = new ApiClient(options.token, options.apiBaseUrl, {
       userAgent: options.userAgent,
       timeoutMs: options.timeoutMs,
