@@ -18,6 +18,8 @@ export interface RateProfile {
 
 type Bucket = { window: number; count: number };
 
+const MAX_STATE_SIZE = 10_000;
+
 /**
  * @param profile - Profile object or a plain number treated as `maxPerWindow` per minute per user (backwards-compatible)
  * @returns Middleware that drops updates exceeding the limit
@@ -38,6 +40,15 @@ export const rateLimiter = (profile?: RateProfile | number): MiddlewareFn<BaseCo
     const bucket = state.get(key);
 
     if (!bucket || bucket.window !== window) {
+      // Memory safety: if the map grows too large, cleanup expired entries.
+      if (state.size >= MAX_STATE_SIZE) {
+        for (const [k, v] of state.entries()) {
+          if (v.window < window) state.delete(k);
+        }
+        // Fail-safe: if still too large, clear everything to prevent DoS.
+        if (state.size >= MAX_STATE_SIZE) state.clear();
+      }
+
       state.set(key, { window, count: 1 });
       return next();
     }
