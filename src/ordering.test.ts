@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { Gramora } from "./core/bot";
+import { Controller, On } from "./decorators";
 import type { Update } from "./types/telegram";
 
 describe("handler ordering", () => {
@@ -62,5 +63,41 @@ describe("handler ordering", () => {
 
     await bot.handleUpdate(update);
     expect(executionOrder).toEqual(["text1", "text2"]);
+  });
+
+  it("maintains registration order when mixing controllers and simple handlers", async () => {
+    const executionOrder: string[] = [];
+
+    @Controller()
+    class TestController {
+      @On("text")
+      onText() {
+        executionOrder.push("controller_text");
+      }
+    }
+
+    const bot = new Gramora({ token: "test", mode: "full" });
+
+    // 1. Register controller
+    bot.register(TestController);
+    // 2. Register simple handler
+    bot.onText(() => {
+      executionOrder.push("simple_text");
+    });
+
+    const update: Update = {
+      update_id: 1,
+      message: {
+        message_id: 1,
+        date: 123,
+        chat: { id: 1, type: "private" },
+        text: "hello",
+      },
+    };
+
+    await bot.handleUpdate(update);
+
+    // Should follow registration order since they both end up in onKindHandlers["text"]
+    expect(executionOrder).toEqual(["controller_text", "simple_text"]);
   });
 });
