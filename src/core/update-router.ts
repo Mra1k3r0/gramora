@@ -325,17 +325,29 @@ export class UpdateRouter {
     }
   }
 
+  /**
+   * Dispatches the update to all matching indexed handlers.
+   * Execution order for messages:
+   * 1. Command handlers (exact match)
+   * 2. Global message handlers (`onMessage`, `on('*')`)
+   * 3. Kind-specific message handlers (`onText`, `on('photo')`, etc.)
+   *
+   * For other update types, handlers are executed if the update contains the corresponding field.
+   */
   private async dispatchIndexedHandlers(update: Update, sceneControl: SceneControl) {
     if (!this.hasIndexedHandlers) return;
 
     if (update.message) {
       const text = "text" in update.message ? update.message.text : undefined;
-      const parsedCommand = this.parseCommand(text);
-      if (parsedCommand) {
-        const commandRunners = this.commandHandlers.get(parsedCommand.command);
-        if (commandRunners) {
-          for (const runner of commandRunners) {
-            await this.runControllerRunner(update, runner, sceneControl);
+      if (text?.startsWith("/") && this.commandHandlers.size > 0) {
+        const parsedCommand = this.parseCommand(text);
+        if (parsedCommand) {
+          const commandName = parsedCommand.command;
+          const commandRunners = this.commandHandlers.get(commandName);
+          if (commandRunners) {
+            for (const runner of commandRunners) {
+              await this.runControllerRunner(update, runner, sceneControl);
+            }
           }
         }
       }
