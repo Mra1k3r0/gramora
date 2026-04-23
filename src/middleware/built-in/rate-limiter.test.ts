@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { rateLimiter } from "./rate-limiter";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { rateLimiter, MAX_STATE_SIZE } from "./rate-limiter";
 import type { BaseContext } from "../../context";
 
 describe("rateLimiter middleware", () => {
@@ -14,6 +14,10 @@ describe("rateLimiter middleware", () => {
     } as unknown as BaseContext;
     next = vi.fn().mockResolvedValue(undefined);
     vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it("should allow requests under the limit", async () => {
@@ -58,16 +62,15 @@ describe("rateLimiter middleware", () => {
     expect(next).toHaveBeenCalledTimes(50);
   });
 
-  it("should trigger cleanup when reaching MAX_STATE_SIZE", async () => {
+  it("should trigger cleanup and bounded eviction when reaching MAX_STATE_SIZE", async () => {
     const mw = rateLimiter({ maxPerWindow: 1, windowMs: 1000 });
-    const MAX_STATE_SIZE = 10000;
 
-    // Fill up to MAX_STATE_SIZE - 1 users
-    for (let i = 1; i < MAX_STATE_SIZE; i++) {
+    // Fill up to MAX_STATE_SIZE users
+    for (let i = 1; i <= MAX_STATE_SIZE; i++) {
       Object.defineProperty(ctx, "fromId", { value: i });
       await mw(ctx, next);
     }
-    expect(next).toHaveBeenCalledTimes(MAX_STATE_SIZE - 1);
+    expect(next).toHaveBeenCalledTimes(MAX_STATE_SIZE);
 
     // User 1 is already in the map. Next request from User 1 should be blocked.
     Object.defineProperty(ctx, "fromId", { value: 1 });
@@ -75,18 +78,20 @@ describe("rateLimiter middleware", () => {
     expect(ctx.reply).toHaveBeenCalledWith("Rate limit exceeded. Try again later.");
     vi.mocked(ctx.reply).mockClear();
 
-    // Add more users to trigger cleanup/clear
-    Object.defineProperty(ctx, "fromId", { value: MAX_STATE_SIZE });
-    await mw(ctx, next);
-
+    // Add one more user to trigger eviction (10% of MAX_STATE_SIZE)
     Object.defineProperty(ctx, "fromId", { value: MAX_STATE_SIZE + 1 });
     await mw(ctx, next);
 
-    // Since all are in the same window, none are deleted, so it clears.
-    // User 1 should be allowed again.
+    // Bounded eviction should have removed the first 10% (1000 entries).
+    // User 1 was the first entry, so it should be gone now.
     Object.defineProperty(ctx, "fromId", { value: 1 });
     await mw(ctx, next);
     expect(ctx.reply).not.toHaveBeenCalled();
     expect(next).toHaveBeenCalledTimes(MAX_STATE_SIZE + 2);
+
+    // User MAX_STATE_SIZE should still be blocked (it was not evicted)
+    Object.defineProperty(ctx, "fromId", { value: MAX_STATE_SIZE });
+    await mw(ctx, next);
+    expect(ctx.reply).toHaveBeenCalledWith("Rate limit exceeded. Try again later.");
   });
 });
