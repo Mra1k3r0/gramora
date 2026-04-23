@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.0.13](https://github.com/Mra1k3r0/gramora/compare/v0.0.12...v0.0.13) (2026-04-23)
+
+### What's Changed
+
+- harden token redaction and webhook secret tests — [`54efc03`](https://github.com/Mra1k3r0/gramora/commit/54efc03ea0d836938786994337b6a99d0927b8b1)
+
 ## [0.0.12](https://github.com/Mra1k3r0/gramora/compare/v0.0.11...v0.0.12) (2026-04-21)
 
 ### What's Changed
