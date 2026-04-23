@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { WebhookTransport } from "./core/polling";
+import { ValidationError } from "./core/errors";
 import {
   addRedactionToken,
   clearRedactionTokensForTests,
@@ -103,5 +104,18 @@ describe("Security Log Redaction", () => {
     } finally {
       transport.stop();
     }
+  });
+
+  it("throws ValidationError for invalid secret token lengths", async () => {
+    const transport = new WebhookTransport(async () => {});
+
+    // Empty token
+    await expect(transport.start({ port: 9700, secretToken: "" })).rejects.toThrow(ValidationError);
+
+    // Too long token (> 256 chars)
+    const longToken = "a".repeat(257);
+    await expect(transport.start({ port: 9701, secretToken: longToken })).rejects.toThrow(
+      ValidationError,
+    );
   });
 });

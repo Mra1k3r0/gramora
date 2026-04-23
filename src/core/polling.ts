@@ -1,7 +1,7 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import type { ApiClient } from "./api-client";
-import { TelegramApiError, RateLimitError } from "./errors";
+import { TelegramApiError, RateLimitError, ValidationError } from "./errors";
 import type { BotHooks } from "./types";
 import type { Update } from "../types/telegram";
 import type { HookErrorClass, HookErrorEnvelope } from "./types";
@@ -114,6 +114,9 @@ export class WebhookTransport {
   ) {}
 
   async start(options: { port: number; path?: string; secretToken?: string }) {
+    if (options.secretToken !== undefined && (options.secretToken.length < 1 || options.secretToken.length > 256)) {
+      throw new ValidationError("secretToken must be between 1 and 256 characters", "secretToken");
+    }
     const targetPath = options.path ?? "/webhook";
     const maxBodyBytes = this.webhookOptions?.maxBodyBytes ?? 1_048_576;
     const allowedContentTypes = this.webhookOptions?.allowedContentTypes ?? ["application/json"];
