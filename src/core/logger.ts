@@ -29,6 +29,11 @@ export const addRedactionToken = (token: string) => {
   }
 };
 
+/** Test helper: clears registered redaction tokens to avoid cross-test leakage. */
+export const clearRedactionTokensForTests = () => {
+  REDACTION_TOKENS.clear();
+};
+
 const redact = (text: unknown): string => {
   const str = typeof text === "string" ? text : String(text);
   let result = str;

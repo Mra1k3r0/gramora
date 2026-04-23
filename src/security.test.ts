@@ -1,5 +1,16 @@
-import { describe, it, expect, vi } from "vitest";
-import { addRedactionToken, stringifyForLog, log } from "./core/logger";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { WebhookTransport } from "./core/polling";
+import {
+  addRedactionToken,
+  clearRedactionTokensForTests,
+  stringifyForLog,
+  log,
+} from "./core/logger";
+
+afterEach(() => {
+  vi.restoreAllMocks();
+  clearRedactionTokensForTests();
+});
 
 describe("Security Log Redaction", () => {
   it("should redact registered tokens in stringifyForLog", () => {
@@ -41,7 +52,56 @@ describe("Security Log Redaction", () => {
     const lastCall = consoleSpy.mock.calls[0][0];
     expect(lastCall).not.toContain(token);
     expect(lastCall).toContain("[REDACTED]");
+  });
 
-    consoleSpy.mockRestore();
+  it("authorizes webhook requests with matching secret token", async () => {
+    const port = 9500 + Math.floor(Math.random() * 500);
+    const transport = new WebhookTransport(async () => {});
+    await transport.start({ port, path: "/webhook", secretToken: "expected-secret-token" });
+
+    try {
+      const response = await fetch(`http://127.0.0.1:${String(port)}/webhook`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-telegram-bot-api-secret-token": "expected-secret-token",
+        },
+        body: JSON.stringify({ update_id: 1 }),
+      });
+
+      expect(response.status).toBe(200);
+    } finally {
+      transport.stop();
+    }
+  });
+
+  it("rejects webhook requests with mismatched secret token lengths", async () => {
+    const port = 9600 + Math.floor(Math.random() * 500);
+    const transport = new WebhookTransport(async () => {});
+    await transport.start({ port, path: "/webhook", secretToken: "very-long-expected-secret" });
+
+    try {
+      const shortMismatch = await fetch(`http://127.0.0.1:${String(port)}/webhook`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-telegram-bot-api-secret-token": "x",
+        },
+        body: JSON.stringify({ update_id: 2 }),
+      });
+      expect(shortMismatch.status).toBe(401);
+
+      const longMismatch = await fetch(`http://127.0.0.1:${String(port)}/webhook`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-telegram-bot-api-secret-token": "another-long-but-wrong-secret-token",
+        },
+        body: JSON.stringify({ update_id: 3 }),
+      });
+      expect(longMismatch.status).toBe(401);
+    } finally {
+      transport.stop();
+    }
   });
 });

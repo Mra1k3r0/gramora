@@ -10,7 +10,7 @@ import { Blob } from "node:buffer";
 import { fetch, FormData, ProxyAgent, Socks5ProxyAgent, type Dispatcher } from "undici";
 import type { InputFile } from "../types/telegram";
 import type { BotOptions, BotRuntimeConfig } from "./types";
-import { log, stringifyForLog } from "./logger";
+import { addRedactionToken, log, stringifyForLog } from "./logger";
 import { TelegramApiError, RateLimitError } from "./errors";
 
 export { TelegramApiError } from "./errors";
@@ -46,6 +46,7 @@ export class ApiClient {
    * @param network - User agent, timeout, optional proxy URL
    */
   constructor(token: string, baseUrl = "https://api.telegram.org", network?: ClientNetworkOptions) {
+    addRedactionToken(token);
     this.endpoint = `${baseUrl}/bot${token}`;
     this.network = { userAgent: DEFAULT_BOT_USER_AGENT, timeoutMs: 15000, proxy: undefined };
     this.configureNetwork(network ?? {});
