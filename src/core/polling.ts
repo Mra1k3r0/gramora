@@ -114,7 +114,10 @@ export class WebhookTransport {
   ) {}
 
   async start(options: { port: number; path?: string; secretToken?: string }) {
-    if (options.secretToken !== undefined && (options.secretToken.length < 1 || options.secretToken.length > 256)) {
+    if (
+      options.secretToken !== undefined &&
+      (options.secretToken.length < 1 || options.secretToken.length > 256)
+    ) {
       throw new ValidationError("secretToken must be between 1 and 256 characters", "secretToken");
     }
     const targetPath = options.path ?? "/webhook";
