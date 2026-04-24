@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.0.15](https://github.com/Mra1k3r0/gramora/compare/v0.0.14...v0.0.15) (2026-04-24)
+
+### What's Changed
+
+- validate webhook secret before remote webhook setup — [`54bbbc2`](https://github.com/Mra1k3r0/gramora/commit/54bbbc295ff225af95e8b617f44c2c0fa2a94b53)
+
 ## [0.0.14](https://github.com/Mra1k3r0/gramora/compare/v0.0.13...v0.0.14) (2026-04-24)
 
 ### What's Changed
