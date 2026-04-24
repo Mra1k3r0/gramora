@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { Gramora } from "./core/bot";
 import { WebhookTransport } from "./core/polling";
 import { ValidationError } from "./core/errors";
 import {
@@ -117,5 +118,33 @@ describe("Security Log Redaction", () => {
     await expect(transport.start({ port: 9701, secretToken: longToken })).rejects.toThrow(
       ValidationError,
     );
+  });
+
+  it("fails fast before webhook side effects when secret token is invalid", async () => {
+    const bot = new Gramora({
+      token: "123456789:ABCdefGHIjklMNOpqrsTUVwxyz",
+      mode: "core",
+    });
+    const getMeSpy = vi.spyOn(bot.api, "getMe").mockResolvedValue({
+      id: 1,
+      is_bot: true,
+      first_name: "bot",
+      username: "bot_user",
+    });
+    const setWebhookSpy = vi.spyOn(bot.api, "setWebhook").mockResolvedValue(true);
+
+    await expect(
+      bot.launch({
+        transport: "webhook",
+        webhook: {
+          port: 9800,
+          domain: "https://example.com",
+          secretToken: "x".repeat(257),
+        },
+      }),
+    ).rejects.toThrow(ValidationError);
+
+    expect(getMeSpy).toHaveBeenCalledTimes(1);
+    expect(setWebhookSpy).not.toHaveBeenCalled();
   });
 });

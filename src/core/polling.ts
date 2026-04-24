@@ -20,6 +20,12 @@ function timingSafeSecretEqual(incoming: string, expected: string): boolean {
   return timingSafeEqual(hashA, hashB);
 }
 
+export function validateWebhookSecretToken(secretToken: string | undefined): void {
+  if (secretToken !== undefined && (secretToken.length < 1 || secretToken.length > 256)) {
+    throw new ValidationError("secretToken must be between 1 and 256 characters", "secretToken");
+  }
+}
+
 export class PollingTransport {
   private running = false;
   private offset?: number;
@@ -114,12 +120,7 @@ export class WebhookTransport {
   ) {}
 
   async start(options: { port: number; path?: string; secretToken?: string }) {
-    if (
-      options.secretToken !== undefined &&
-      (options.secretToken.length < 1 || options.secretToken.length > 256)
-    ) {
-      throw new ValidationError("secretToken must be between 1 and 256 characters", "secretToken");
-    }
+    validateWebhookSecretToken(options.secretToken);
     const targetPath = options.path ?? "/webhook";
     const maxBodyBytes = this.webhookOptions?.maxBodyBytes ?? 1_048_576;
     const allowedContentTypes = this.webhookOptions?.allowedContentTypes ?? ["application/json"];
