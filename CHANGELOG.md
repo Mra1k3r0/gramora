@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.0.14](https://github.com/Mra1k3r0/gramora/compare/v0.0.13...v0.0.14) (2026-04-24)
+
+### What's Changed
+
+- sync lockfile after dependency merges — [`5ec636b`](https://github.com/Mra1k3r0/gramora/commit/5ec636b47c055d3fff2d40f7e6c3cb368499cbf5)
+
 ## [0.0.13](https://github.com/Mra1k3r0/gramora/compare/v0.0.12...v0.0.13) (2026-04-23)
 
 ### What's Changed
