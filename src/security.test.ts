@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { Gramora } from "./core/bot";
 import { WebhookTransport } from "./core/polling";
+import { ValidationError } from "./core/errors";
 import {
   addRedactionToken,
   clearRedactionTokensForTests,
@@ -103,5 +105,46 @@ describe("Security Log Redaction", () => {
     } finally {
       transport.stop();
     }
+  });
+
+  it("throws ValidationError for invalid secret token lengths", async () => {
+    const transport = new WebhookTransport(async () => {});
+
+    // Empty token
+    await expect(transport.start({ port: 9700, secretToken: "" })).rejects.toThrow(ValidationError);
+
+    // Too long token (> 256 chars)
+    const longToken = "a".repeat(257);
+    await expect(transport.start({ port: 9701, secretToken: longToken })).rejects.toThrow(
+      ValidationError,
+    );
+  });
+
+  it("fails fast before webhook side effects when secret token is invalid", async () => {
+    const bot = new Gramora({
+      token: "123456789:ABCdefGHIjklMNOpqrsTUVwxyz",
+      mode: "core",
+    });
+    const getMeSpy = vi.spyOn(bot.api, "getMe").mockResolvedValue({
+      id: 1,
+      is_bot: true,
+      first_name: "bot",
+      username: "bot_user",
+    });
+    const setWebhookSpy = vi.spyOn(bot.api, "setWebhook").mockResolvedValue(true);
+
+    await expect(
+      bot.launch({
+        transport: "webhook",
+        webhook: {
+          port: 9800,
+          domain: "https://example.com",
+          secretToken: "x".repeat(257),
+        },
+      }),
+    ).rejects.toThrow(ValidationError);
+
+    expect(getMeSpy).toHaveBeenCalledTimes(1);
+    expect(setWebhookSpy).not.toHaveBeenCalled();
   });
 });

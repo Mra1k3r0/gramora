@@ -9,7 +9,7 @@ import {
   log,
   stringifyForLog,
 } from "./logger";
-import { PollingTransport, WebhookTransport } from "./polling";
+import { PollingTransport, validateWebhookSecretToken, WebhookTransport } from "./polling";
 import { UpdateRouter } from "./update-router";
 import type { BaseContext } from "../context";
 import type { MiddlewareFn } from "../middleware/types";
@@ -219,6 +219,7 @@ class Bot {
       const webhookConfig = options?.webhook ?? this.webhookConfig;
       if (!webhookConfig)
         throw new Error("Webhook launch requires webhook options or configureWebhook(...)");
+      validateWebhookSecretToken(webhookConfig.secretToken);
       const resolvedPathRaw = webhookConfig.path ?? this.secretPathComponent();
       const resolvedPath = resolvedPathRaw.startsWith("/")
         ? resolvedPathRaw
