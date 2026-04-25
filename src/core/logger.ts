@@ -20,7 +20,14 @@ const TOKEN_COLORS = {
 };
 
 const REDACTION_TOKENS = new Set<string>();
-const SENSITIVE_KEYS = new Set(["token", "secrettoken", "providertoken", "password", "secret"]);
+const SENSITIVE_KEYS = new Set([
+  "token",
+  "secrettoken",
+  "providertoken",
+  "password",
+  "secret",
+  "apikey",
+]);
 
 /** Registers a sensitive token (like the bot token) to be replaced with [REDACTED] in all logs. */
 export const addRedactionToken = (token: string) => {
