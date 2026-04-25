@@ -145,14 +145,14 @@ describe("Security Log Redaction", () => {
     const transport = new WebhookTransport(async () => {});
 
     // Invalid character (symbol)
-    await expect(
-      transport.start({ port: 9702, secretToken: "invalid!token" }),
-    ).rejects.toThrow(ValidationError);
+    await expect(transport.start({ port: 9702, secretToken: "invalid!token" })).rejects.toThrow(
+      ValidationError,
+    );
 
     // Invalid character (space)
-    await expect(
-      transport.start({ port: 9703, secretToken: "invalid token" }),
-    ).rejects.toThrow(ValidationError);
+    await expect(transport.start({ port: 9703, secretToken: "invalid token" })).rejects.toThrow(
+      ValidationError,
+    );
   });
 
   it("fails fast before webhook side effects when secret token is invalid", async () => {
