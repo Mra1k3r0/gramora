@@ -79,4 +79,77 @@ describe("roadmap #12", () => {
 
     expect(store.get("99")?.counter).toBe(2);
   });
+
+  it("shares in-flight session state across concurrent updates for the same key", async () => {
+    let getCalls = 0;
+    const store = new Map<string, Record<string, unknown>>([["99", { counter: 0 }]]);
+    const mw = session({
+      store: {
+        async get(key) {
+          getCalls += 1;
+          return store.get(key);
+        },
+        async set(key, value) {
+          store.set(key, value);
+        },
+        async delete(key) {
+          store.delete(key);
+        },
+      },
+    });
+
+    let releaseGate: (() => void) | undefined;
+    const gate = new Promise<void>((resolve) => {
+      releaseGate = resolve;
+    });
+    const started: number[] = [];
+    const run = async (id: number) => {
+      const ctx = {
+        fromId: 99,
+        chatId: 100,
+        session: {},
+      } as Pick<BaseContext, "fromId" | "chatId" | "session"> as BaseContext;
+
+      await mw(ctx, async () => {
+        started.push(id);
+        if (started.length === 2) releaseGate?.();
+        await gate;
+        ctx.session.counter = Number(ctx.session.counter ?? 0) + 1;
+      });
+    };
+
+    await Promise.all([run(1), run(2)]);
+
+    expect(getCalls).toBe(1);
+    expect(store.get("99")?.counter).toBe(2);
+  });
+
+  it("persists reassigned session objects correctly", async () => {
+    const store = new Map<string, Record<string, unknown>>([["77", { counter: 1 }]]);
+    const mw = session({
+      store: {
+        async get(key) {
+          return store.get(key);
+        },
+        async set(key, value) {
+          store.set(key, value);
+        },
+        async delete(key) {
+          store.delete(key);
+        },
+      },
+    });
+
+    const ctx = {
+      fromId: 77,
+      chatId: 100,
+      session: {},
+    } as Pick<BaseContext, "fromId" | "chatId" | "session"> as BaseContext;
+
+    await mw(ctx, async () => {
+      ctx.session = { replaced: true };
+    });
+
+    expect(store.get("77")).toEqual({ replaced: true });
+  });
 });

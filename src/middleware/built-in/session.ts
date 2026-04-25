@@ -20,12 +20,15 @@ export interface SessionOptions<T extends Record<string, unknown> = Record<strin
 export function session<T extends Record<string, unknown> = Record<string, unknown>>(
   options: SessionOptions<T>,
 ): MiddlewareFn<BaseContext> {
+  type CacheEntry = { value: T; refs: number };
   const resolveKey =
     options.key ??
     ((ctx: BaseContext) => {
       const id = ctx.fromId ?? ctx.chatId;
       return id === undefined ? undefined : String(id);
     });
+  const cache = new Map<string, CacheEntry>();
+  const inFlightLoads = new Map<string, Promise<T | undefined>>();
 
   return async (ctx, next) => {
     const key = resolveKey(ctx);
@@ -34,17 +37,53 @@ export function session<T extends Record<string, unknown> = Record<string, unkno
       return;
     }
 
-    const existing = await options.store.get(key);
-    const initial = options.initial?.() ?? ({} as T);
-    ctx.session = (existing ?? initial) as Record<string, unknown>;
-
-    await next();
-
-    const current = ctx.session as T;
-    if (Object.keys(current).length === 0) {
-      await options.store.delete(key);
-      return;
+    let entry = cache.get(key);
+    if (entry) {
+      entry.refs += 1;
+    } else {
+      let pendingLoad = inFlightLoads.get(key);
+      if (!pendingLoad) {
+        pendingLoad = options.store.get(key);
+        inFlightLoads.set(key, pendingLoad);
+      }
+      const loaded = await pendingLoad;
+      if (inFlightLoads.get(key) === pendingLoad) {
+        inFlightLoads.delete(key);
+      }
+      const existingEntry = cache.get(key);
+      if (existingEntry) {
+        existingEntry.refs += 1;
+        entry = existingEntry;
+      } else {
+        const initial = options.initial?.() ?? ({} as T);
+        entry = { value: (loaded ?? initial) as T, refs: 1 };
+        cache.set(key, entry);
+      }
     }
-    await options.store.set(key, current);
+
+    Object.defineProperty(ctx, "session", {
+      configurable: true,
+      enumerable: true,
+      get: () => entry.value as Record<string, unknown>,
+      set: (value: Record<string, unknown>) => {
+        entry.value = value as T;
+      },
+    });
+
+    try {
+      await next();
+    } finally {
+      const current = entry.value;
+      if (Object.keys(current).length === 0) {
+        await options.store.delete(key);
+      } else {
+        await options.store.set(key, current);
+      }
+
+      entry.refs -= 1;
+      if (entry.refs === 0) {
+        cache.delete(key);
+      }
+    }
   };
 }
