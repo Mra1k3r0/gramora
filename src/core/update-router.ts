@@ -42,7 +42,9 @@ export class UpdateRouter {
   private readonly commandHandlers = new Map<string, HandlerRunner[]>();
   private readonly onMessageHandlers: HandlerRunner[] = [];
   private readonly onKindHandlers = new Map<string, HandlerRunner[]>();
-  private readonly callbackHandlers: HandlerRunner[] = [];
+  private readonly callbackLiteralHandlers = new Map<string, HandlerRunner[]>();
+  private readonly callbackRegexHandlers: HandlerRunner[] = [];
+  private readonly callbackOrderedHandlers: { runner: HandlerRunner; isLiteral: boolean }[] = [];
   private readonly inlineHandlers: HandlerRunner[] = [];
   private readonly shippingQueryHandlers: HandlerRunner[] = [];
   private readonly preCheckoutQueryHandlers: HandlerRunner[] = [];
@@ -127,19 +129,9 @@ export class UpdateRouter {
    * @see https://core.telegram.org/bots/api#update
    */
   async handleUpdate(update: Update) {
-    const chatKey = String(
-      update.message?.chat.id ??
-        update.callback_query?.message?.chat.id ??
-        update.chat_member?.chat.id ??
-        update.my_chat_member?.chat.id ??
-        update.chat_join_request?.chat.id ??
-        update.message_reaction?.chat.id ??
-        update.message_reaction_count?.chat.id ??
-        update.business_message?.chat.id ??
-        update.edited_business_message?.chat.id ??
-        update.deleted_business_messages?.chat.id ??
-        "global",
-    );
+    const meta = this.getUpdateMetadata(update);
+    const chatKey = meta.chatId !== undefined ? String(meta.chatId) : "global";
+
     const sceneControl = await this.sceneManager.buildControl(chatKey);
     if (this.options.mode !== "core") {
       const sceneCtx = new SceneContext({ update, api: this.api, scene: sceneControl });
@@ -274,7 +266,16 @@ export class UpdateRouter {
         this.onKindHandlers.set(handler.trigger, current);
       }
     } else if (handler.kind === "callback_query") {
-      this.callbackHandlers.push(runner);
+      const isLiteral = Boolean(handler.trigger) && !/[.+*?^${}()|[\]\\]/.test(handler.trigger!);
+      if (isLiteral) {
+        const trigger = handler.trigger!;
+        const current = this.callbackLiteralHandlers.get(trigger) ?? [];
+        current.push(runner);
+        this.callbackLiteralHandlers.set(trigger, current);
+      } else {
+        this.callbackRegexHandlers.push(runner);
+      }
+      this.callbackOrderedHandlers.push({ runner, isLiteral });
     } else if (handler.kind === "inline_query") {
       this.inlineHandlers.push(runner);
     } else if (handler.kind === "shipping_query") {
@@ -332,12 +333,13 @@ export class UpdateRouter {
    * 2. Global message handlers (`onMessage`, `on('*')`)
    * 3. Kind-specific message handlers (`onText`, `on('photo')`, etc.)
    *
-   * For other update types, handlers are executed if the update contains the corresponding field.
+   * For other update types, handlers are executed if the update matches the kind.
    */
   private async dispatchIndexedHandlers(update: Update, sceneControl: SceneControl) {
     if (!this.hasIndexedHandlers) return;
+    const meta = this.getUpdateMetadata(update);
 
-    if (update.message) {
+    if (meta.kind === "message" && update.message) {
       const text = "text" in update.message ? update.message.text : undefined;
       if (text?.startsWith("/") && this.commandHandlers.size > 0) {
         const parsedCommand = this.parseCommand(text);
@@ -357,7 +359,7 @@ export class UpdateRouter {
       }
 
       for (const [kind, runners] of this.onKindHandlers) {
-        if (this.messageHasKind(update.message, kind)) {
+        if (kind in update.message) {
           for (const runner of runners) {
             await this.runControllerRunner(update, runner, sceneControl);
           }
@@ -365,23 +367,61 @@ export class UpdateRouter {
       }
     }
 
+    // Kind-specific handlers for non-message updates (e.g. on('callback_query'))
+    const otherKindRunners = this.onKindHandlers.get(meta.kind);
+    if (otherKindRunners && meta.kind !== "message") {
+      for (const runner of otherKindRunners) {
+        await this.runControllerRunner(update, runner, sceneControl);
+      }
+    }
+
+    // Forward compatibility: check for handlers that might match properties of the update
+    // even if getUpdateMetadata doesn't recognize the kind or if it's a new Telegram update type.
+    // We skip meta.kind to avoid double-dispatching handlers that were already run.
     for (const [kind, runners] of this.onKindHandlers) {
-      if (kind in update && kind !== "message") {
+      if (kind !== "*" && kind !== "message" && kind !== meta.kind && kind in update) {
         for (const runner of runners) {
           await this.runControllerRunner(update, runner, sceneControl);
         }
       }
     }
 
-    if (update.callback_query?.data) {
-      for (const runner of this.callbackHandlers) {
-        const matched = runner.callbackRegex?.exec(update.callback_query.data);
-        if (!matched) continue;
-        await this.runControllerRunner(update, runner, sceneControl, matched.slice(1));
+    // Handle on('*') and other global update handlers from onKindHandlers
+    const catchAllRunners = this.onKindHandlers.get("*");
+    if (catchAllRunners) {
+      for (const runner of catchAllRunners) {
+        await this.runControllerRunner(update, runner, sceneControl);
       }
     }
 
-    if (update.inline_query) {
+    if (meta.kind === "callback_query" && update.callback_query?.data) {
+      const data = update.callback_query.data;
+      // Optimization: if we only have literal handlers, use the Map for O(1)
+      if (this.callbackRegexHandlers.length === 0) {
+        const literalRunners = this.callbackLiteralHandlers.get(data);
+        if (literalRunners) {
+          for (const runner of literalRunners) {
+            await this.runControllerRunner(update, runner, sceneControl);
+          }
+        }
+      } else {
+        // Fallback to ordered execution if regex handlers are present to preserve registration order
+        for (const item of this.callbackOrderedHandlers) {
+          if (item.isLiteral) {
+            if (item.runner.def.trigger === data) {
+              await this.runControllerRunner(update, item.runner, sceneControl);
+            }
+          } else {
+            const matched = item.runner.callbackRegex?.exec(data);
+            if (matched) {
+              await this.runControllerRunner(update, item.runner, sceneControl, matched.slice(1));
+            }
+          }
+        }
+      }
+    }
+
+    if (meta.kind === "inline_query" && update.inline_query) {
       for (const runner of this.inlineHandlers) {
         const pattern = runner.def.trigger ?? "*";
         if (pattern !== "*" && pattern !== "" && !update.inline_query.query.includes(pattern))
@@ -390,57 +430,47 @@ export class UpdateRouter {
       }
     }
 
-    if (update.shipping_query) {
+    if (meta.kind === "shipping_query") {
       for (const runner of this.shippingQueryHandlers) {
         await this.runControllerRunner(update, runner, sceneControl);
       }
-    }
-    if (update.pre_checkout_query) {
+    } else if (meta.kind === "pre_checkout_query") {
       for (const runner of this.preCheckoutQueryHandlers) {
         await this.runControllerRunner(update, runner, sceneControl);
       }
-    }
-    if (update.chat_member) {
+    } else if (meta.kind === "chat_member") {
       for (const runner of this.chatMemberHandlers) {
         await this.runControllerRunner(update, runner, sceneControl);
       }
-    }
-    if (update.my_chat_member) {
+    } else if (meta.kind === "my_chat_member") {
       for (const runner of this.myChatMemberHandlers) {
         await this.runControllerRunner(update, runner, sceneControl);
       }
-    }
-    if (update.chat_join_request) {
+    } else if (meta.kind === "chat_join_request") {
       for (const runner of this.chatJoinRequestHandlers) {
         await this.runControllerRunner(update, runner, sceneControl);
       }
-    }
-    if (update.message_reaction) {
+    } else if (meta.kind === "message_reaction") {
       for (const runner of this.messageReactionHandlers) {
         await this.runControllerRunner(update, runner, sceneControl);
       }
-    }
-    if (update.message_reaction_count) {
+    } else if (meta.kind === "message_reaction_count") {
       for (const runner of this.messageReactionCountHandlers) {
         await this.runControllerRunner(update, runner, sceneControl);
       }
-    }
-    if (update.business_connection) {
+    } else if (meta.kind === "business_connection") {
       for (const runner of this.businessConnectionHandlers) {
         await this.runControllerRunner(update, runner, sceneControl);
       }
-    }
-    if (update.business_message) {
+    } else if (meta.kind === "business_message") {
       for (const runner of this.businessMessageHandlers) {
         await this.runControllerRunner(update, runner, sceneControl);
       }
-    }
-    if (update.edited_business_message) {
+    } else if (meta.kind === "edited_business_message") {
       for (const runner of this.editedBusinessMessageHandlers) {
         await this.runControllerRunner(update, runner, sceneControl);
       }
-    }
-    if (update.deleted_business_messages) {
+    } else if (meta.kind === "deleted_business_messages") {
       for (const runner of this.deletedBusinessMessagesHandlers) {
         await this.runControllerRunner(update, runner, sceneControl);
       }
@@ -483,5 +513,46 @@ export class UpdateRouter {
     await compose(this.globalMiddleware)(ctx, async () => {
       await run();
     });
+  }
+
+  /**
+   * Efficiently extracts the primary update kind and associated chat ID.
+   * This avoids repeated property checks throughout the dispatch pipeline.
+   * Note: Some update types (like edited_message) deliberately do not have a chatId
+   * to match the original framework behavior of using "global" as the chat key.
+   */
+  private getUpdateMetadata(update: Update): { kind: string; chatId?: number } {
+    if (update.message) return { kind: "message", chatId: update.message.chat.id };
+    if (update.callback_query)
+      return { kind: "callback_query", chatId: update.callback_query.message?.chat.id };
+    if (update.business_message)
+      return { kind: "business_message", chatId: update.business_message.chat.id };
+    if (update.chat_member) return { kind: "chat_member", chatId: update.chat_member.chat.id };
+    if (update.my_chat_member)
+      return { kind: "my_chat_member", chatId: update.my_chat_member.chat.id };
+    if (update.chat_join_request)
+      return { kind: "chat_join_request", chatId: update.chat_join_request.chat.id };
+    if (update.message_reaction)
+      return { kind: "message_reaction", chatId: update.message_reaction.chat.id };
+    if (update.message_reaction_count)
+      return { kind: "message_reaction_count", chatId: update.message_reaction_count.chat.id };
+    if (update.edited_business_message)
+      return { kind: "edited_business_message", chatId: update.edited_business_message.chat.id };
+    if (update.deleted_business_messages)
+      return {
+        kind: "deleted_business_messages",
+        chatId: update.deleted_business_messages.chat.id,
+      };
+
+    if (update.inline_query) return { kind: "inline_query" };
+    if (update.chosen_inline_result) return { kind: "chosen_inline_result" };
+    if (update.shipping_query) return { kind: "shipping_query" };
+    if (update.pre_checkout_query) return { kind: "pre_checkout_query" };
+    if (update.poll_answer) return { kind: "poll_answer" };
+    if (update.poll) return { kind: "poll" };
+    if (update.business_connection) return { kind: "business_connection" };
+    if (update.edited_message) return { kind: "edited_message" };
+
+    return { kind: "unknown" };
   }
 }
