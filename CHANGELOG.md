@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.0.16](https://github.com/Mra1k3r0/gramora/compare/v0.0.15...v0.0.16) (2026-04-25)
+
+### What's Changed
+
+- make session middleware safe under concurrent updates — [`af20cdb`](https://github.com/Mra1k3r0/gramora/commit/af20cdb92617abb473de7158d6e025127af543a1)
+
 ## [0.0.15](https://github.com/Mra1k3r0/gramora/compare/v0.0.14...v0.0.15) (2026-04-24)
 
 ### What's Changed
