@@ -30,6 +30,7 @@ type HandlerRunner = {
   def: HandlerDefinition;
   run: (ctx: BaseContext) => Promise<void>;
   middleware: MiddlewareFn<BaseContext>[];
+  composedMiddleware?: MiddlewareFn<BaseContext>;
   guards: HandlerDefinition["guards"];
   callbackRegex?: RegExp;
 };
@@ -37,11 +38,16 @@ type HandlerRunner = {
 /** Routes `Update` objects to controllers, scenes, and `bot.on*` handlers. */
 export class UpdateRouter {
   private readonly globalMiddleware: MiddlewareFn<BaseContext>[] = [];
+  private composedGlobalMiddleware?: MiddlewareFn<BaseContext>;
   private readonly filteredHandlers: FilteredHandler[] = [];
 
   private readonly commandHandlers = new Map<string, HandlerRunner[]>();
   private readonly onMessageHandlers: HandlerRunner[] = [];
   private readonly onKindHandlers = new Map<string, HandlerRunner[]>();
+  /** Tracks registration order of kinds to preserve execution order in O(1) lookups */
+  private readonly kindRegistrationOrder = new Map<string, number>();
+  private kindCounter = 0;
+
   private readonly callbackLiteralHandlers = new Map<string, HandlerRunner[]>();
   private readonly callbackRegexHandlers: HandlerRunner[] = [];
   private readonly callbackOrderedHandlers: { runner: HandlerRunner; isLiteral: boolean }[] = [];
@@ -74,6 +80,7 @@ export class UpdateRouter {
    */
   use(mw: MiddlewareFn<BaseContext>) {
     this.globalMiddleware.push(mw);
+    this.composedGlobalMiddleware = undefined;
   }
 
   /**
@@ -261,9 +268,13 @@ export class UpdateRouter {
       if (handler.trigger === "message" || handler.trigger === "*" || !handler.trigger) {
         this.onMessageHandlers.push(runner);
       } else {
-        const current = this.onKindHandlers.get(handler.trigger) ?? [];
+        const trigger = handler.trigger;
+        if (!this.kindRegistrationOrder.has(trigger)) {
+          this.kindRegistrationOrder.set(trigger, this.kindCounter++);
+        }
+        const current = this.onKindHandlers.get(trigger) ?? [];
         current.push(runner);
-        this.onKindHandlers.set(handler.trigger, current);
+        this.onKindHandlers.set(trigger, current);
       }
     } else if (handler.kind === "callback_query") {
       const isLiteral = Boolean(handler.trigger) && !/[.+*?^${}()|[\]\\]/.test(handler.trigger!);
@@ -361,10 +372,21 @@ export class UpdateRouter {
         await this.runControllerRunner(update, runner, sceneControl);
       }
 
-      for (const [kind, runners] of this.onKindHandlers) {
-        if (kind in update.message) {
-          for (const runner of runners) {
-            await this.runControllerRunner(update, runner, sceneControl);
+      // Optimization: Instead of O(N) loop over all kinds, find matching keys in O(K)
+      const messageKinds = Object.keys(update.message).filter((key) =>
+        this.onKindHandlers.has(key),
+      );
+      if (messageKinds.length > 0) {
+        messageKinds.sort(
+          (a, b) =>
+            (this.kindRegistrationOrder.get(a) ?? 0) - (this.kindRegistrationOrder.get(b) ?? 0),
+        );
+        for (const kind of messageKinds) {
+          const runners = this.onKindHandlers.get(kind);
+          if (runners) {
+            for (const runner of runners) {
+              await this.runControllerRunner(update, runner, sceneControl);
+            }
           }
         }
       }
@@ -380,11 +402,27 @@ export class UpdateRouter {
 
     // Forward compatibility: check for handlers that might match properties of the update
     // even if getUpdateMetadata doesn't recognize the kind or if it's a new Telegram update type.
-    // We skip meta.kind to avoid double-dispatching handlers that were already run.
-    for (const [kind, runners] of this.onKindHandlers) {
-      if (kind !== "*" && kind !== "message" && kind !== meta.kind && kind in update) {
-        for (const runner of runners) {
-          await this.runControllerRunner(update, runner, sceneControl);
+    // Optimization: find matching keys in O(K) instead of O(N)
+    const updateKinds = Object.keys(update).filter(
+      (key) =>
+        key !== "update_id" &&
+        key !== meta.kind &&
+        key !== "message" &&
+        key !== "*" &&
+        this.onKindHandlers.has(key),
+    );
+
+    if (updateKinds.length > 0) {
+      updateKinds.sort(
+        (a, b) =>
+          (this.kindRegistrationOrder.get(a) ?? 0) - (this.kindRegistrationOrder.get(b) ?? 0),
+      );
+      for (const kind of updateKinds) {
+        const runners = this.onKindHandlers.get(kind);
+        if (runners) {
+          for (const runner of runners) {
+            await this.runControllerRunner(update, runner, sceneControl);
+          }
         }
       }
     }
@@ -399,26 +437,18 @@ export class UpdateRouter {
 
     if (meta.kind === "callback_query" && update.callback_query?.data) {
       const data = update.callback_query.data;
-      // Optimization: if we only have literal handlers, use the Map for O(1)
-      if (this.callbackRegexHandlers.length === 0) {
-        const literalRunners = this.callbackLiteralHandlers.get(data);
-        if (literalRunners) {
-          for (const runner of literalRunners) {
-            await this.runControllerRunner(update, runner, sceneControl);
+      // Use ordered handlers to preserve registration order
+      for (const item of this.callbackOrderedHandlers) {
+        if (item.isLiteral) {
+          // Fast literal check
+          if (item.runner.def.trigger === data) {
+            await this.runControllerRunner(update, item.runner, sceneControl);
           }
-        }
-      } else {
-        // Fallback to ordered execution if regex handlers are present to preserve registration order
-        for (const item of this.callbackOrderedHandlers) {
-          if (item.isLiteral) {
-            if (item.runner.def.trigger === data) {
-              await this.runControllerRunner(update, item.runner, sceneControl);
-            }
-          } else {
-            const matched = item.runner.callbackRegex?.exec(data);
-            if (matched) {
-              await this.runControllerRunner(update, item.runner, sceneControl, matched.slice(1));
-            }
+        } else {
+          // Regex check
+          const matched = item.runner.callbackRegex?.exec(data);
+          if (matched) {
+            await this.runControllerRunner(update, item.runner, sceneControl, matched.slice(1));
           }
         }
       }
@@ -495,17 +525,34 @@ export class UpdateRouter {
       }
     }
 
-    if (this.globalMiddleware.length === 0 && runner.middleware.length === 0) {
-      await runner.run(ctx);
+    // Optimization: Use pre-composed middleware if available
+    if (this.globalMiddleware.length === 0) {
+      if (runner.middleware.length === 0) {
+        await runner.run(ctx);
+        return;
+      }
+      if (!runner.composedMiddleware) {
+        runner.composedMiddleware = compose([...runner.middleware, (c) => runner.run(c)]);
+      }
+      await runner.composedMiddleware(ctx, async () => undefined);
       return;
     }
 
-    const stack: MiddlewareFn<BaseContext>[] = [
-      ...this.globalMiddleware,
-      ...runner.middleware,
-      async (innerCtx) => runner.run(innerCtx),
-    ];
-    await compose(stack)(ctx, async () => undefined);
+    // Combine global and runner middleware
+    if (!this.composedGlobalMiddleware) {
+      this.composedGlobalMiddleware = compose(this.globalMiddleware);
+    }
+
+    await this.composedGlobalMiddleware(ctx, async () => {
+      if (runner.middleware.length === 0) {
+        await runner.run(ctx);
+        return;
+      }
+      if (!runner.composedMiddleware) {
+        runner.composedMiddleware = compose([...runner.middleware, (c) => runner.run(c)]);
+      }
+      await runner.composedMiddleware(ctx, async () => undefined);
+    });
   }
 
   private async runWithGlobalMiddleware(ctx: BaseContext, run: () => Promise<void> | void) {
@@ -513,7 +560,10 @@ export class UpdateRouter {
       await run();
       return;
     }
-    await compose(this.globalMiddleware)(ctx, async () => {
+    if (!this.composedGlobalMiddleware) {
+      this.composedGlobalMiddleware = compose(this.globalMiddleware);
+    }
+    await this.composedGlobalMiddleware(ctx, async () => {
       await run();
     });
   }
