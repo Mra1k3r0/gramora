@@ -31,6 +31,9 @@ describe("Security Log Redaction", () => {
       token: "secret-token",
       password: "my-password",
       provider_token: "p-token",
+      secret_token: "s-token",
+      secretToken: "camel-s-token",
+      providerToken: "camel-p-token",
       normal_field: "public",
     };
 
@@ -39,6 +42,9 @@ describe("Security Log Redaction", () => {
     expect(result).not.toContain("secret-token");
     expect(result).not.toContain("my-password");
     expect(result).not.toContain("p-token");
+    expect(result).not.toContain("s-token");
+    expect(result).not.toContain("camel-s-token");
+    expect(result).not.toContain("camel-p-token");
     expect(result).toContain("[MASKED]");
     expect(result).toContain("public");
   });
