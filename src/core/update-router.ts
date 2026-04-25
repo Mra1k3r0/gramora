@@ -138,7 +138,7 @@ export class UpdateRouter {
       if (await this.sceneManager.tryHandleActiveScene(chatKey, sceneCtx)) return;
     }
 
-    await this.dispatchIndexedHandlers(update, sceneControl);
+    await this.dispatchIndexedHandlers(update, sceneControl, meta);
 
     for (const item of this.filteredHandlers) {
       if (!item.filter(update)) continue;
@@ -335,9 +335,12 @@ export class UpdateRouter {
    *
    * For other update types, handlers are executed if the update matches the kind.
    */
-  private async dispatchIndexedHandlers(update: Update, sceneControl: SceneControl) {
+  private async dispatchIndexedHandlers(
+    update: Update,
+    sceneControl: SceneControl,
+    meta: { kind: string; chatId?: number },
+  ) {
     if (!this.hasIndexedHandlers) return;
-    const meta = this.getUpdateMetadata(update);
 
     if (meta.kind === "message" && update.message) {
       const text = "text" in update.message ? update.message.text : undefined;
