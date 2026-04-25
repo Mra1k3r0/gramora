@@ -44,6 +44,7 @@ export class UpdateRouter {
   private readonly onKindHandlers = new Map<string, HandlerRunner[]>();
   private readonly callbackLiteralHandlers = new Map<string, HandlerRunner[]>();
   private readonly callbackRegexHandlers: HandlerRunner[] = [];
+  private readonly callbackOrderedHandlers: { runner: HandlerRunner; isLiteral: boolean }[] = [];
   private readonly inlineHandlers: HandlerRunner[] = [];
   private readonly shippingQueryHandlers: HandlerRunner[] = [];
   private readonly preCheckoutQueryHandlers: HandlerRunner[] = [];
@@ -265,7 +266,7 @@ export class UpdateRouter {
         this.onKindHandlers.set(handler.trigger, current);
       }
     } else if (handler.kind === "callback_query") {
-      const isLiteral = handler.trigger && !/[.+*?^${}()|[\]\\]/.test(handler.trigger);
+      const isLiteral = Boolean(handler.trigger) && !/[.+*?^${}()|[\]\\]/.test(handler.trigger!);
       if (isLiteral) {
         const trigger = handler.trigger!;
         const current = this.callbackLiteralHandlers.get(trigger) ?? [];
@@ -274,6 +275,7 @@ export class UpdateRouter {
       } else {
         this.callbackRegexHandlers.push(runner);
       }
+      this.callbackOrderedHandlers.push({ runner, isLiteral });
     } else if (handler.kind === "inline_query") {
       this.inlineHandlers.push(runner);
     } else if (handler.kind === "shipping_query") {
@@ -373,6 +375,17 @@ export class UpdateRouter {
       }
     }
 
+    // Forward compatibility: check for handlers that might match properties of the update
+    // even if getUpdateMetadata doesn't recognize the kind or if it's a new Telegram update type.
+    // We skip meta.kind to avoid double-dispatching handlers that were already run.
+    for (const [kind, runners] of this.onKindHandlers) {
+      if (kind !== "*" && kind !== "message" && kind !== meta.kind && kind in update) {
+        for (const runner of runners) {
+          await this.runControllerRunner(update, runner, sceneControl);
+        }
+      }
+    }
+
     // Handle on('*') and other global update handlers from onKindHandlers
     const catchAllRunners = this.onKindHandlers.get("*");
     if (catchAllRunners) {
@@ -383,18 +396,27 @@ export class UpdateRouter {
 
     if (meta.kind === "callback_query" && update.callback_query?.data) {
       const data = update.callback_query.data;
-      const literalRunners = this.callbackLiteralHandlers.get(data);
-      if (literalRunners) {
-        for (const runner of literalRunners) {
-          await this.runControllerRunner(update, runner, sceneControl);
+      // Optimization: if we only have literal handlers, use the Map for O(1)
+      if (this.callbackRegexHandlers.length === 0) {
+        const literalRunners = this.callbackLiteralHandlers.get(data);
+        if (literalRunners) {
+          for (const runner of literalRunners) {
+            await this.runControllerRunner(update, runner, sceneControl);
+          }
         }
-      }
-
-      if (this.callbackRegexHandlers.length > 0) {
-        for (const runner of this.callbackRegexHandlers) {
-          const matched = runner.callbackRegex?.exec(data);
-          if (!matched) continue;
-          await this.runControllerRunner(update, runner, sceneControl, matched.slice(1));
+      } else {
+        // Fallback to ordered execution if regex handlers are present to preserve registration order
+        for (const item of this.callbackOrderedHandlers) {
+          if (item.isLiteral) {
+            if (item.runner.def.trigger === data) {
+              await this.runControllerRunner(update, item.runner, sceneControl);
+            }
+          } else {
+            const matched = item.runner.callbackRegex?.exec(data);
+            if (matched) {
+              await this.runControllerRunner(update, item.runner, sceneControl, matched.slice(1));
+            }
+          }
         }
       }
     }
