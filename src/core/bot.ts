@@ -330,10 +330,8 @@ class Bot {
       // Performance: Only perform expensive serialization and kind detection if debug is enabled.
       // This improves update throughput by ~10x (measured via 'npm run bench').
       if (this.debugEnabled) {
-        this.debug(
-          "update",
-          `received id=${update.update_id} kind=${this.detectUpdateKind(update)}`,
-        );
+        const meta = this.router.getUpdateMetadata(update);
+        this.debug("update", `received id=${update.update_id} kind=${meta.kind}`);
         const payload = stringifyForLog(this.sanitizeForLog(update));
         const maxPayloadChars = 48_000;
         const truncated =

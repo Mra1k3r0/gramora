@@ -1,0 +1,3 @@
+## 2026-04-26 - Optimize update dispatch and context creation
+**Learning:** Initializing a context object with 14+ properties for every Telegram update is expensive. Using getters on the prototype significantly reduces construction overhead. Additionally, 'Object.keys()' and '.filter()' in the hot path for every update are measurable bottlenecks even for small objects.
+**Action:** Prefer lazy getters for context properties and avoid object iteration/filtering in update dispatch loops unless the update type is unknown. Pass already-extracted metadata (like chatId) downstream to avoid redundant scanning.
