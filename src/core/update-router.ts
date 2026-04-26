@@ -437,18 +437,29 @@ export class UpdateRouter {
 
     if (meta.kind === "callback_query" && update.callback_query?.data) {
       const data = update.callback_query.data;
-      // Use ordered handlers to preserve registration order
-      for (const item of this.callbackOrderedHandlers) {
-        if (item.isLiteral) {
-          // Fast literal check
-          if (item.runner.def.trigger === data) {
-            await this.runControllerRunner(update, item.runner, sceneControl);
+
+      // Optimization: if we only have literal handlers, use the Map for O(1)
+      if (this.callbackRegexHandlers.length === 0) {
+        const literalRunners = this.callbackLiteralHandlers.get(data);
+        if (literalRunners) {
+          for (const runner of literalRunners) {
+            await this.runControllerRunner(update, runner, sceneControl);
           }
-        } else {
-          // Regex check
-          const matched = item.runner.callbackRegex?.exec(data);
-          if (matched) {
-            await this.runControllerRunner(update, item.runner, sceneControl, matched.slice(1));
+        }
+      } else {
+        // Use ordered handlers to preserve registration order when regex handlers exist
+        for (const item of this.callbackOrderedHandlers) {
+          if (item.isLiteral) {
+            // Fast literal check
+            if (item.runner.def.trigger === data) {
+              await this.runControllerRunner(update, item.runner, sceneControl);
+            }
+          } else {
+            // Regex check
+            const matched = item.runner.callbackRegex?.exec(data);
+            if (matched) {
+              await this.runControllerRunner(update, item.runner, sceneControl, matched.slice(1));
+            }
           }
         }
       }
