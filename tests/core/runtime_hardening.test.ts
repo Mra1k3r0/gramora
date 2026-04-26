@@ -1,13 +1,13 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { Gramora } from "./core/bot";
-import type { ApiClient } from "./core/api/client";
-import { PollingTransport, WebhookTransport } from "./core/polling";
+import { Gramora } from "../../src/core/bot";
+import type { ApiClient } from "../../src/core/api/client";
+import { PollingTransport, WebhookTransport } from "../../src/core/polling";
 
 afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe("roadmap #15", () => {
+describe("runtime hardening", () => {
   it("emits structured update error envelope to hooks", async () => {
     let metaClass: string | undefined;
     let metaSource: string | undefined;

@@ -1,13 +1,13 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { Gramora } from "./core/bot";
-import type { ApiClient } from "./core/api/client";
-import { PollingTransport, WebhookTransport } from "./core/polling";
+import { Gramora } from "../../src/core/bot";
+import type { ApiClient } from "../../src/core/api/client";
+import { PollingTransport, WebhookTransport } from "../../src/core/polling";
 
 afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe("roadmap #13", () => {
+describe("runtime controls", () => {
   it("applies handler timeout and reports through update error hook", async () => {
     let timeoutError: unknown;
     const bot = new Gramora({

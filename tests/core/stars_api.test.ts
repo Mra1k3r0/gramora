@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
-import { GramClient } from "./core/gram";
-import type { ApiClient } from "./core/api/client";
-import type { SuccessfulPayment } from "./types/telegram";
+import { GramClient } from "../../src/core/gram";
+import type { ApiClient } from "../../src/core/api/client";
+import type { SuccessfulPayment } from "../../src/types/telegram";
 
-describe("roadmap #14", () => {
+describe("stars api helpers", () => {
   it("maps Stars balance and transactions helpers to api client", async () => {
     const getMyStarBalance = vi.fn().mockResolvedValue({ amount: 42, nanostar_amount: 500000000 });
     const getStarTransactions = vi.fn().mockResolvedValue({

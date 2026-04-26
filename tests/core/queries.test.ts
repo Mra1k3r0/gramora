@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { Gramora } from "./core/bot";
-import type { Update } from "./types/telegram";
+import { Gramora } from "../../src/core/bot";
+import type { Update } from "../../src/types/telegram";
 
 describe("shipping and pre_checkout queries", () => {
   it("indexes and dispatches shipping_query", async () => {

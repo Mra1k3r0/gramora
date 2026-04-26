@@ -10,7 +10,7 @@ export type { BotRuntimeConfig } from "./core/types";
 export type { BotWebhookConfig } from "./core/types";
 export type { BotHooks } from "./core/types";
 export type { HookErrorClass, HookErrorEnvelope, HookErrorSource } from "./core/types";
-export type { RateProfile } from "./middleware/built-in/rate-limiter";
+export type { RateProfile } from "./middleware/builtin/rate_limiter";
 
 export {
   Controller,
@@ -54,11 +54,11 @@ export { Composer } from "./middleware/composer";
 export type { MiddlewareFn } from "./middleware/types";
 
 export { formatProxyProbeMessage } from "./core/logger";
-export { logger } from "./middleware/built-in/logger";
-export { rateLimiter } from "./middleware/built-in/rate-limiter";
-export { errorHandler } from "./middleware/built-in/error-handler";
-export { session } from "./middleware/built-in/session";
-export type { SessionOptions, SessionStore } from "./middleware/built-in/session";
+export { logger } from "./middleware/builtin/logger";
+export { rateLimiter } from "./middleware/builtin/rate_limiter";
+export { errorHandler } from "./middleware/builtin/error_handler";
+export { session } from "./middleware/builtin/session";
+export type { SessionOptions, SessionStore } from "./middleware/builtin/session";
 
 export type {
   SendInvoiceOptions,

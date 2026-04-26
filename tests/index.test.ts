@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { Gramora, RateLimitError, ValidationError } from "./index";
+import { Gramora, RateLimitError, ValidationError } from "../src/index";
 
 describe("public API", () => {
   it("exports Gramora constructor", () => {

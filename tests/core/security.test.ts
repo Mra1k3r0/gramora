@@ -1,13 +1,13 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { Gramora } from "./core/bot";
-import { WebhookTransport } from "./core/polling";
-import { ValidationError } from "./core/errors";
+import { Gramora } from "../../src/core/bot";
+import { WebhookTransport } from "../../src/core/polling";
+import { ValidationError } from "../../src/core/errors";
 import {
   addRedactionToken,
   clearRedactionTokensForTests,
   stringifyForLog,
   log,
-} from "./core/logger";
+} from "../../src/core/logger";
 
 afterEach(() => {
   vi.restoreAllMocks();

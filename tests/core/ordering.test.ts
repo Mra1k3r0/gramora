@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { Gramora } from "./core/bot";
-import { Controller, On } from "./decorators";
-import type { Update } from "./types/telegram";
+import { Gramora } from "../../src/core/bot";
+import { Controller, On } from "../../src/decorators";
+import type { Update } from "../../src/types/telegram";
 
 describe("handler ordering", () => {
   it("executes handlers in deterministic order (commands -> generic -> kind)", async () => {

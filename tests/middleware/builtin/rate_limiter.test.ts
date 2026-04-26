@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { rateLimiter, MAX_STATE_SIZE } from "./rate-limiter";
-import type { BaseContext } from "../../context";
+import { rateLimiter, MAX_STATE_SIZE } from "../../../src/middleware/builtin/rate_limiter";
+import type { BaseContext } from "../../../src/context";
 
 describe("rateLimiter middleware", () => {
   let ctx: BaseContext;

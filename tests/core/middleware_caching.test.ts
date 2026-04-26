@@ -1,8 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { UpdateRouter } from "./core/router";
-import { ApiClient } from "./core/api/client";
-import { SceneManager } from "./scenes";
-import { Update } from "./types/telegram";
+import { UpdateRouter } from "../../src/core/router";
+import { ApiClient } from "../../src/core/api/client";
+import { SceneManager } from "../../src/scenes";
+import { Update } from "../../src/types/telegram";
 
 describe("Middleware Caching", () => {
   const api = new ApiClient("TOKEN");

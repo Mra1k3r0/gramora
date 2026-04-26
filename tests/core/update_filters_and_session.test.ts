@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { Gramora } from "./core/bot";
-import type { BaseContext } from "./context";
-import type { Update } from "./types/telegram";
-import { escapeTelegramMarkdownV2, isMessageKind, isUpdateType, session } from "./index";
+import { Gramora } from "../../src/core/bot";
+import type { BaseContext } from "../../src/context";
+import type { Update } from "../../src/types/telegram";
+import { escapeTelegramMarkdownV2, isMessageKind, isUpdateType, session } from "../../src/index";
 
 const sampleMessageUpdate: Update = {
   update_id: 1,
@@ -14,7 +14,7 @@ const sampleMessageUpdate: Update = {
   },
 };
 
-describe("roadmap #12", () => {
+describe("update filters and session middleware", () => {
   it("supports typed update filter handlers", async () => {
     const bot = new Gramora({ token: "test-token", mode: "core" });
     let seenMessageId: number | undefined;
