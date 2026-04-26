@@ -65,6 +65,33 @@ describe("Security Log Redaction", () => {
     expect(result).toContain("[MASKED]");
   });
 
+  it("should mask other common sensitive keys and suffixes", () => {
+    const obj = {
+      access_token: "access-token-val",
+      auth_token: "auth-token-val",
+      session_id: "session-id-val",
+      certificate: "cert-val",
+      passphrase: "passphrase-val",
+      mySecret: "my-secret-val",
+      userPassword: "user-password-val",
+      customToken: "custom-token-val",
+      appPassphrase: "app-passphrase-val",
+    };
+
+    const result = stringifyForLog(obj);
+
+    expect(result).not.toContain("access-token-val");
+    expect(result).not.toContain("auth-token-val");
+    expect(result).not.toContain("session-id-val");
+    expect(result).not.toContain("cert-val");
+    expect(result).not.toContain("passphrase-val");
+    expect(result).not.toContain("my-secret-val");
+    expect(result).not.toContain("user-password-val");
+    expect(result).not.toContain("custom-token-val");
+    expect(result).not.toContain("app-passphrase-val");
+    expect(result).toContain("[MASKED]");
+  });
+
   it("should redact tokens in console logs", () => {
     const token = "my-super-secret-token";
     addRedactionToken(token);

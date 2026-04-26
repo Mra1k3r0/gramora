@@ -198,6 +198,9 @@ class Bot {
       if (!webhookConfig)
         throw new Error("Webhook launch requires webhook options or configureWebhook(...)");
       validateWebhookSecretToken(webhookConfig.secretToken);
+      if (webhookConfig.secretToken) {
+        addRedactionToken(webhookConfig.secretToken);
+      }
       const resolvedPathRaw = webhookConfig.path ?? this.secretPathComponent();
       const resolvedPath = resolvedPathRaw.startsWith("/")
         ? resolvedPathRaw
@@ -277,6 +280,9 @@ class Bot {
     await this.initializeRuntime();
     const secretToken = options?.secretToken ?? this.webhookConfig?.secretToken;
     validateWebhookSecretToken(secretToken);
+    if (secretToken) {
+      addRedactionToken(secretToken);
+    }
 
     const resolvedPathRaw = options?.path ?? this.webhookConfig?.path ?? this.secretPathComponent();
     const path = resolvedPathRaw.startsWith("/") ? resolvedPathRaw : `/${resolvedPathRaw}`;
