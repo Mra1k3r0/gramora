@@ -44,15 +44,11 @@ export {
 export type { AnswerCallbackOptions } from "./context";
 
 export { Keyboard } from "./keyboard";
-export { InlineResult, InlineResultBuilder } from "./inline-result";
-export {
-  escapeTelegramHtml,
-  escapeTelegramMarkdownV2,
-  renderTelegramRichText,
-} from "./telegram-rich-text";
-export type { RenderTelegramRichTextOptions } from "./telegram-rich-text";
-export { isMessageKind, isUpdateType } from "./update-filters";
-export type { UpdateByType, UpdateFilter, UpdateType } from "./update-filters";
+export { InlineResult, InlineResultBuilder } from "./inline_result";
+export { escapeTelegramHtml, escapeTelegramMarkdownV2, renderTelegramRichText } from "./rich";
+export type { RenderTelegramRichTextOptions } from "./rich";
+export { isMessageKind, isUpdateType } from "./update_filters";
+export type { UpdateByType, UpdateFilter, UpdateType } from "./update_filters";
 
 export { Composer } from "./middleware/composer";
 export type { MiddlewareFn } from "./middleware/types";
@@ -84,4 +80,4 @@ export type {
 } from "./core/gram";
 
 export type * from "./types/telegram";
-export type * from "./types/api-methods";
+export type * from "./types/api";

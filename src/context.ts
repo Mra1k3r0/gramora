@@ -43,7 +43,7 @@ import {
   type SendMediaGroupOptions,
   type UnbanMemberOptions,
 } from "./core/gram";
-import type { InputMediaPhoto } from "./types/api-methods";
+import type { InputMediaPhoto } from "./types/api";
 import type { MessageForKind } from "./types/context";
 import type {
   BusinessConnection,

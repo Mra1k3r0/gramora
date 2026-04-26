@@ -10,7 +10,7 @@ import {
   stringifyForLog,
 } from "./logger";
 import { PollingTransport, validateWebhookSecretToken, WebhookTransport } from "./polling";
-import { UpdateRouter } from "./update-router";
+import { UpdateRouter } from "./router";
 import type { BaseContext } from "../context";
 import type { MiddlewareFn } from "../middleware/types";
 import { SceneManager } from "../scenes";

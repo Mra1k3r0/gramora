@@ -1,5 +1,5 @@
 import type { BaseContext } from "./context";
-import { defineMetadata, getMetadata } from "./core/metadata-store";
+import { defineMetadata, getMetadata } from "./core/metadata";
 
 export type GuardFn = (ctx: BaseContext) => boolean | Promise<boolean>;
 export type DecoratorMiddleware = (

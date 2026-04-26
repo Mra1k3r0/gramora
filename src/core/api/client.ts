@@ -1,8 +1,4 @@
-import type {
-  TelegramApiMethods,
-  TelegramMethodName,
-  TelegramResponse,
-} from "../../types/api-methods";
+import type { TelegramApiMethods, TelegramMethodName, TelegramResponse } from "../../types/api";
 import { basename, extname } from "node:path";
 import { createReadStream } from "node:fs";
 import { readFile } from "node:fs/promises";

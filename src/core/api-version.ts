@@ -1,1 +1,0 @@
-export { TELEGRAM_BOT_API_DOC_VERSION, TELEGRAM_BOT_API_DOCS_URL } from "./api/version";
