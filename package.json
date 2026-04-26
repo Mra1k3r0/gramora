@@ -30,8 +30,8 @@
     "test:coverage": "vitest run --coverage",
     "bench": "npm run build && node scripts/bench.mjs",
     "size": "npm run build && node scripts/size-report.mjs",
-    "example:functional": "npm run build:examples && node dist/examples/functional-test-bot.js",
-    "example:rich-text": "npm run build:examples && node dist/examples/rich-text-bot.js",
+    "example:functional": "npm run build:examples && node dist/examples/functional_test_bot.js",
+    "example:rich-text": "npm run build:examples && node dist/examples/rich_text_bot.js",
     "semantic-release": "semantic-release"
   },
   "keywords": [

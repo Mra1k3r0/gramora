@@ -9,7 +9,12 @@ import {
   log,
   stringifyForLog,
 } from "./logger";
-import { PollingTransport, validateWebhookSecretToken, WebhookTransport } from "./polling";
+import {
+  createWebhookHandler,
+  PollingTransport,
+  validateWebhookSecretToken,
+  WebhookTransport,
+} from "./polling";
 import { UpdateRouter } from "./router";
 import type { BaseContext } from "../context";
 import type { MiddlewareFn } from "../middleware/types";
@@ -19,6 +24,8 @@ import type {
   BotOptions,
   BotRuntimeConfig,
   BotWebhookConfig,
+  CreateWebhookAdapter,
+  CreateWebhookOptions,
   Constructor,
   HookErrorClass,
   HookErrorEnvelope,
@@ -37,6 +44,7 @@ class Bot {
   private readonly lazyModules: Array<() => Promise<{ default?: BotModule } | BotModule>> = [];
   private webhookConfig?: BotWebhookConfig;
   private debugEnabled: boolean;
+  private initialized = false;
 
   /**
    * @param options.token - Required; other fields optional (polling, proxy, `mode`, …)
@@ -181,37 +189,7 @@ class Bot {
    * @throws {Error} Webhook transport when neither `options.webhook` nor `configureWebhook` was set
    */
   async launch(options?: LaunchOptions) {
-    const started = Date.now();
-    let me: User;
-    try {
-      me = await this.api.getMe();
-    } catch (error) {
-      if (this.api.hasProxy()) {
-        const ms = Date.now() - started;
-        const message = error instanceof Error ? error.message : String(error);
-        log(
-          "warn",
-          "proxy",
-          formatProxyProbeMessage({ is_working: false, speedMs: ms, error: message }),
-        );
-      }
-      throw error;
-    }
-    if (this.api.hasProxy()) {
-      const ms = Date.now() - started;
-      log("info", "proxy", formatProxyProbeMessage({ is_working: true, speedMs: ms }));
-    }
-    this.logConnected(me);
-
-    if (this.lazyModules.length > 0) {
-      for (const load of this.lazyModules) {
-        const mod = await load();
-        const register = (typeof mod === "function" ? mod : mod.default) as BotModule | undefined;
-        if (register) {
-          register(this);
-        }
-      }
-    }
+    await this.initializeRuntime();
 
     const transport = options?.transport ?? "polling";
     if (transport === "webhook") {
@@ -293,6 +271,50 @@ class Bot {
       limit: this.options.polling?.limit,
       allowedUpdates: this.options.polling?.allowedUpdates,
     });
+  }
+
+  async createWebhook(options?: CreateWebhookOptions): Promise<CreateWebhookAdapter> {
+    await this.initializeRuntime();
+    const secretToken = options?.secretToken ?? this.webhookConfig?.secretToken;
+    validateWebhookSecretToken(secretToken);
+
+    const resolvedPathRaw = options?.path ?? this.webhookConfig?.path ?? this.secretPathComponent();
+    const path = resolvedPathRaw.startsWith("/") ? resolvedPathRaw : `/${resolvedPathRaw}`;
+    const domain = options?.domain ?? this.webhookConfig?.domain;
+
+    const handler = createWebhookHandler({
+      onUpdate: (update) => this.processUpdate(update),
+      path,
+      secretToken,
+      onReject: this.options.operations?.logWebhookRejects
+        ? (kind, req) => {
+            const pathOnly = (req.url ?? "").split("?")[0] ?? "";
+            this.debug(
+              "webhook",
+              `rejected ${kind} mismatch method=${req.method ?? "unknown"} path=${pathOnly}`,
+            );
+          }
+        : undefined,
+      maxBodyBytes: this.options.operations?.webhookMaxBodyBytes,
+      allowedContentTypes: this.options.operations?.webhookAllowedContentTypes,
+      onRuntimeError: (meta, error) => this.options.hooks?.onRuntimeError?.(meta, error),
+    });
+
+    const setWebhook = domain
+      ? async () => {
+          const base =
+            domain.startsWith("http://") || domain.startsWith("https://")
+              ? domain
+              : `https://${domain}`;
+          const normalizedBase = base.endsWith("/") ? base.slice(0, -1) : base;
+          return this.api.setWebhook({
+            url: `${normalizedBase}${path}`,
+            ...(secretToken ? { secret_token: secretToken } : {}),
+          });
+        }
+      : undefined;
+
+    return { path, handler, setWebhook };
   }
 
   stop() {
@@ -416,6 +438,42 @@ class Bot {
   private classifyUpdateError(error: unknown): HookErrorClass {
     if (error instanceof Error && error.message.toLowerCase().includes("timeout")) return "timeout";
     return "unknown";
+  }
+
+  private async initializeRuntime() {
+    if (this.initialized) return;
+    const started = Date.now();
+    let me: User;
+    try {
+      me = await this.api.getMe();
+    } catch (error) {
+      if (this.api.hasProxy()) {
+        const ms = Date.now() - started;
+        const message = error instanceof Error ? error.message : String(error);
+        log(
+          "warn",
+          "proxy",
+          formatProxyProbeMessage({ is_working: false, speedMs: ms, error: message }),
+        );
+      }
+      throw error;
+    }
+    if (this.api.hasProxy()) {
+      const ms = Date.now() - started;
+      log("info", "proxy", formatProxyProbeMessage({ is_working: true, speedMs: ms }));
+    }
+    this.logConnected(me);
+
+    if (this.lazyModules.length > 0) {
+      for (const load of this.lazyModules) {
+        const mod = await load();
+        const register = (typeof mod === "function" ? mod : mod.default) as BotModule | undefined;
+        if (register) {
+          register(this);
+        }
+      }
+    }
+    this.initialized = true;
   }
 }
 

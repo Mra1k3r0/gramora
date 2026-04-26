@@ -33,6 +33,126 @@ export function validateWebhookSecretToken(secretToken: string | undefined): voi
   }
 }
 
+export function createWebhookHandler(options: {
+  onUpdate: UpdateHandler;
+  path?: string;
+  secretToken?: string;
+  onReject?: (kind: "path" | "secret", req: IncomingMessage) => void;
+  maxBodyBytes?: number;
+  allowedContentTypes?: string[];
+  onRuntimeError?: (meta: HookErrorEnvelope, error: unknown, update?: Update) => void;
+}) {
+  validateWebhookSecretToken(options.secretToken);
+  const targetPath = options.path ?? "/webhook";
+  const maxBodyBytes = options.maxBodyBytes ?? 1_048_576;
+  const allowedContentTypes = options.allowedContentTypes ?? ["application/json"];
+
+  return (req: IncomingMessage, res: ServerResponse) => {
+    const pathOnly = (req.url ?? "").split("?")[0] ?? "";
+    if (req.method !== "POST" || pathOnly !== targetPath) {
+      options.onReject?.("path", req);
+      res.statusCode = 404;
+      res.end("not found");
+      return;
+    }
+    if (options.secretToken) {
+      const incoming = headerSingleValue(req.headers["x-telegram-bot-api-secret-token"]);
+      if (typeof incoming !== "string" || !timingSafeSecretEqual(incoming, options.secretToken)) {
+        options.onReject?.("secret", req);
+        res.statusCode = 401;
+        res.end("unauthorized");
+        return;
+      }
+    }
+    const contentType = headerSingleValue(req.headers["content-type"]);
+    const isAllowedType =
+      typeof contentType === "string" &&
+      allowedContentTypes.some((type) => contentType.toLowerCase().includes(type.toLowerCase()));
+    if (!isAllowedType) {
+      options.onRuntimeError?.(
+        {
+          source: "webhook",
+          class: "validation",
+          retryable: false,
+          message: "unsupported media type",
+          timestamp: Date.now(),
+        },
+        new Error("unsupported media type"),
+      );
+      res.statusCode = 415;
+      res.end("unsupported media type");
+      return;
+    }
+    const chunks: Buffer[] = [];
+    let totalSize = 0;
+    const contentLengthRaw = headerSingleValue(req.headers["content-length"]);
+    const contentLength = contentLengthRaw ? Number(contentLengthRaw) : undefined;
+    if (
+      typeof contentLength === "number" &&
+      Number.isFinite(contentLength) &&
+      contentLength > maxBodyBytes
+    ) {
+      options.onRuntimeError?.(
+        {
+          source: "webhook",
+          class: "validation",
+          retryable: false,
+          message: "payload too large",
+          timestamp: Date.now(),
+        },
+        new Error("payload too large"),
+      );
+      res.statusCode = 413;
+      res.end("payload too large");
+      return;
+    }
+    req.on("data", (chunk) => {
+      chunks.push(Buffer.from(chunk));
+      totalSize += Buffer.byteLength(chunk);
+      if (totalSize > maxBodyBytes) {
+        options.onRuntimeError?.(
+          {
+            source: "webhook",
+            class: "validation",
+            retryable: false,
+            message: "payload too large",
+            timestamp: Date.now(),
+          },
+          new Error("payload too large"),
+        );
+        res.statusCode = 413;
+        res.end("payload too large");
+        req.destroy();
+      }
+    });
+    req.on("end", () => {
+      let update: Update;
+      try {
+        update = JSON.parse(Buffer.concat(chunks).toString("utf8")) as Update;
+      } catch {
+        options.onRuntimeError?.(
+          {
+            source: "webhook",
+            class: "validation",
+            retryable: false,
+            message: "bad request",
+            timestamp: Date.now(),
+          },
+          new Error("bad request"),
+        );
+        res.statusCode = 400;
+        res.end("bad request");
+        return;
+      }
+      // acknowledge immediately so Telegram does not retry on handler errors
+      res.statusCode = 200;
+      res.end("ok");
+      // onUpdate is processUpdate which handles errors internally and never throws
+      void options.onUpdate(update);
+    });
+  };
+}
+
 export class PollingTransport {
   private running = false;
   private offset?: number;
@@ -127,114 +247,16 @@ export class WebhookTransport {
   ) {}
 
   async start(options: { port: number; path?: string; secretToken?: string }) {
-    validateWebhookSecretToken(options.secretToken);
-    const targetPath = options.path ?? "/webhook";
-    const maxBodyBytes = this.webhookOptions?.maxBodyBytes ?? 1_048_576;
-    const allowedContentTypes = this.webhookOptions?.allowedContentTypes ?? ["application/json"];
-    const server = createServer((req: IncomingMessage, res: ServerResponse) => {
-      const pathOnly = (req.url ?? "").split("?")[0] ?? "";
-      if (req.method !== "POST" || pathOnly !== targetPath) {
-        this.onReject?.("path", req);
-        res.statusCode = 404;
-        res.end("not found");
-        return;
-      }
-      if (options.secretToken) {
-        const incoming = headerSingleValue(req.headers["x-telegram-bot-api-secret-token"]);
-        if (typeof incoming !== "string" || !timingSafeSecretEqual(incoming, options.secretToken)) {
-          this.onReject?.("secret", req);
-          res.statusCode = 401;
-          res.end("unauthorized");
-          return;
-        }
-      }
-      const contentType = headerSingleValue(req.headers["content-type"]);
-      const isAllowedType =
-        typeof contentType === "string" &&
-        allowedContentTypes.some((type) => contentType.toLowerCase().includes(type.toLowerCase()));
-      if (!isAllowedType) {
-        this.webhookOptions?.onRuntimeError?.(
-          {
-            source: "webhook",
-            class: "validation",
-            retryable: false,
-            message: "unsupported media type",
-            timestamp: Date.now(),
-          },
-          new Error("unsupported media type"),
-        );
-        res.statusCode = 415;
-        res.end("unsupported media type");
-        return;
-      }
-      const chunks: Buffer[] = [];
-      let totalSize = 0;
-      const contentLengthRaw = headerSingleValue(req.headers["content-length"]);
-      const contentLength = contentLengthRaw ? Number(contentLengthRaw) : undefined;
-      if (
-        typeof contentLength === "number" &&
-        Number.isFinite(contentLength) &&
-        contentLength > maxBodyBytes
-      ) {
-        this.webhookOptions?.onRuntimeError?.(
-          {
-            source: "webhook",
-            class: "validation",
-            retryable: false,
-            message: "payload too large",
-            timestamp: Date.now(),
-          },
-          new Error("payload too large"),
-        );
-        res.statusCode = 413;
-        res.end("payload too large");
-        return;
-      }
-      req.on("data", (chunk) => {
-        chunks.push(Buffer.from(chunk));
-        totalSize += Buffer.byteLength(chunk);
-        if (totalSize > maxBodyBytes) {
-          this.webhookOptions?.onRuntimeError?.(
-            {
-              source: "webhook",
-              class: "validation",
-              retryable: false,
-              message: "payload too large",
-              timestamp: Date.now(),
-            },
-            new Error("payload too large"),
-          );
-          res.statusCode = 413;
-          res.end("payload too large");
-          req.destroy();
-        }
-      });
-      req.on("end", () => {
-        let update: Update;
-        try {
-          update = JSON.parse(Buffer.concat(chunks).toString("utf8")) as Update;
-        } catch {
-          this.webhookOptions?.onRuntimeError?.(
-            {
-              source: "webhook",
-              class: "validation",
-              retryable: false,
-              message: "bad request",
-              timestamp: Date.now(),
-            },
-            new Error("bad request"),
-          );
-          res.statusCode = 400;
-          res.end("bad request");
-          return;
-        }
-        // acknowledge immediately so Telegram does not retry on handler errors
-        res.statusCode = 200;
-        res.end("ok");
-        // onUpdate is processUpdate which handles errors internally and never throws
-        void this.onUpdate(update);
-      });
+    const handler = createWebhookHandler({
+      onUpdate: this.onUpdate,
+      path: options.path,
+      secretToken: options.secretToken,
+      onReject: this.onReject,
+      maxBodyBytes: this.webhookOptions?.maxBodyBytes,
+      allowedContentTypes: this.webhookOptions?.allowedContentTypes,
+      onRuntimeError: this.webhookOptions?.onRuntimeError,
     });
+    const server = createServer(handler);
 
     await new Promise<void>((resolve) => {
       server.listen(options.port, resolve);

@@ -52,15 +52,15 @@ npm run verify
 
 ## Examples
 
-- [`examples/echo-bot.ts`](./examples/echo-bot.ts)
-- [`examples/scene-bot.ts`](./examples/scene-bot.ts)
-- [`examples/config-bot.ts`](./examples/config-bot.ts)
-- [`examples/callback-menu-bot.ts`](./examples/callback-menu-bot.ts)
-- [`examples/media-advanced-bot.ts`](./examples/media-advanced-bot.ts)
-- [`examples/middleware-auth-bot.ts`](./examples/middleware-auth-bot.ts)
-- [`examples/module-bot.ts`](./examples/module-bot.ts)
-- [`examples/lazy-module-bot.ts`](./examples/lazy-module-bot.ts)
-- [`examples/rich-text-bot.ts`](./examples/rich-text-bot.ts)
+- [`examples/echo_bot.ts`](./examples/echo_bot.ts)
+- [`examples/scene_bot.ts`](./examples/scene_bot.ts)
+- [`examples/config_bot.ts`](./examples/config_bot.ts)
+- [`examples/callback_menu_bot.ts`](./examples/callback_menu_bot.ts)
+- [`examples/media_advanced_bot.ts`](./examples/media_advanced_bot.ts)
+- [`examples/middleware_auth_bot.ts`](./examples/middleware_auth_bot.ts)
+- [`examples/module_bot.ts`](./examples/module_bot.ts)
+- [`examples/lazy_module_bot.ts`](./examples/lazy_module_bot.ts)
+- [`examples/rich_text_bot.ts`](./examples/rich_text_bot.ts)
 
 ## Project Notes
 

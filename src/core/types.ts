@@ -1,6 +1,7 @@
 import type { BaseContext } from "../context";
 import type { MiddlewareFn } from "../middleware/types";
 import type { Update } from "../types/telegram";
+import type { IncomingMessage, ServerResponse } from "node:http";
 
 export type Constructor<T = object> = new (...args: unknown[]) => T;
 
@@ -121,4 +122,16 @@ export interface BotWebhookConfig {
   port: number;
   path?: string;
   secretToken?: string;
+}
+
+export interface CreateWebhookOptions {
+  domain?: string;
+  path?: string;
+  secretToken?: string;
+}
+
+export interface CreateWebhookAdapter {
+  path: string;
+  handler: (req: IncomingMessage, res: ServerResponse) => void;
+  setWebhook?: () => Promise<boolean>;
 }

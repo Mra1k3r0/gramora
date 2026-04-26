@@ -5,4 +5,4 @@ coverage/
 .env
 
 # Local-only bot testing file (may contain secrets)
-examples/functional-test-bot.ts
+examples/functional_test_bot.ts

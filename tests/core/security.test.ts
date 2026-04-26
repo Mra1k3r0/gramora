@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { createServer } from "node:http";
 import { Gramora } from "../../src/core/bot";
 import { WebhookTransport } from "../../src/core/polling";
 import { ValidationError } from "../../src/core/errors";
@@ -181,5 +182,87 @@ describe("Security Log Redaction", () => {
 
     expect(getMeSpy).toHaveBeenCalledTimes(1);
     expect(setWebhookSpy).not.toHaveBeenCalled();
+  });
+
+  it("createWebhook returns adapter with deferred setWebhook call", async () => {
+    const bot = new Gramora({
+      token: "123456789:ABCdefGHIjklMNOpqrsTUVwxyz",
+      mode: "core",
+    });
+    vi.spyOn(bot.api, "getMe").mockResolvedValue({
+      id: 1,
+      is_bot: true,
+      first_name: "bot",
+      username: "bot_user",
+    });
+    const setWebhookSpy = vi.spyOn(bot.api, "setWebhook").mockResolvedValue(true);
+
+    const webhook = await bot.createWebhook({
+      domain: "example.com",
+      path: "/incoming",
+      secretToken: "expected_secret",
+    });
+
+    expect(webhook.path).toBe("/incoming");
+    expect(webhook.setWebhook).toBeTypeOf("function");
+    expect(setWebhookSpy).not.toHaveBeenCalled();
+
+    await webhook.setWebhook?.();
+    expect(setWebhookSpy).toHaveBeenCalledWith({
+      url: "https://example.com/incoming",
+      secret_token: "expected_secret",
+    });
+  });
+
+  it("createWebhook adapter handles updates on existing http server", async () => {
+    const bot = new Gramora({
+      token: "123456789:ABCdefGHIjklMNOpqrsTUVwxyz",
+      mode: "core",
+    });
+    vi.spyOn(bot.api, "getMe").mockResolvedValue({
+      id: 1,
+      is_bot: true,
+      first_name: "bot",
+      username: "bot_user",
+    });
+
+    let seenMessage = false;
+    bot.onMessage(() => {
+      seenMessage = true;
+    });
+
+    const webhook = await bot.createWebhook({
+      path: "/hook",
+      secretToken: "hook_secret",
+    });
+    const port = 9850 + Math.floor(Math.random() * 300);
+    const server = createServer(webhook.handler);
+    await new Promise<void>((resolve) => server.listen(port, resolve));
+
+    try {
+      const response = await fetch(`http://127.0.0.1:${String(port)}/hook`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-telegram-bot-api-secret-token": "hook_secret",
+        },
+        body: JSON.stringify({
+          update_id: 500,
+          message: {
+            message_id: 1,
+            date: 1_700_000_001,
+            chat: { id: 1, type: "private" },
+            text: "ping",
+          },
+        }),
+      });
+      expect(response.status).toBe(200);
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
+      expect(seenMessage).toBe(true);
+    } finally {
+      await new Promise<void>((resolve, reject) => {
+        server.close((error) => (error ? reject(error) : resolve()));
+      });
+    }
   });
 });
