@@ -9,8 +9,30 @@ export default {
     [
       "@semantic-release/commit-analyzer",
       {
-        // Before 1.0 we still ship small increments: feat → patch (e.g. 0.0.8 → 0.0.9), not minor.
-        releaseRules: [{ type: "feat", release: "patch" }],
+        preset: "conventionalcommits",
+        // Keep releases meaningful: scoped fixes, features, perf, and breaking only.
+        releaseRules: [
+          { breaking: true, release: "major" },
+          { revert: true, release: "patch" },
+          { type: "feat", release: "minor" },
+          { type: "perf", release: "patch" },
+          { type: "fix", release: false },
+          { type: "fix", scope: "core", release: "patch" },
+          { type: "fix", scope: "api", release: "patch" },
+          { type: "fix", scope: "router", release: "patch" },
+          { type: "fix", scope: "transport", release: "patch" },
+          { type: "fix", scope: "middleware", release: "patch" },
+          { type: "fix", scope: "session", release: "patch" },
+          { type: "fix", scope: "security", release: "patch" },
+          { type: "fix", scope: "deps", release: false },
+          { type: "docs", release: false },
+          { type: "style", release: false },
+          { type: "refactor", release: false },
+          { type: "test", release: false },
+          { type: "build", release: false },
+          { type: "chore", release: false },
+          { scope: "no-release", release: false },
+        ],
       },
     ],
     [
@@ -26,7 +48,7 @@ export default {
         changelogTitle: "# Changelog",
       },
     ],
-    ["@semantic-release/npm", { npmPublishArgs: ["--access", "public"] }],
+    ["@semantic-release/npm", { npmPublish: true }],
     [
       "@semantic-release/github",
       {
@@ -39,7 +61,7 @@ export default {
       "@semantic-release/git",
       {
         assets: ["CHANGELOG.md", "package.json", "package-lock.json"],
-        message: "chore(release): ${nextRelease.version} [skip ci]",
+        message: "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}",
       },
     ],
   ],

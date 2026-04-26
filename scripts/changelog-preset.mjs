@@ -37,7 +37,7 @@ const mainTemplate = `{{> header}}
 {{> footer}}
 `;
 
-const commitPartial = `- {{#if scope}}**{{scope}}:** {{/if}}{{#if subject}}{{~subject}}{{else}}{{~header}}{{/if}}{{#if hash}}{{#if @root.linkReferences}} — [\`{{shortHash}}\`]({{~@root.host}}/{{#if this.owner}}{{~this.owner}}{{else}}{{~@root.owner}}{{/if}}/{{#if this.repository}}{{~this.repository}}{{else}}{{~@root.repository}}{{/if}}/commit/{{hash}}){{else}} — {{shortHash}}{{/if}}{{/if}}
+const commitPartial = `- {{#if displayType}}{{displayType}}{{#if scope}}({{scope}}){{/if}}: {{/if}}{{#if subject}}{{~subject}}{{else}}{{~header}}{{/if}}{{#if hash}}{{#if @root.linkReferences}} — [\`{{shortHash}}\`]({{~@root.host}}/{{#if this.owner}}{{~this.owner}}{{else}}{{~@root.owner}}{{/if}}/{{#if this.repository}}{{~this.repository}}{{else}}{{~@root.repository}}{{/if}}/commit/{{hash}}){{else}} — {{shortHash}}{{/if}}{{/if}}
 
 {{~#if references~}}
 {{~#unless isRoadmapReference~}}
@@ -76,12 +76,24 @@ export default function changelogPreset() {
       headerPartial: base.writer.headerPartial,
       commitPartial,
       transform(commit, context) {
+        const rawHeader = String(commit.header ?? "");
         const rendered = baseTransform ? baseTransform(commit, context) : commit;
         if (!rendered) return rendered;
         const text = `${rendered.subject ?? ""} ${rendered.header ?? ""}`;
         const isRoadmapReference = /\broadmap\s*#\d+\b/i.test(text);
         rendered.referenceAction = isRoadmapReference ? "roadmap" : "closes";
         rendered.isRoadmapReference = isRoadmapReference;
+        const conventionalMatch = rawHeader.match(/^([a-z]+)(?:\(([^)]+)\))?:\s/i);
+        if (conventionalMatch) {
+          rendered.displayType = conventionalMatch[1].toLowerCase();
+          if (!rendered.scope && conventionalMatch[2]) {
+            rendered.scope = conventionalMatch[2];
+          }
+        } else if (typeof rendered.type === "string") {
+          rendered.displayType = rendered.type.toLowerCase();
+        } else {
+          rendered.displayType = "change";
+        }
         return rendered;
       },
     },
