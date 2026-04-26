@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import { GramClient } from "./core/gram-client";
-import type { ApiClient } from "./core/api-client";
+import { GramClient } from "./core/gram";
+import type { ApiClient } from "./core/api/client";
 import type { SuccessfulPayment } from "./types/telegram";
 
 describe("roadmap #14", () => {

@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
-import { ApiClient } from "./api-client";
-import { GramClient } from "./gram-client";
+import { ApiClient } from "./api/client";
+import { GramClient } from "./gram";
 import {
   addRedactionToken,
   formatProxyProbeMessage,

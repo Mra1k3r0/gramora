@@ -1,4 +1,4 @@
-import type { ApiClient } from "./core/api-client";
+import type { ApiClient } from "./core/api/client";
 import { ValidationError } from "./core/errors";
 import {
   GramClient,
@@ -42,7 +42,7 @@ import {
   type VoiceOptions,
   type SendMediaGroupOptions,
   type UnbanMemberOptions,
-} from "./core/gram-client";
+} from "./core/gram";
 import type { InputMediaPhoto } from "./types/api-methods";
 import type { MessageForKind } from "./types/context";
 import type {

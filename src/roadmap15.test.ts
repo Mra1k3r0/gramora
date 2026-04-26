@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { Gramora } from "./core/bot";
-import type { ApiClient } from "./core/api-client";
+import type { ApiClient } from "./core/api/client";
 import { PollingTransport, WebhookTransport } from "./core/polling";
 
 afterEach(() => {

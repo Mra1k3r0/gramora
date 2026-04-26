@@ -1,6 +1,6 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
-import type { ApiClient } from "./api-client";
+import type { ApiClient } from "./api/client";
 import { TelegramApiError, RateLimitError, ValidationError } from "./errors";
 import type { BotHooks } from "./types";
 import type { Update } from "../types/telegram";

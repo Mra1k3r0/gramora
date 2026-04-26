@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { UpdateRouter } from "./core/update-router";
-import { ApiClient } from "./core/api-client";
+import { ApiClient } from "./core/api/client";
 import { SceneManager } from "./scenes";
 import { Update } from "./types/telegram";
 

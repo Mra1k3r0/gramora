@@ -1,9 +1,9 @@
 export { Gramora } from "./core/bot";
-export { ApiClient } from "./core/api-client";
-export { DEFAULT_BOT_USER_AGENT } from "./core/api-client";
+export { ApiClient } from "./core/api/client";
+export { DEFAULT_BOT_USER_AGENT } from "./core/api/client";
 export { TelegramApiError, RateLimitError, ValidationError } from "./core/errors";
-export { TELEGRAM_BOT_API_DOC_VERSION, TELEGRAM_BOT_API_DOCS_URL } from "./core/api-version";
-export { GramClient } from "./core/gram-client";
+export { TELEGRAM_BOT_API_DOC_VERSION, TELEGRAM_BOT_API_DOCS_URL } from "./core/api/version";
+export { GramClient } from "./core/gram";
 export type { BotModule } from "./core/types";
 export type { BotOptions } from "./core/types";
 export type { BotRuntimeConfig } from "./core/types";
@@ -81,7 +81,7 @@ export type {
   StopPollOptions,
   GetStarTransactionsOptions,
   EditUserStarSubscriptionOptions,
-} from "./core/gram-client";
+} from "./core/gram";
 
 export type * from "./types/telegram";
 export type * from "./types/api-methods";
