@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.1.0](https://github.com/Mra1k3r0/gramora/compare/v0.0.16...v0.1.0) (2026-04-26)
+
+### What's Changed
+
+- feat: add webhook adapter and normalize file naming — [`4248bfb`](https://github.com/Mra1k3r0/gramora/commit/4248bfbfcfbc3a83aff8990160c9aaedf332d45e)
+
 ## [0.0.16](https://github.com/Mra1k3r0/gramora/compare/v0.0.15...v0.0.16) (2026-04-25)
 
 ### What's Changed
