@@ -21,8 +21,15 @@ function timingSafeSecretEqual(incoming: string, expected: string): boolean {
 }
 
 export function validateWebhookSecretToken(secretToken: string | undefined): void {
-  if (secretToken !== undefined && (secretToken.length < 1 || secretToken.length > 256)) {
+  if (secretToken === undefined) return;
+  if (secretToken.length < 1 || secretToken.length > 256) {
     throw new ValidationError("secretToken must be between 1 and 256 characters", "secretToken");
+  }
+  if (!/^[A-Za-z0-9_-]+$/.test(secretToken)) {
+    throw new ValidationError(
+      "secretToken must only contain A-Z, a-z, 0-9, _ and - characters",
+      "secretToken",
+    );
   }
 }
 

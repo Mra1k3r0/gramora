@@ -49,6 +49,21 @@ describe("Security Log Redaction", () => {
     expect(result).toContain("public");
   });
 
+  it("should mask apiKey keys in objects", () => {
+    const obj = {
+      apiKey: "secret-api-key",
+      api_key: "snake-api-key",
+      apikey: "simple-api-key",
+    };
+
+    const result = stringifyForLog(obj);
+
+    expect(result).not.toContain("secret-api-key");
+    expect(result).not.toContain("snake-api-key");
+    expect(result).not.toContain("simple-api-key");
+    expect(result).toContain("[MASKED]");
+  });
+
   it("should redact tokens in console logs", () => {
     const token = "my-super-secret-token";
     addRedactionToken(token);
@@ -122,6 +137,20 @@ describe("Security Log Redaction", () => {
     // Too long token (> 256 chars)
     const longToken = "a".repeat(257);
     await expect(transport.start({ port: 9701, secretToken: longToken })).rejects.toThrow(
+      ValidationError,
+    );
+  });
+
+  it("throws ValidationError for invalid secret token characters", async () => {
+    const transport = new WebhookTransport(async () => {});
+
+    // Invalid character (symbol)
+    await expect(transport.start({ port: 9702, secretToken: "invalid!token" })).rejects.toThrow(
+      ValidationError,
+    );
+
+    // Invalid character (space)
+    await expect(transport.start({ port: 9703, secretToken: "invalid token" })).rejects.toThrow(
       ValidationError,
     );
   });
