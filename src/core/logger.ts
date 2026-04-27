@@ -27,6 +27,10 @@ const SENSITIVE_KEYS = new Set([
   "password",
   "secret",
   "apikey",
+  "accesstoken",
+  "sessionid",
+  "certificate",
+  "passphrase",
 ]);
 
 /** Registers a sensitive token (like the bot token) to be replaced with [REDACTED] in all logs. */
@@ -142,8 +146,13 @@ const prettyObject = (value: unknown, depth = 0): string => {
   if (entries.length === 0) return colorize("{}", TOKEN_COLORS.punctuation);
   const lines = entries.map(([k, v]) => {
     const key = colorize(`"${k}"`, TOKEN_COLORS.key);
-    const normalizedK = k.toLowerCase().replace(/_/g, "");
-    const isSensitive = SENSITIVE_KEYS.has(normalizedK);
+    const normalizedK = k.toLowerCase().replace(/[_-]/g, "");
+    const isSensitive =
+      SENSITIVE_KEYS.has(normalizedK) ||
+      normalizedK.endsWith("token") ||
+      normalizedK.endsWith("password") ||
+      normalizedK.endsWith("secret") ||
+      normalizedK.endsWith("passphrase");
     const val = isSensitive
       ? colorize('"[MASKED]"', TOKEN_COLORS.string)
       : prettyObject(v, depth + 1);

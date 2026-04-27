@@ -65,6 +65,27 @@ describe("Security Log Redaction", () => {
     expect(result).toContain("[MASKED]");
   });
 
+  it("should mask keys with sensitive suffixes and hyphenated names", () => {
+    const obj = {
+      access_token: "a-token",
+      "X-Custom-Token": "c-token",
+      user_password: "u-password",
+      superSecret: "s-secret",
+      admin_passphrase: "a-passphrase",
+      "session-id": "s-id",
+    };
+
+    const result = stringifyForLog(obj);
+
+    expect(result).not.toContain("a-token");
+    expect(result).not.toContain("c-token");
+    expect(result).not.toContain("u-password");
+    expect(result).not.toContain("s-secret");
+    expect(result).not.toContain("a-passphrase");
+    expect(result).not.toContain("s-id");
+    expect(result).toContain("[MASKED]");
+  });
+
   it("should redact tokens in console logs", () => {
     const token = "my-super-secret-token";
     addRedactionToken(token);
@@ -212,6 +233,38 @@ describe("Security Log Redaction", () => {
       url: "https://example.com/incoming",
       secret_token: "expected_secret",
     });
+  });
+
+  it("redacts webhook secretToken in logs when configured via launch", async () => {
+    const bot = new Gramora({
+      token: "123456789:ABCdefGHIjklMNOpqrsTUVwxyz",
+      debug: true,
+    });
+    vi.spyOn(bot.api, "getMe").mockResolvedValue({
+      id: 1,
+      is_bot: true,
+      first_name: "bot",
+      username: "bot_user",
+    });
+    vi.spyOn(bot.api, "setWebhook").mockResolvedValue(true);
+
+    const secret = "super-secret-webhook-token";
+    const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+
+    await bot.launch({
+      transport: "webhook",
+      webhook: {
+        port: 9860,
+        secretToken: secret,
+      },
+    });
+
+    log("info", "test", `Exposing secret ${secret}`);
+    const lastCall = consoleSpy.mock.calls[consoleSpy.mock.calls.length - 1][0];
+    expect(lastCall).not.toContain(secret);
+    expect(lastCall).toContain("[REDACTED]");
+
+    bot.stop();
   });
 
   it("createWebhook adapter handles updates on existing http server", async () => {
