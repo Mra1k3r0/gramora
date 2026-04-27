@@ -48,10 +48,12 @@ export function createWebhookHandler(options: {
   const allowedContentTypes = options.allowedContentTypes ?? ["application/json"];
 
   return (req: IncomingMessage, res: ServerResponse) => {
+    let responded = false;
     const pathOnly = (req.url ?? "").split("?")[0] ?? "";
     if (req.method !== "POST" || pathOnly !== targetPath) {
       options.onReject?.("path", req);
       res.statusCode = 404;
+      responded = true;
       res.end("not found");
       return;
     }
@@ -60,6 +62,7 @@ export function createWebhookHandler(options: {
       if (typeof incoming !== "string" || !timingSafeSecretEqual(incoming, options.secretToken)) {
         options.onReject?.("secret", req);
         res.statusCode = 401;
+        responded = true;
         res.end("unauthorized");
         return;
       }
@@ -80,6 +83,7 @@ export function createWebhookHandler(options: {
         new Error("unsupported media type"),
       );
       res.statusCode = 415;
+      responded = true;
       res.end("unsupported media type");
       return;
     }
@@ -103,6 +107,7 @@ export function createWebhookHandler(options: {
         new Error("payload too large"),
       );
       res.statusCode = 413;
+      responded = true;
       res.end("payload too large");
       return;
     }
@@ -121,11 +126,13 @@ export function createWebhookHandler(options: {
           new Error("payload too large"),
         );
         res.statusCode = 413;
+        responded = true;
         res.end("payload too large");
         req.destroy();
       }
     });
     req.on("end", () => {
+      if (responded) return;
       let update: Update;
       try {
         update = JSON.parse(Buffer.concat(chunks).toString("utf8")) as Update;
@@ -141,11 +148,13 @@ export function createWebhookHandler(options: {
           new Error("bad request"),
         );
         res.statusCode = 400;
+        responded = true;
         res.end("bad request");
         return;
       }
       // acknowledge immediately so Telegram does not retry on handler errors
       res.statusCode = 200;
+      responded = true;
       res.end("ok");
       // onUpdate is processUpdate which handles errors internally and never throws
       void options.onUpdate(update);
