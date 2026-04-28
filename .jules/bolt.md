@@ -1,1 +1,0 @@
-## 2026-04-27 - Lazy context initialization | **Learning:** Reducing object instantiation and property copying in hot paths significantly boosts throughput. | **Action:** Use lazy getters for context properties and pass pre-calculated metadata instead of re-extracting it.
