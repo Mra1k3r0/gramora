@@ -83,6 +83,20 @@ export interface BaseContextOptions {
 }
 
 /**
+ * Shared dummy scene control for contexts outside of scenes.
+ * Reduces object allocation in the update processing hot path.
+ * Note: 'state' is a getter returning a new object to prevent cross-update pollution.
+ */
+export const DEFAULT_SCENE_CONTROL: SceneControl = {
+  get state() {
+    return {};
+  },
+  enter: async () => {},
+  leave: async () => {},
+  next: async () => {},
+};
+
+/**
  * Handler context: `update` plus `gram` with optional default chat from the payload.
  * @remarks Helpers such as `answerCallback`, `forward`, and admin methods throw if the current update lacks the required ids (see each method).
  */
@@ -106,12 +120,7 @@ export class BaseContext {
     this.update = options.update;
     this.api = options.api;
     this._chatId = options.chatId;
-    this.scene = options.scene ?? {
-      state: {},
-      enter: async () => {},
-      leave: async () => {},
-      next: async () => {},
-    };
+    this.scene = options.scene ?? DEFAULT_SCENE_CONTROL;
     this.session = {};
     this.match = options.match;
   }
