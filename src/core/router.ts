@@ -141,7 +141,12 @@ export class UpdateRouter {
 
     const sceneControl = await this.sceneManager.buildControl(chatKey);
     if (this.options.mode !== "core") {
-      const sceneCtx = new SceneContext({ update, api: this.api, scene: sceneControl });
+      const sceneCtx = new SceneContext({
+        update,
+        api: this.api,
+        scene: sceneControl,
+        chatId: meta.chatId,
+      });
       if (await this.sceneManager.tryHandleActiveScene(chatKey, sceneCtx)) return;
     }
 
@@ -149,7 +154,12 @@ export class UpdateRouter {
 
     for (const item of this.filteredHandlers) {
       if (!item.filter(update)) continue;
-      const gram = new BaseContext({ update, api: this.api, scene: sceneControl });
+      const gram = new BaseContext({
+        update,
+        api: this.api,
+        scene: sceneControl,
+        chatId: meta.chatId,
+      });
       await this.runWithGlobalMiddleware(gram, async () => item.fn(gram));
     }
   }
@@ -164,13 +174,12 @@ export class UpdateRouter {
     update: Update,
     handler: HandlerDefinition,
     sceneControl: SceneControl,
+    chatId?: number,
   ): BaseContext {
-    if (handler.kind === "command")
-      return new CommandContext({ update, api: this.api, scene: sceneControl });
-    if (handler.kind === "callback_query")
-      return new CallbackContext({ update, api: this.api, scene: sceneControl });
-    if (handler.kind === "inline_query")
-      return new InlineContext({ update, api: this.api, scene: sceneControl });
+    const options = { update, api: this.api, scene: sceneControl, chatId };
+    if (handler.kind === "command") return new CommandContext(options);
+    if (handler.kind === "callback_query") return new CallbackContext(options);
+    if (handler.kind === "inline_query") return new InlineContext(options);
     if (
       handler.kind === "chat_member" ||
       handler.kind === "my_chat_member" ||
@@ -184,15 +193,10 @@ export class UpdateRouter {
       handler.kind === "shipping_query" ||
       handler.kind === "pre_checkout_query"
     ) {
-      return new BaseContext({ update, api: this.api, scene: sceneControl });
+      return new BaseContext(options);
     }
-    if (handler.kind === "scene_step")
-      return new SceneContext({ update, api: this.api, scene: sceneControl });
-    return new MessageContext<MessageContentKind>({
-      update,
-      api: this.api,
-      scene: sceneControl,
-    });
+    if (handler.kind === "scene_step") return new SceneContext(options);
+    return new MessageContext<MessageContentKind>(options);
   }
 
   private matches(update: Update, handler: HandlerDefinition): { ok: boolean; groups?: string[] } {
@@ -362,14 +366,14 @@ export class UpdateRouter {
           const commandRunners = this.commandHandlers.get(commandName);
           if (commandRunners) {
             for (const runner of commandRunners) {
-              await this.runControllerRunner(update, runner, sceneControl);
+              await this.runControllerRunner(update, runner, sceneControl, undefined, meta.chatId);
             }
           }
         }
       }
 
       for (const runner of this.onMessageHandlers) {
-        await this.runControllerRunner(update, runner, sceneControl);
+        await this.runControllerRunner(update, runner, sceneControl, undefined, meta.chatId);
       }
 
       // Optimization: Instead of O(N) loop over all kinds, find matching keys in O(K)
@@ -385,7 +389,7 @@ export class UpdateRouter {
           const runners = this.onKindHandlers.get(kind);
           if (runners) {
             for (const runner of runners) {
-              await this.runControllerRunner(update, runner, sceneControl);
+              await this.runControllerRunner(update, runner, sceneControl, undefined, meta.chatId);
             }
           }
         }
@@ -396,7 +400,7 @@ export class UpdateRouter {
     const otherKindRunners = this.onKindHandlers.get(meta.kind);
     if (otherKindRunners && meta.kind !== "message") {
       for (const runner of otherKindRunners) {
-        await this.runControllerRunner(update, runner, sceneControl);
+        await this.runControllerRunner(update, runner, sceneControl, undefined, meta.chatId);
       }
     }
 
@@ -421,7 +425,7 @@ export class UpdateRouter {
         const runners = this.onKindHandlers.get(kind);
         if (runners) {
           for (const runner of runners) {
-            await this.runControllerRunner(update, runner, sceneControl);
+            await this.runControllerRunner(update, runner, sceneControl, undefined, meta.chatId);
           }
         }
       }
@@ -431,7 +435,7 @@ export class UpdateRouter {
     const catchAllRunners = this.onKindHandlers.get("*");
     if (catchAllRunners) {
       for (const runner of catchAllRunners) {
-        await this.runControllerRunner(update, runner, sceneControl);
+        await this.runControllerRunner(update, runner, sceneControl, undefined, meta.chatId);
       }
     }
 
@@ -443,7 +447,7 @@ export class UpdateRouter {
         const literalRunners = this.callbackLiteralHandlers.get(data);
         if (literalRunners) {
           for (const runner of literalRunners) {
-            await this.runControllerRunner(update, runner, sceneControl);
+            await this.runControllerRunner(update, runner, sceneControl, undefined, meta.chatId);
           }
         }
       } else {
@@ -452,13 +456,25 @@ export class UpdateRouter {
           if (item.isLiteral) {
             // Fast literal check
             if (item.runner.def.trigger === data) {
-              await this.runControllerRunner(update, item.runner, sceneControl);
+              await this.runControllerRunner(
+                update,
+                item.runner,
+                sceneControl,
+                undefined,
+                meta.chatId,
+              );
             }
           } else {
             // Regex check
             const matched = item.runner.callbackRegex?.exec(data);
             if (matched) {
-              await this.runControllerRunner(update, item.runner, sceneControl, matched.slice(1));
+              await this.runControllerRunner(
+                update,
+                item.runner,
+                sceneControl,
+                matched.slice(1),
+                meta.chatId,
+              );
             }
           }
         }
@@ -470,53 +486,53 @@ export class UpdateRouter {
         const pattern = runner.def.trigger ?? "*";
         if (pattern !== "*" && pattern !== "" && !update.inline_query.query.includes(pattern))
           continue;
-        await this.runControllerRunner(update, runner, sceneControl);
+        await this.runControllerRunner(update, runner, sceneControl, undefined, meta.chatId);
       }
     }
 
     if (meta.kind === "shipping_query") {
       for (const runner of this.shippingQueryHandlers) {
-        await this.runControllerRunner(update, runner, sceneControl);
+        await this.runControllerRunner(update, runner, sceneControl, undefined, meta.chatId);
       }
     } else if (meta.kind === "pre_checkout_query") {
       for (const runner of this.preCheckoutQueryHandlers) {
-        await this.runControllerRunner(update, runner, sceneControl);
+        await this.runControllerRunner(update, runner, sceneControl, undefined, meta.chatId);
       }
     } else if (meta.kind === "chat_member") {
       for (const runner of this.chatMemberHandlers) {
-        await this.runControllerRunner(update, runner, sceneControl);
+        await this.runControllerRunner(update, runner, sceneControl, undefined, meta.chatId);
       }
     } else if (meta.kind === "my_chat_member") {
       for (const runner of this.myChatMemberHandlers) {
-        await this.runControllerRunner(update, runner, sceneControl);
+        await this.runControllerRunner(update, runner, sceneControl, undefined, meta.chatId);
       }
     } else if (meta.kind === "chat_join_request") {
       for (const runner of this.chatJoinRequestHandlers) {
-        await this.runControllerRunner(update, runner, sceneControl);
+        await this.runControllerRunner(update, runner, sceneControl, undefined, meta.chatId);
       }
     } else if (meta.kind === "message_reaction") {
       for (const runner of this.messageReactionHandlers) {
-        await this.runControllerRunner(update, runner, sceneControl);
+        await this.runControllerRunner(update, runner, sceneControl, undefined, meta.chatId);
       }
     } else if (meta.kind === "message_reaction_count") {
       for (const runner of this.messageReactionCountHandlers) {
-        await this.runControllerRunner(update, runner, sceneControl);
+        await this.runControllerRunner(update, runner, sceneControl, undefined, meta.chatId);
       }
     } else if (meta.kind === "business_connection") {
       for (const runner of this.businessConnectionHandlers) {
-        await this.runControllerRunner(update, runner, sceneControl);
+        await this.runControllerRunner(update, runner, sceneControl, undefined, meta.chatId);
       }
     } else if (meta.kind === "business_message") {
       for (const runner of this.businessMessageHandlers) {
-        await this.runControllerRunner(update, runner, sceneControl);
+        await this.runControllerRunner(update, runner, sceneControl, undefined, meta.chatId);
       }
     } else if (meta.kind === "edited_business_message") {
       for (const runner of this.editedBusinessMessageHandlers) {
-        await this.runControllerRunner(update, runner, sceneControl);
+        await this.runControllerRunner(update, runner, sceneControl, undefined, meta.chatId);
       }
     } else if (meta.kind === "deleted_business_messages") {
       for (const runner of this.deletedBusinessMessagesHandlers) {
-        await this.runControllerRunner(update, runner, sceneControl);
+        await this.runControllerRunner(update, runner, sceneControl, undefined, meta.chatId);
       }
     }
   }
@@ -526,8 +542,9 @@ export class UpdateRouter {
     runner: HandlerRunner,
     sceneControl: SceneControl,
     match?: string[],
+    chatId?: number,
   ) {
-    const ctx = this.createContext(update, runner.def, sceneControl);
+    const ctx = this.createContext(update, runner.def, sceneControl, chatId);
     if (match) ctx.match = match;
 
     for (const guard of runner.guards) {

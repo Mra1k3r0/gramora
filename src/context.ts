@@ -46,24 +46,15 @@ import {
 import type { InputMediaPhoto } from "./types/api";
 import type { MessageForKind } from "./types/context";
 import type {
-  BusinessConnection,
-  BusinessMessagesDeleted,
   ChatFull,
   ChatInviteLink,
-  ChatJoinRequest,
-  ChatMemberUpdated,
   InlineKeyboardMarkup,
   InlineQueryResult,
   InputFile,
   InputMedia,
-  Message,
   MessageContentKind,
-  MessageReactionCountUpdated,
-  MessageReactionUpdated,
   TextMessage,
-  PreCheckoutQuery,
   ReplyMarkup,
-  ShippingQuery,
   Update,
 } from "./types/telegram";
 
@@ -88,6 +79,7 @@ export interface BaseContextOptions {
   api: ApiClient;
   scene?: SceneControl;
   match?: string[];
+  chatId?: number;
 }
 
 /**
@@ -97,62 +89,23 @@ export interface BaseContextOptions {
 export class BaseContext {
   public readonly update: Update;
   public readonly api: ApiClient;
-  public readonly gram: GramClient;
-  public readonly message;
-  public readonly callbackQuery;
-  public readonly inlineQuery;
-  public readonly shippingQuery: ShippingQuery | undefined;
-  public readonly preCheckoutQuery: PreCheckoutQuery | undefined;
-  public readonly chatMember: ChatMemberUpdated | undefined;
-  public readonly myChatMember: ChatMemberUpdated | undefined;
-  public readonly chatJoinRequest: ChatJoinRequest | undefined;
-  public readonly messageReaction: MessageReactionUpdated | undefined;
-  public readonly messageReactionCount: MessageReactionCountUpdated | undefined;
-  public readonly businessConnection: BusinessConnection | undefined;
-  public readonly businessMessage: Message | undefined;
-  public readonly editedBusinessMessage: Message | undefined;
-  public readonly deletedBusinessMessages: BusinessMessagesDeleted | undefined;
+  private _gram?: GramClient;
   public readonly scene: SceneControl;
   public session: Record<string, unknown>;
   public match?: string[];
+  private readonly _chatId?: number;
 
   /**
    * @param options.update - Raw Telegram update
    * @param options.api - Bot API client
    * @param options.scene - Scene control when inside a scene
    * @param options.match - Regex groups from callback patterns
+   * @param options.chatId - Optional pre-calculated chat ID
    */
   constructor(options: BaseContextOptions) {
     this.update = options.update;
     this.api = options.api;
-    const u = options.update;
-    this.gram = new GramClient(this.api, {
-      chatId:
-        u.message?.chat.id ??
-        u.callback_query?.message?.chat.id ??
-        u.chat_member?.chat.id ??
-        u.my_chat_member?.chat.id ??
-        u.chat_join_request?.chat.id ??
-        u.message_reaction?.chat.id ??
-        u.message_reaction_count?.chat.id ??
-        u.business_message?.chat.id ??
-        u.edited_business_message?.chat.id ??
-        u.deleted_business_messages?.chat.id,
-    });
-    this.message = u.message;
-    this.callbackQuery = u.callback_query;
-    this.inlineQuery = u.inline_query;
-    this.shippingQuery = u.shipping_query;
-    this.preCheckoutQuery = u.pre_checkout_query;
-    this.chatMember = u.chat_member;
-    this.myChatMember = u.my_chat_member;
-    this.chatJoinRequest = u.chat_join_request;
-    this.messageReaction = u.message_reaction;
-    this.messageReactionCount = u.message_reaction_count;
-    this.businessConnection = u.business_connection;
-    this.businessMessage = u.business_message;
-    this.editedBusinessMessage = u.edited_business_message;
-    this.deletedBusinessMessages = u.deleted_business_messages;
+    this._chatId = options.chatId;
     this.scene = options.scene ?? {
       state: {},
       enter: async () => {},
@@ -161,6 +114,59 @@ export class BaseContext {
     };
     this.session = {};
     this.match = options.match;
+  }
+
+  /** Lazy-initialized GramClient for the current context chat. */
+  get gram(): GramClient {
+    if (!this._gram) {
+      this._gram = new GramClient(this.api, {
+        chatId: this._chatId ?? this.chatId,
+      });
+    }
+    return this._gram;
+  }
+
+  get message() {
+    return this.update.message;
+  }
+  get callbackQuery() {
+    return this.update.callback_query;
+  }
+  get inlineQuery() {
+    return this.update.inline_query;
+  }
+  get shippingQuery() {
+    return this.update.shipping_query;
+  }
+  get preCheckoutQuery() {
+    return this.update.pre_checkout_query;
+  }
+  get chatMember() {
+    return this.update.chat_member;
+  }
+  get myChatMember() {
+    return this.update.my_chat_member;
+  }
+  get chatJoinRequest() {
+    return this.update.chat_join_request;
+  }
+  get messageReaction() {
+    return this.update.message_reaction;
+  }
+  get messageReactionCount() {
+    return this.update.message_reaction_count;
+  }
+  get businessConnection() {
+    return this.update.business_connection;
+  }
+  get businessMessage() {
+    return this.update.business_message;
+  }
+  get editedBusinessMessage() {
+    return this.update.edited_business_message;
+  }
+  get deletedBusinessMessages() {
+    return this.update.deleted_business_messages;
   }
 
   get chatId(): number | undefined {
@@ -750,10 +756,8 @@ export class BaseContext {
 }
 
 export class MessageContext<K extends MessageContentKind> extends BaseContext {
-  declare message: MessageForKind<K>;
-  constructor(options: BaseContextOptions) {
-    super(options);
-    this.message = options.update.message as MessageForKind<K>;
+  override get message(): MessageForKind<K> {
+    return this.update.message as MessageForKind<K>;
   }
 }
 
