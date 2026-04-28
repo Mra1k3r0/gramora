@@ -65,6 +65,36 @@ describe("Security Log Redaction", () => {
     expect(result).toContain("[MASKED]");
   });
 
+  it("should mask sensitive keys with hyphens and custom suffixes", () => {
+    const obj = {
+      "access-token": "secret-access",
+      session_id: "secret-session",
+      my_custom_password: "custom-pass",
+      X_Custom_Secret: "x-secret",
+    };
+
+    const result = stringifyForLog(obj);
+
+    expect(result).not.toContain("secret-access");
+    expect(result).not.toContain("secret-session");
+    expect(result).not.toContain("custom-pass");
+    expect(result).not.toContain("x-secret");
+    expect(result).toContain("[MASKED]");
+  });
+
+  it("should redact webhook secret tokens in logs", () => {
+    const secret = "my-webhook-secret-123";
+    addRedactionToken(secret);
+
+    const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+    log("info", "test", `Webhook secret is ${secret}`);
+
+    expect(consoleSpy).toHaveBeenCalled();
+    const lastCall = consoleSpy.mock.calls[0][0];
+    expect(lastCall).not.toContain(secret);
+    expect(lastCall).toContain("[REDACTED]");
+  });
+
   it("should redact tokens in console logs", () => {
     const token = "my-super-secret-token";
     addRedactionToken(token);
