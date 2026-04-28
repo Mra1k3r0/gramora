@@ -112,6 +112,7 @@ export function createWebhookHandler(options: {
       return;
     }
     req.on("data", (chunk) => {
+      if (responded) return;
       chunks.push(Buffer.from(chunk));
       totalSize += Buffer.byteLength(chunk);
       if (totalSize > maxBodyBytes) {

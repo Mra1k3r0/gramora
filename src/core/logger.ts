@@ -35,7 +35,7 @@ const SENSITIVE_KEYS = new Set([
 
 /** Registers a sensitive token (like the bot token) to be replaced with [REDACTED] in all logs. */
 export const addRedactionToken = (token: string) => {
-  if (token && token.length > 5) {
+  if (token) {
     REDACTION_TOKENS.add(token);
   }
 };
