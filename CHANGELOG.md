@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.1.1](https://github.com/Mra1k3r0/gramora/compare/v0.1.0...v0.1.1) (2026-04-28)
+
+### What's Changed
+
+- perf(context): lazy load context properties and reuse chat id — [`26e8afe`](https://github.com/Mra1k3r0/gramora/commit/26e8afe6e2172a28329bd594ede5a91df05a4be9)
+
 ## [0.1.0](https://github.com/Mra1k3r0/gramora/compare/v0.0.16...v0.1.0) (2026-04-26)
 
 ### What's Changed
