@@ -139,8 +139,10 @@ export class UpdateRouter {
     const meta = this.getUpdateMetadata(update);
     const chatKey = meta.chatId !== undefined ? String(meta.chatId) : "global";
 
-    const sceneControl = await this.sceneManager.buildControl(chatKey);
+    // Optimization: Skip scene lookup and control building in core mode
+    let sceneControl: SceneControl | undefined;
     if (this.options.mode !== "core") {
+      sceneControl = await this.sceneManager.buildControl(chatKey);
       const sceneCtx = new SceneContext({
         update,
         api: this.api,
@@ -173,7 +175,7 @@ export class UpdateRouter {
   private createContext(
     update: Update,
     handler: HandlerDefinition,
-    sceneControl: SceneControl,
+    sceneControl: SceneControl | undefined,
     chatId?: number,
   ): BaseContext {
     const options = { update, api: this.api, scene: sceneControl, chatId };
@@ -352,7 +354,7 @@ export class UpdateRouter {
    */
   private async dispatchIndexedHandlers(
     update: Update,
-    sceneControl: SceneControl,
+    sceneControl: SceneControl | undefined,
     meta: { kind: string; chatId?: number },
   ) {
     if (!this.hasIndexedHandlers) return;
@@ -540,7 +542,7 @@ export class UpdateRouter {
   private async runControllerRunner(
     update: Update,
     runner: HandlerRunner,
-    sceneControl: SceneControl,
+    sceneControl: SceneControl | undefined,
     match?: string[],
     chatId?: number,
   ) {
@@ -603,37 +605,45 @@ export class UpdateRouter {
    * to match the original framework behavior of using "global" as the chat key.
    */
   private getUpdateMetadata(update: Update): { kind: string; chatId?: number } {
-    if (update.message) return { kind: "message", chatId: update.message.chat.id };
-    if (update.callback_query)
-      return { kind: "callback_query", chatId: update.callback_query.message?.chat.id };
-    if (update.business_message)
-      return { kind: "business_message", chatId: update.business_message.chat.id };
-    if (update.chat_member) return { kind: "chat_member", chatId: update.chat_member.chat.id };
-    if (update.my_chat_member)
-      return { kind: "my_chat_member", chatId: update.my_chat_member.chat.id };
-    if (update.chat_join_request)
-      return { kind: "chat_join_request", chatId: update.chat_join_request.chat.id };
-    if (update.message_reaction)
-      return { kind: "message_reaction", chatId: update.message_reaction.chat.id };
-    if (update.message_reaction_count)
-      return { kind: "message_reaction_count", chatId: update.message_reaction_count.chat.id };
-    if (update.edited_business_message)
-      return { kind: "edited_business_message", chatId: update.edited_business_message.chat.id };
-    if (update.deleted_business_messages)
-      return {
-        kind: "deleted_business_messages",
-        chatId: update.deleted_business_messages.chat.id,
-      };
+    let kind = "unknown";
+    for (const key in update) {
+      if (key === "update_id") continue;
+      kind = key;
+      break;
+    }
 
-    if (update.inline_query) return { kind: "inline_query" };
-    if (update.chosen_inline_result) return { kind: "chosen_inline_result" };
-    if (update.shipping_query) return { kind: "shipping_query" };
-    if (update.pre_checkout_query) return { kind: "pre_checkout_query" };
-    if (update.poll_answer) return { kind: "poll_answer" };
-    if (update.poll) return { kind: "poll" };
-    if (update.business_connection) return { kind: "business_connection" };
-    if (update.edited_message) return { kind: "edited_message" };
-
-    return { kind: "unknown" };
+    switch (kind) {
+      case "message":
+        return { kind, chatId: update.message!.chat.id };
+      case "callback_query":
+        return { kind, chatId: update.callback_query!.message?.chat.id };
+      case "business_message":
+        return { kind, chatId: update.business_message!.chat.id };
+      case "chat_member":
+        return { kind, chatId: update.chat_member!.chat.id };
+      case "my_chat_member":
+        return { kind, chatId: update.my_chat_member!.chat.id };
+      case "chat_join_request":
+        return { kind, chatId: update.chat_join_request!.chat.id };
+      case "message_reaction":
+        return { kind, chatId: update.message_reaction!.chat.id };
+      case "message_reaction_count":
+        return { kind, chatId: update.message_reaction_count!.chat.id };
+      case "edited_business_message":
+        return { kind, chatId: update.edited_business_message!.chat.id };
+      case "deleted_business_messages":
+        return { kind, chatId: update.deleted_business_messages!.chat.id };
+      case "inline_query":
+      case "chosen_inline_result":
+      case "shipping_query":
+      case "pre_checkout_query":
+      case "poll_answer":
+      case "poll":
+      case "business_connection":
+      case "edited_message":
+        return { kind };
+      default:
+        return { kind: "unknown" };
+    }
   }
 }
