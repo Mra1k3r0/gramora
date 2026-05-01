@@ -82,6 +82,13 @@ export interface BaseContextOptions {
   chatId?: number;
 }
 
+const DEFAULT_SCENE_METHODS: SceneControl = {
+  state: {},
+  enter: async () => {},
+  leave: async () => {},
+  next: async () => {},
+};
+
 /**
  * Handler context: `update` plus `gram` with optional default chat from the payload.
  * @remarks Helpers such as `answerCallback`, `forward`, and admin methods throw if the current update lacks the required ids (see each method).
@@ -106,12 +113,7 @@ export class BaseContext {
     this.update = options.update;
     this.api = options.api;
     this._chatId = options.chatId;
-    this.scene = options.scene ?? {
-      state: {},
-      enter: async () => {},
-      leave: async () => {},
-      next: async () => {},
-    };
+    this.scene = options.scene ?? DEFAULT_SCENE_METHODS;
     this.session = {};
     this.match = options.match;
   }

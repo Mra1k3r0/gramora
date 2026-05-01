@@ -15,6 +15,13 @@ import type { SceneManager } from "../scenes";
 import type { Constructor } from "./types";
 import type { Message, MessageContentKind, Update } from "../types/telegram";
 
+const CORE_SCENE_CONTROL: SceneControl = {
+  state: {},
+  enter: async () => {},
+  leave: async () => {},
+  next: async () => {},
+};
+
 interface RegisteredController {
   instance: object;
   handlers: HandlerDefinition[];
@@ -137,10 +144,15 @@ export class UpdateRouter {
    */
   async handleUpdate(update: Update) {
     const meta = this.getUpdateMetadata(update);
-    const chatKey = meta.chatId !== undefined ? String(meta.chatId) : "global";
 
-    const sceneControl = await this.sceneManager.buildControl(chatKey);
-    if (this.options.mode !== "core") {
+    let sceneControl: SceneControl;
+
+    if (this.options.mode === "core") {
+      sceneControl = CORE_SCENE_CONTROL;
+    } else {
+      const chatKey = meta.chatId !== undefined ? String(meta.chatId) : "global";
+      sceneControl = await this.sceneManager.buildControl(chatKey);
+
       const sceneCtx = new SceneContext({
         update,
         api: this.api,
@@ -376,15 +388,22 @@ export class UpdateRouter {
         await this.runControllerRunner(update, runner, sceneControl, undefined, meta.chatId);
       }
 
-      // Optimization: Instead of O(N) loop over all kinds, find matching keys in O(K)
-      const messageKinds = Object.keys(update.message).filter((key) =>
-        this.onKindHandlers.has(key),
-      );
-      if (messageKinds.length > 0) {
-        messageKinds.sort(
-          (a, b) =>
-            (this.kindRegistrationOrder.get(a) ?? 0) - (this.kindRegistrationOrder.get(b) ?? 0),
-        );
+      // optimization: instead of o(n) loop over all kinds, find matching keys in o(k)
+      let messageKinds: string[] | undefined;
+      for (const key in update.message) {
+        if (this.onKindHandlers.has(key)) {
+          if (!messageKinds) messageKinds = [];
+          messageKinds.push(key);
+        }
+      }
+
+      if (messageKinds && messageKinds.length > 0) {
+        if (messageKinds.length > 1) {
+          messageKinds.sort(
+            (a, b) =>
+              (this.kindRegistrationOrder.get(a) ?? 0) - (this.kindRegistrationOrder.get(b) ?? 0),
+          );
+        }
         for (const kind of messageKinds) {
           const runners = this.onKindHandlers.get(kind);
           if (runners) {
@@ -396,7 +415,7 @@ export class UpdateRouter {
       }
     }
 
-    // Kind-specific handlers for non-message updates (e.g. on('callback_query'))
+    // kind-specific handlers for non-message updates (e.g. on('callback_query'))
     const otherKindRunners = this.onKindHandlers.get(meta.kind);
     if (otherKindRunners && meta.kind !== "message") {
       for (const runner of otherKindRunners) {
@@ -404,23 +423,30 @@ export class UpdateRouter {
       }
     }
 
-    // Forward compatibility: check for handlers that might match properties of the update
-    // even if getUpdateMetadata doesn't recognize the kind or if it's a new Telegram update type.
-    // Optimization: find matching keys in O(K) instead of O(N)
-    const updateKinds = Object.keys(update).filter(
-      (key) =>
+    // forward compatibility: check for handlers that might match properties of the update
+    // even if getupdatemetadata doesn't recognize the kind or if it's a new telegram update type.
+    // optimization: find matching keys in o(k) instead of o(n)
+    let updateKinds: string[] | undefined;
+    for (const key in update) {
+      if (
         key !== "update_id" &&
         key !== meta.kind &&
         key !== "message" &&
         key !== "*" &&
-        this.onKindHandlers.has(key),
-    );
+        this.onKindHandlers.has(key)
+      ) {
+        if (!updateKinds) updateKinds = [];
+        updateKinds.push(key);
+      }
+    }
 
-    if (updateKinds.length > 0) {
-      updateKinds.sort(
-        (a, b) =>
-          (this.kindRegistrationOrder.get(a) ?? 0) - (this.kindRegistrationOrder.get(b) ?? 0),
-      );
+    if (updateKinds && updateKinds.length > 0) {
+      if (updateKinds.length > 1) {
+        updateKinds.sort(
+          (a, b) =>
+            (this.kindRegistrationOrder.get(a) ?? 0) - (this.kindRegistrationOrder.get(b) ?? 0),
+        );
+      }
       for (const kind of updateKinds) {
         const runners = this.onKindHandlers.get(kind);
         if (runners) {
@@ -431,7 +457,7 @@ export class UpdateRouter {
       }
     }
 
-    // Handle on('*') and other global update handlers from onKindHandlers
+    // handle on('*') and other global update handlers from onkindhandlers
     const catchAllRunners = this.onKindHandlers.get("*");
     if (catchAllRunners) {
       for (const runner of catchAllRunners) {
@@ -442,7 +468,7 @@ export class UpdateRouter {
     if (meta.kind === "callback_query" && update.callback_query?.data) {
       const data = update.callback_query.data;
 
-      // Optimization: if we only have literal handlers, use the Map for O(1)
+      // optimization: if we only have literal handlers, use the map for o(1)
       if (this.callbackRegexHandlers.length === 0) {
         const literalRunners = this.callbackLiteralHandlers.get(data);
         if (literalRunners) {
@@ -451,10 +477,10 @@ export class UpdateRouter {
           }
         }
       } else {
-        // Use ordered handlers to preserve registration order when regex handlers exist
+        // use ordered handlers to preserve registration order when regex handlers exist
         for (const item of this.callbackOrderedHandlers) {
           if (item.isLiteral) {
-            // Fast literal check
+            // fast literal check
             if (item.runner.def.trigger === data) {
               await this.runControllerRunner(
                 update,
@@ -465,7 +491,7 @@ export class UpdateRouter {
               );
             }
           } else {
-            // Regex check
+            // regex check
             const matched = item.runner.callbackRegex?.exec(data);
             if (matched) {
               await this.runControllerRunner(
@@ -553,7 +579,7 @@ export class UpdateRouter {
       }
     }
 
-    // Optimization: Use pre-composed middleware if available
+    // optimization: use pre-composed middleware if available
     if (this.globalMiddleware.length === 0) {
       if (runner.middleware.length === 0) {
         await runner.run(ctx);
@@ -566,7 +592,7 @@ export class UpdateRouter {
       return;
     }
 
-    // Combine global and runner middleware
+    // combine global and runner middleware
     if (!this.composedGlobalMiddleware) {
       this.composedGlobalMiddleware = compose(this.globalMiddleware);
     }
@@ -603,36 +629,54 @@ export class UpdateRouter {
    * to match the original framework behavior of using "global" as the chat key.
    */
   private getUpdateMetadata(update: Update): { kind: string; chatId?: number } {
-    if (update.message) return { kind: "message", chatId: update.message.chat.id };
-    if (update.callback_query)
-      return { kind: "callback_query", chatId: update.callback_query.message?.chat.id };
-    if (update.business_message)
-      return { kind: "business_message", chatId: update.business_message.chat.id };
-    if (update.chat_member) return { kind: "chat_member", chatId: update.chat_member.chat.id };
-    if (update.my_chat_member)
-      return { kind: "my_chat_member", chatId: update.my_chat_member.chat.id };
-    if (update.chat_join_request)
-      return { kind: "chat_join_request", chatId: update.chat_join_request.chat.id };
-    if (update.message_reaction)
-      return { kind: "message_reaction", chatId: update.message_reaction.chat.id };
-    if (update.message_reaction_count)
-      return { kind: "message_reaction_count", chatId: update.message_reaction_count.chat.id };
-    if (update.edited_business_message)
-      return { kind: "edited_business_message", chatId: update.edited_business_message.chat.id };
-    if (update.deleted_business_messages)
-      return {
-        kind: "deleted_business_messages",
-        chatId: update.deleted_business_messages.chat.id,
-      };
-
-    if (update.inline_query) return { kind: "inline_query" };
-    if (update.chosen_inline_result) return { kind: "chosen_inline_result" };
-    if (update.shipping_query) return { kind: "shipping_query" };
-    if (update.pre_checkout_query) return { kind: "pre_checkout_query" };
-    if (update.poll_answer) return { kind: "poll_answer" };
-    if (update.poll) return { kind: "poll" };
-    if (update.business_connection) return { kind: "business_connection" };
-    if (update.edited_message) return { kind: "edited_message" };
+    const raw = update as unknown as Record<string, unknown>;
+    for (const key in raw) {
+      if (key === "update_id") continue;
+      const val = raw[key];
+      switch (key) {
+        case "message":
+          return { kind: "message", chatId: (val as { chat: { id: number } }).chat.id };
+        case "callback_query":
+          return {
+            kind: "callback_query",
+            chatId: (val as { message?: { chat: { id: number } } }).message?.chat.id,
+          };
+        case "business_message":
+          return { kind: "business_message", chatId: (val as { chat: { id: number } }).chat.id };
+        case "chat_member":
+          return { kind: "chat_member", chatId: (val as { chat: { id: number } }).chat.id };
+        case "my_chat_member":
+          return { kind: "my_chat_member", chatId: (val as { chat: { id: number } }).chat.id };
+        case "chat_join_request":
+          return { kind: "chat_join_request", chatId: (val as { chat: { id: number } }).chat.id };
+        case "message_reaction":
+          return { kind: "message_reaction", chatId: (val as { chat: { id: number } }).chat.id };
+        case "message_reaction_count":
+          return {
+            kind: "message_reaction_count",
+            chatId: (val as { chat: { id: number } }).chat.id,
+          };
+        case "edited_business_message":
+          return {
+            kind: "edited_business_message",
+            chatId: (val as { chat: { id: number } }).chat.id,
+          };
+        case "deleted_business_messages":
+          return {
+            kind: "deleted_business_messages",
+            chatId: (val as { chat: { id: number } }).chat.id,
+          };
+        case "inline_query":
+        case "chosen_inline_result":
+        case "shipping_query":
+        case "pre_checkout_query":
+        case "poll_answer":
+        case "poll":
+        case "business_connection":
+        case "edited_message":
+          return { kind: key };
+      }
+    }
 
     return { kind: "unknown" };
   }
