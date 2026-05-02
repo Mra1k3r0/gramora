@@ -31,6 +31,8 @@ const SENSITIVE_KEYS = new Set([
   "sessionid",
   "certificate",
   "passphrase",
+  "authorization",
+  "auth",
 ]);
 
 /** Registers a sensitive token (like the bot token) to be replaced with [REDACTED] in all logs. */
@@ -142,9 +144,14 @@ const prettyObject = (value: unknown, depth = 0): string => {
     return `${colorize("[", TOKEN_COLORS.punctuation)}\n${items.join(",\n")}\n${indent(depth)}${colorize("]", TOKEN_COLORS.punctuation)}`;
   }
 
-  const entries = Object.entries(value as Record<string, unknown>);
-  if (entries.length === 0) return colorize("{}", TOKEN_COLORS.punctuation);
-  const lines = entries.map(([k, v]) => {
+  const keys =
+    value instanceof Error
+      ? Object.getOwnPropertyNames(value)
+      : Object.keys(value as Record<string, unknown>);
+
+  if (keys.length === 0) return colorize("{}", TOKEN_COLORS.punctuation);
+  const lines = keys.map((k) => {
+    const v = (value as Record<string, unknown>)[k];
     const key = colorize(`"${k}"`, TOKEN_COLORS.key);
     const normalizedK = k.toLowerCase().replace(/[_-]/g, "");
     const isSensitive =
@@ -152,7 +159,9 @@ const prettyObject = (value: unknown, depth = 0): string => {
       normalizedK.endsWith("token") ||
       normalizedK.endsWith("password") ||
       normalizedK.endsWith("secret") ||
-      normalizedK.endsWith("passphrase");
+      normalizedK.endsWith("passphrase") ||
+      normalizedK.endsWith("authorization") ||
+      normalizedK.endsWith("auth");
     const val = isSensitive
       ? colorize('"[MASKED]"', TOKEN_COLORS.string)
       : prettyObject(v, depth + 1);
