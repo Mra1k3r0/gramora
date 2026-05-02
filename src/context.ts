@@ -74,6 +74,13 @@ export interface SceneControl {
   next: () => Promise<void>;
 }
 
+/** shared dummy scene methods to avoid redundant allocations on every context */
+const DEFAULT_SCENE_METHODS = {
+  enter: async () => {},
+  leave: async () => {},
+  next: async () => {},
+};
+
 export interface BaseContextOptions {
   update: Update;
   api: ApiClient;
@@ -108,9 +115,7 @@ export class BaseContext {
     this._chatId = options.chatId;
     this.scene = options.scene ?? {
       state: {},
-      enter: async () => {},
-      leave: async () => {},
-      next: async () => {},
+      ...DEFAULT_SCENE_METHODS,
     };
     this.session = {};
     this.match = options.match;

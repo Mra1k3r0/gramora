@@ -137,10 +137,11 @@ export class UpdateRouter {
    */
   async handleUpdate(update: Update) {
     const meta = this.getUpdateMetadata(update);
-    const chatKey = meta.chatId !== undefined ? String(meta.chatId) : "global";
+    let sceneControl: SceneControl | undefined;
 
-    const sceneControl = await this.sceneManager.buildControl(chatKey);
     if (this.options.mode !== "core") {
+      const chatKey = meta.chatId !== undefined ? String(meta.chatId) : "global";
+      sceneControl = await this.sceneManager.buildControl(chatKey);
       const sceneCtx = new SceneContext({
         update,
         api: this.api,
@@ -173,7 +174,7 @@ export class UpdateRouter {
   private createContext(
     update: Update,
     handler: HandlerDefinition,
-    sceneControl: SceneControl,
+    sceneControl?: SceneControl,
     chatId?: number,
   ): BaseContext {
     const options = { update, api: this.api, scene: sceneControl, chatId };
@@ -352,7 +353,7 @@ export class UpdateRouter {
    */
   private async dispatchIndexedHandlers(
     update: Update,
-    sceneControl: SceneControl,
+    sceneControl: SceneControl | undefined,
     meta: { kind: string; chatId?: number },
   ) {
     if (!this.hasIndexedHandlers) return;
@@ -377,9 +378,13 @@ export class UpdateRouter {
       }
 
       // Optimization: Instead of O(N) loop over all kinds, find matching keys in O(K)
-      const messageKinds = Object.keys(update.message).filter((key) =>
-        this.onKindHandlers.has(key),
-      );
+      const messageKinds: string[] = [];
+      for (const key in update.message) {
+        if (this.onKindHandlers.has(key)) {
+          messageKinds.push(key);
+        }
+      }
+
       if (messageKinds.length > 0) {
         messageKinds.sort(
           (a, b) =>
@@ -407,14 +412,18 @@ export class UpdateRouter {
     // Forward compatibility: check for handlers that might match properties of the update
     // even if getUpdateMetadata doesn't recognize the kind or if it's a new Telegram update type.
     // Optimization: find matching keys in O(K) instead of O(N)
-    const updateKinds = Object.keys(update).filter(
-      (key) =>
+    const updateKinds: string[] = [];
+    for (const key in update) {
+      if (
         key !== "update_id" &&
         key !== meta.kind &&
         key !== "message" &&
         key !== "*" &&
-        this.onKindHandlers.has(key),
-    );
+        this.onKindHandlers.has(key)
+      ) {
+        updateKinds.push(key);
+      }
+    }
 
     if (updateKinds.length > 0) {
       updateKinds.sort(
@@ -540,7 +549,7 @@ export class UpdateRouter {
   private async runControllerRunner(
     update: Update,
     runner: HandlerRunner,
-    sceneControl: SceneControl,
+    sceneControl: SceneControl | undefined,
     match?: string[],
     chatId?: number,
   ) {
