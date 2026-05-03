@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { ApiClient } from "./api/client";
+import { ApiClient, pickClientNetworkOptions } from "./api/client";
 import { GramClient } from "./gram";
 import {
   addRedactionToken,
@@ -51,11 +51,7 @@ class Bot {
    */
   constructor(private readonly options: BotOptions) {
     addRedactionToken(options.token);
-    this.api = new ApiClient(options.token, options.apiBaseUrl, {
-      userAgent: options.userAgent,
-      timeoutMs: options.timeoutMs,
-      proxy: options.proxy,
-    });
+    this.api = new ApiClient(options.token, options.apiBaseUrl, pickClientNetworkOptions(options));
     this.gram = new GramClient(this.api);
     this.scenes = new SceneManager();
     this.router = new UpdateRouter(this.api, this.scenes, {

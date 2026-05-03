@@ -14,7 +14,30 @@ export { TelegramApiError } from "../errors";
 export const DEFAULT_BOT_USER_AGENT =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
 
-type ClientNetworkOptions = Pick<BotOptions, "userAgent" | "timeoutMs" | "proxy">;
+const NETWORK_OPTION_KEYS = [
+  "userAgent",
+  "timeoutMs",
+  "proxy",
+  "httpTransport",
+] as const satisfies readonly (keyof BotOptions)[];
+
+export type ClientNetworkOptions = Pick<BotOptions, (typeof NETWORK_OPTION_KEYS)[number]>;
+
+/** Pass-through for ApiClient: only networking keys that are explicitly set on the bot. */
+export function pickClientNetworkOptions(options: BotOptions): ClientNetworkOptions {
+  const entries = NETWORK_OPTION_KEYS.flatMap((key) =>
+    options[key] !== undefined ? ([[key, options[key]]] as const) : [],
+  );
+  return Object.fromEntries(entries) as ClientNetworkOptions;
+}
+
+type BotApiPostInit = {
+  headers: Record<string, string>;
+  body?: string | FormData;
+  timeoutMs: number;
+  signal: AbortSignal;
+};
+
 const UPLOAD_FIELDS = new Set([
   "photo",
   "document",
@@ -32,45 +55,80 @@ const UPLOAD_FIELDS = new Set([
 export class ApiClient {
   private readonly endpoint: string;
   private network: Required<Pick<ClientNetworkOptions, "userAgent" | "timeoutMs">> &
-    Pick<ClientNetworkOptions, "proxy">;
+    Pick<ClientNetworkOptions, "proxy" | "httpTransport">;
   private dispatcher?: Dispatcher;
   private debugEnabled = false;
 
   /**
    * @param token - Bot token from BotFather
-   * @param baseUrl - API base URL
-   * @param network - User agent, timeout, optional proxy URL
+   * @param baseUrl - Bot API origin (defaults to Telegram)
+   * @param network - Optional; prefer {@link pickClientNetworkOptions} from `BotOptions`
    */
   constructor(token: string, baseUrl = "https://api.telegram.org", network?: ClientNetworkOptions) {
     addRedactionToken(token);
     this.endpoint = `${baseUrl}/bot${token}`;
-    this.network = { userAgent: DEFAULT_BOT_USER_AGENT, timeoutMs: 15000, proxy: undefined };
+    this.network = {
+      userAgent: DEFAULT_BOT_USER_AGENT,
+      timeoutMs: 15000,
+      proxy: undefined,
+      httpTransport: undefined,
+    };
     this.configureNetwork(network ?? {});
   }
 
-  /**
-   * @param config - Merges user agent, timeout, proxy; rebuilds fetch dispatcher when proxy changes
-   */
+  /** Merge runtime networking fields and refresh the undici dispatcher when applicable. */
   configureNetwork(config: BotRuntimeConfig) {
+    const prev = this.network;
     this.network = {
-      userAgent: config.userAgent ?? this.network.userAgent ?? DEFAULT_BOT_USER_AGENT,
-      timeoutMs: config.timeoutMs ?? this.network.timeoutMs ?? 15000,
-      proxy: config.proxy ?? this.network.proxy,
+      userAgent: config.userAgent ?? prev.userAgent ?? DEFAULT_BOT_USER_AGENT,
+      timeoutMs: config.timeoutMs ?? prev.timeoutMs ?? 15000,
+      proxy: "proxy" in config ? config.proxy : prev.proxy,
+      httpTransport: "httpTransport" in config ? config.httpTransport : prev.httpTransport,
     };
-    const proxy = this.network.proxy?.trim();
-    if (!proxy) {
-      this.dispatcher = undefined;
-    } else if (/^socks5(h)?:\/\//i.test(proxy)) {
-      const socksUrl = proxy.replace(/^socks5h:\/\//i, "socks5://");
-      this.dispatcher = new Socks5ProxyAgent(socksUrl);
-    } else {
-      this.dispatcher = new ProxyAgent({ uri: proxy });
-    }
+    this.applyDispatcherFromNetwork();
   }
 
-  /** Whether a proxy URL is configured (used for launch-time health logging). */
+  private applyDispatcherFromNetwork() {
+    const { httpTransport, proxy } = this.network;
+    if (httpTransport !== undefined) {
+      this.dispatcher = undefined;
+      return;
+    }
+    if (proxy === undefined || proxy === null) {
+      this.dispatcher = undefined;
+      return;
+    }
+    if (typeof proxy !== "string") {
+      this.dispatcher = proxy;
+      return;
+    }
+    const url = proxy.trim();
+    if (!url) {
+      this.dispatcher = undefined;
+      return;
+    }
+    if (/^socks5(h)?:\/\//i.test(url)) {
+      this.dispatcher = new Socks5ProxyAgent(url.replace(/^socks5h:\/\//i, "socks5://"));
+      return;
+    }
+    this.dispatcher = new ProxyAgent({ uri: url });
+  }
+
+  private postBotApi(url: string, init: BotApiPostInit) {
+    const { httpTransport } = this.network;
+    const { headers, body, timeoutMs, signal } = init;
+    return httpTransport
+      ? httpTransport({ url, headers, body, timeoutMs, signal })
+      : fetch(url, { method: "POST", headers, body, dispatcher: this.dispatcher, signal });
+  }
+
+  /** Whether proxy routing or a custom HTTP transport is configured (used for launch-time health logging). */
   hasProxy(): boolean {
-    return Boolean(this.network.proxy?.trim());
+    const { httpTransport, proxy } = this.network;
+    if (httpTransport !== undefined) return true;
+    if (proxy === undefined || proxy === null) return false;
+    if (typeof proxy !== "string") return true;
+    return Boolean(proxy.trim());
   }
 
   setDebug(enabled: boolean) {
@@ -238,15 +296,17 @@ export class ApiClient {
 
     try {
       const body = await this.toRequestBody(params as Record<string, unknown> | undefined);
-      const response = await fetch(`${this.endpoint}/${String(method)}`, {
-        method: "POST",
-        headers: {
-          "User-Agent": this.network.userAgent,
-          ...(body.isMultipart ? {} : { "Content-Type": "application/json" }),
-        },
+      const headers: Record<string, string> = {
+        "User-Agent": this.network.userAgent,
+        ...(body.isMultipart ? {} : { "Content-Type": "application/json" }),
+      };
+      const signal = AbortSignal.timeout(requestTimeoutMs);
+      const url = `${this.endpoint}/${String(method)}`;
+      const response = await this.postBotApi(url, {
+        headers,
         body: body.body,
-        dispatcher: this.dispatcher,
-        signal: AbortSignal.timeout(requestTimeoutMs),
+        timeoutMs: requestTimeoutMs,
+        signal,
       });
 
       if (!response.ok) {

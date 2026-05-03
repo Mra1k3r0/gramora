@@ -2,6 +2,7 @@ import type { BaseContext } from "../context";
 import type { MiddlewareFn } from "../middleware/types";
 import type { Update } from "../types/telegram";
 import type { IncomingMessage, ServerResponse } from "node:http";
+import type { Dispatcher, FormData as UndiciFormData } from "undici";
 
 export type Constructor<T = object> = new (...args: unknown[]) => T;
 
@@ -66,10 +67,38 @@ export interface BotModuleHost {
 }
 
 export type BotModule = (bot: BotModuleHost) => void;
+
+/** POST body for Telegram Bot API calls (JSON string or undici multipart `FormData`). */
+export type TelegramHttpPostBody = string | UndiciFormData;
+
+export interface TelegramHttpTransportResponse {
+  ok: boolean;
+  status: number;
+  json(): Promise<unknown>;
+}
+
+/**
+ * Custom Bot API POST handler. When set, built-in `proxy` is not used for Bot API calls.
+ * @beta — wire your own client (e.g. axios + proxy agents); multipart uses undici `FormData`.
+ */
+export type TelegramHttpTransport = (request: {
+  url: string;
+  headers: Record<string, string>;
+  body?: TelegramHttpPostBody;
+  timeoutMs: number;
+  signal: AbortSignal;
+}) => Promise<TelegramHttpTransportResponse>;
+
 export interface BotRuntimeConfig {
   userAgent?: string;
   timeoutMs?: number;
-  proxy?: string;
+  /**
+   * Proxy URL or an undici `Dispatcher` (e.g. `new ProxyAgent({ uri })`).
+   * `configure({ proxy: undefined })` clears a previously set value.
+   */
+  proxy?: string | Dispatcher;
+  /** @beta Custom Bot API POST handler (`TelegramHttpTransport`); skips built-in undici path. */
+  httpTransport?: TelegramHttpTransport;
   debug?: boolean;
 }
 
@@ -89,7 +118,10 @@ export interface BotOptions {
   };
   userAgent?: string;
   timeoutMs?: number;
-  proxy?: string;
+  /** @see BotRuntimeConfig.proxy */
+  proxy?: string | Dispatcher;
+  /** @beta @see BotRuntimeConfig.httpTransport */
+  httpTransport?: TelegramHttpTransport;
   debug?: boolean;
   mode?: "full" | "core";
   operations?: {

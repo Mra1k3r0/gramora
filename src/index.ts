@@ -7,6 +7,12 @@ export { GramClient } from "./core/gram";
 export type { BotModule } from "./core/types";
 export type { BotOptions } from "./core/types";
 export type { BotRuntimeConfig } from "./core/types";
+export type { Dispatcher } from "undici";
+export type {
+  TelegramHttpPostBody,
+  TelegramHttpTransport,
+  TelegramHttpTransportResponse,
+} from "./core/types";
 export type { BotWebhookConfig } from "./core/types";
 export type { CreateWebhookAdapter, CreateWebhookOptions } from "./core/types";
 export type { BotHooks } from "./core/types";

@@ -6,6 +6,7 @@
 - [Configuration](#configuration)
   - [Constructor Options](#constructor-options)
   - [Runtime Configuration (`configure`)](#runtime-configuration-configure)
+  - [Bot API networking](#bot-api-networking)
   - [Webhook Configuration (`configureWebhook`)](#webhook-configuration-configurewebhook)
 - [Core Usage Patterns](#core-usage-patterns)
   - [Sending Messages](#sending-messages)
@@ -61,37 +62,129 @@ Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)
 
 ### Constructor Options
 
-| Option                                  | Type                                               | Default                | Description                                                                      |
-| --------------------------------------- | -------------------------------------------------- | ---------------------- | -------------------------------------------------------------------------------- |
-| `token`                                 | `string`                                           | required               | Telegram bot token                                                               |
-| `mode`                                  | `"full" \| "core"`                                 | `"full"`               | `core` keeps runtime lightweight                                                 |
-| `polling.timeout`                       | `number`                                           | `20`                   | Long-poll timeout (seconds)                                                      |
-| `polling.limit`                         | `number`                                           | Telegram default       | Max updates per poll                                                             |
-| `polling.allowedUpdates`                | `string[]`                                         | Telegram default       | Include update kinds like `chat_member`, `chat_join_request`, `message_reaction` |
-| `debug`                                 | `boolean`                                          | `false`                | Enable runtime debug logs                                                        |
-| `operations.handlerTimeoutMs`           | `number`                                           | disabled               | Per-update handler timeout in ms                                                 |
-| `operations.logWebhookRejects`          | `boolean`                                          | `false`                | Debug-log webhook path/secret mismatches                                         |
-| `operations.pollingRetryLogs`           | `"quiet"\| "structured"`                           | `"structured"`         | Control polling retry debug logs                                                 |
-| `operations.webhookMaxBodyBytes`        | `number`                                           | `1048576`              | Max webhook request body size before `413`                                       |
-| `operations.webhookAllowedContentTypes` | `string[]`                                         | `["application/json"]` | Allowed webhook content types                                                    |
-| `operations.pollingRetryBaseMs`         | `number`                                           | `1000`                 | Base polling retry delay in milliseconds                                         |
-| `operations.pollingRetryMaxMs`          | `number`                                           | `30000`                | Max polling retry delay in milliseconds                                          |
-| `operations.pollingRetryOn`             | `("rate_limit"\| "network"\| "api"\| "unknown")[]` | all listed             | Retry-eligible polling error classes                                             |
+| Option                                  | Type                                               | Default                | Description                                                                                        |
+| --------------------------------------- | -------------------------------------------------- | ---------------------- | -------------------------------------------------------------------------------------------------- |
+| `token`                                 | `string`                                           | required               | Telegram bot token                                                                                 |
+| `mode`                                  | `"full" \| "core"`                                 | `"full"`               | `core` keeps runtime lightweight                                                                   |
+| `polling.timeout`                       | `number`                                           | `20`                   | Long-poll timeout (seconds)                                                                        |
+| `polling.limit`                         | `number`                                           | Telegram default       | Max updates per poll                                                                               |
+| `polling.allowedUpdates`                | `string[]`                                         | Telegram default       | Include update kinds like `chat_member`, `chat_join_request`, `message_reaction`                   |
+| `userAgent`                             | `string`                                           | default UA             | Telegram Bot API request user-agent                                                                |
+| `timeoutMs`                             | `number`                                           | `15000`                | Bot API request timeout (ms); long-polls extend automatically                                      |
+| `proxy`                                 | `string` \| undici `Dispatcher`                    | none                   | URL (built-in agents) or custom dispatcher (e.g. `ProxyAgent`); [below](#bot-api-networking)       |
+| `httpTransport`                         | `TelegramHttpTransport`                            | none                   | Custom POST handler instead of undici ![beta](https://img.shields.io/badge/beta-yellow?style=flat) |
+| `debug`                                 | `boolean`                                          | `false`                | Enable runtime debug logs                                                                          |
+| `operations.handlerTimeoutMs`           | `number`                                           | disabled               | Per-update handler timeout in ms                                                                   |
+| `operations.logWebhookRejects`          | `boolean`                                          | `false`                | Debug-log webhook path/secret mismatches                                                           |
+| `operations.pollingRetryLogs`           | `"quiet"\| "structured"`                           | `"structured"`         | Control polling retry debug logs                                                                   |
+| `operations.webhookMaxBodyBytes`        | `number`                                           | `1048576`              | Max webhook request body size before `413`                                                         |
+| `operations.webhookAllowedContentTypes` | `string[]`                                         | `["application/json"]` | Allowed webhook content types                                                                      |
+| `operations.pollingRetryBaseMs`         | `number`                                           | `1000`                 | Base polling retry delay in milliseconds                                                           |
+| `operations.pollingRetryMaxMs`          | `number`                                           | `30000`                | Max polling retry delay in milliseconds                                                            |
+| `operations.pollingRetryOn`             | `("rate_limit"\| "network"\| "api"\| "unknown")[]` | all listed             | Retry-eligible polling error classes                                                               |
 
 ### Runtime Configuration (`configure`)
 
-| Key         | Type      | Description                                                                                                                        |
-| ----------- | --------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| `userAgent` | `string`  | Custom UA for Telegram API requests                                                                                                |
-| `timeoutMs` | `number`  | Request timeout in milliseconds                                                                                                    |
-| `proxy`     | `string`  | HTTP(S) proxy URL, or `socks5://` / `socks5h://` (`socks5h` is normalized to `socks5` for undici). Uses undici `Socks5ProxyAgent`. |
-| `debug`     | `boolean` | Toggle debug logging at runtime                                                                                                    |
+| Key             | Type                     | Description                                                                                                                  |
+| --------------- | ------------------------ | ---------------------------------------------------------------------------------------------------------------------------- |
+| `userAgent`     | `string`                 | Custom UA for Telegram API requests                                                                                          |
+| `timeoutMs`     | `number`                 | Request timeout in milliseconds                                                                                              |
+| `proxy`         | `string` \| `Dispatcher` | URL or undici dispatcher ([below](#bot-api-networking)); `configure({ proxy: undefined })` clears                            |
+| `httpTransport` | `TelegramHttpTransport`  | Replace undici for Bot API POSTs ![beta](https://img.shields.io/badge/beta-yellow?style=flat) ([below](#bot-api-networking)) |
+| `debug`         | `boolean`                | Toggle debug logging at runtime                                                                                              |
 
 ```ts
 const bot = new Gramora({ token: process.env.TELEGRAM_BOT_TOKEN!, mode: "core" }).configure({
   timeoutMs: 20000,
   proxy: "",
   debug: true,
+});
+```
+
+#### Bot API networking
+
+Gramora calls Telegram over [`undici`](https://undici.nodejs.org/) `fetch` unless you plug in something else:
+
+| Option                                                                       | Still uses undici `fetch`? | Typical reason                                                                                                                                                         |
+| ---------------------------------------------------------------------------- | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `proxy` ![URL](https://img.shields.io/badge/URL-blue?style=flat)             | Yes                        | Built-in `ProxyAgent` / `Socks5ProxyAgent` from a string.                                                                                                              |
+| `proxy` ![obj](https://img.shields.io/badge/obj-orange?style=flat)           | Yes                        | Your undici [`Dispatcher`](https://undici.nodejs.org/#/docs/api/Dispatcher), e.g. `ProxyAgent` with extra options ([similar idea](https://grammy.dev/advanced/proxy)). |
+| `httpTransport` ![beta](https://img.shields.io/badge/beta-yellow?style=flat) | No                         | Bring your own HTTP client (`TelegramHttpTransport`).                                                                                                                  |
+
+**Precedence:** `httpTransport` wins over `proxy`. Same keys work in `.configure({ … })`.
+
+**Proxy URL**
+
+```ts
+import { Gramora } from "@mra1k3r0/gramora";
+
+const bot = new Gramora({
+  token: process.env.TELEGRAM_BOT_TOKEN!,
+  proxy: "http://127.0.0.1:8080",
+  // proxy: "http://user:pass@proxy:8080",
+  // proxy: "https://proxy.example:8443",
+  // proxy: "socks5://127.0.0.1:1080",
+  // proxy: "socks5h://127.0.0.1:1080", // hostname resolved via proxy
+});
+```
+
+**Undici `ProxyAgent`**
+
+```ts
+import { Gramora } from "@mra1k3r0/gramora";
+import { ProxyAgent } from "undici";
+
+const bot = new Gramora({
+  token: process.env.TELEGRAM_BOT_TOKEN!,
+  proxy: new ProxyAgent({ uri: "http://proxy:8080" }),
+  // proxy: new ProxyAgent({ uri: "https://user:pass@proxy:8443" }),
+  // proxy: new Socks5ProxyAgent("socks5://127.0.0.1:1080"),
+  // proxy: new Socks5ProxyAgent("socks5h://127.0.0.1:1080"),
+});
+```
+
+**`httpTransport`** ![beta](https://img.shields.io/badge/beta-yellow?style=flat)
+
+- Install **`axios`** yourself (not a Gramora dependency).
+- For proxies, install **`http-proxy-agent`** / **`https-proxy-agent`** and/or **`socks-proxy-agent`** and pass `httpAgent` / `httpsAgent` into `axios.post`.
+
+```ts
+import axios from "axios";
+import { Gramora, type TelegramHttpTransport } from "@mra1k3r0/gramora";
+import { HttpProxyAgent } from "http-proxy-agent";
+import { HttpsProxyAgent } from "https-proxy-agent";
+// import { SocksProxyAgent } from "socks-proxy-agent";
+
+const proxyUrl = "http://127.0.0.1:8080";
+
+const httpTransport: TelegramHttpTransport = async ({ url, headers, body, timeoutMs, signal }) => {
+  /* HTTP CONNECT — comment out if you use SOCKS below */
+  const httpAgent = new HttpProxyAgent(proxyUrl);
+  const httpsAgent = new HttpsProxyAgent(proxyUrl);
+
+  /* SOCKS — comment out the HTTP block above when using this */
+  // const socksAgent = new SocksProxyAgent("socks5://127.0.0.1:1080");
+  // const httpAgent = socksAgent;
+  // const httpsAgent = socksAgent;
+
+  const { status, data } = await axios.post(url, body ?? {}, {
+    headers,
+    timeout: timeoutMs,
+    signal,
+    validateStatus: () => true,
+    httpAgent,
+    httpsAgent,
+  });
+  return {
+    ok: status >= 200 && status < 300,
+    status,
+    json: async () => data,
+  };
+};
+
+const bot = new Gramora({
+  token: process.env.TELEGRAM_BOT_TOKEN!,
+  httpTransport,
 });
 ```
 
