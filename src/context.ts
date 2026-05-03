@@ -90,7 +90,7 @@ export class BaseContext {
   public readonly update: Update;
   public readonly api: ApiClient;
   private _gram?: GramClient;
-  public readonly scene: SceneControl;
+  private _scene?: SceneControl;
   public session: Record<string, unknown>;
   public match?: string[];
   private readonly _chatId?: number;
@@ -106,14 +106,25 @@ export class BaseContext {
     this.update = options.update;
     this.api = options.api;
     this._chatId = options.chatId;
-    this.scene = options.scene ?? {
-      state: {},
-      enter: async () => {},
-      leave: async () => {},
-      next: async () => {},
-    };
+    this._scene = options.scene;
     this.session = {};
     this.match = options.match;
+  }
+
+  /**
+   * Scene control API for the current context.
+   * Lazily initializes a dummy control if not provided via constructor.
+   */
+  get scene(): SceneControl {
+    if (!this._scene) {
+      this._scene = {
+        state: {},
+        enter: async () => {},
+        leave: async () => {},
+        next: async () => {},
+      };
+    }
+    return this._scene;
   }
 
   /** Lazy-initialized GramClient for the current context chat. */

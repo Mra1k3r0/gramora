@@ -37,7 +37,25 @@ const mainTemplate = `{{> header}}
 {{> footer}}
 `;
 
-const commitPartial = `- {{#if displayType}}{{displayType}}{{#if scope}}({{scope}}){{/if}}: {{/if}}{{#if subject}}{{~subject}}{{else}}{{~header}}{{/if}}{{#if hash}}{{#if @root.linkReferences}} — [\`{{shortHash}}\`]({{~@root.host}}/{{#if this.owner}}{{~this.owner}}{{else}}{{~@root.owner}}{{/if}}/{{#if this.repository}}{{~this.repository}}{{else}}{{~@root.repository}}{{/if}}/commit/{{hash}}){{else}} — {{shortHash}}{{/if}}{{/if}}
+function conventionalRest(header) {
+  const raw = String(header ?? "").trim();
+  const m = raw.match(/^[a-z]+(?:\([^)]*\))?:\s*(.*)$/i);
+  return m ? m[1].trim() : raw;
+}
+
+function friendlyChangeLine(type, header) {
+  const rest = conventionalRest(header);
+  if (!rest) return header;
+  const sentence = rest.length > 0 ? rest.charAt(0).toLowerCase() + rest.slice(1) : rest;
+  const t = String(type ?? "change").toLowerCase();
+  if (t === "feat" || t === "feature") return `added ${sentence}`;
+  if (t === "fix") return `fixed ${sentence}`;
+  if (t === "perf") return `improved ${sentence}`;
+  if (t === "revert") return `reverted ${sentence}`;
+  return `${t}: ${sentence}`;
+}
+
+const commitPartial = `- {{subject}}{{#if hash}}{{#if @root.linkReferences}} · [\`{{shortHash}}\`]({{~@root.host}}/{{#if this.owner}}{{~this.owner}}{{else}}{{~@root.owner}}{{/if}}/{{#if this.repository}}{{~this.repository}}{{else}}{{~@root.repository}}{{/if}}/commit/{{hash}}){{else}} · \`{{shortHash}}\`{{/if}}{{/if}}
 
 {{~#if references~}}
 {{~#unless isRoadmapReference~}}
@@ -59,10 +77,6 @@ const commitPartial = `- {{#if displayType}}{{displayType}}{{#if scope}}({{scope
 
 `;
 
-/**
- * Preset for `@semantic-release/release-notes-generator` `config` option:
- * version as the main header, then ### What's Changed, then list items with — [`hash`](url).
- */
 export default function changelogPreset() {
   const base = createPreset({ types });
   const baseTransform = base.writer.transform;
@@ -83,17 +97,13 @@ export default function changelogPreset() {
         const isRoadmapReference = /\broadmap\s*#\d+\b/i.test(text);
         rendered.referenceAction = isRoadmapReference ? "roadmap" : "closes";
         rendered.isRoadmapReference = isRoadmapReference;
-        const conventionalMatch = rawHeader.match(/^([a-z]+)(?:\(([^)]+)\))?:\s/i);
-        if (conventionalMatch) {
-          rendered.displayType = conventionalMatch[1].toLowerCase();
-          if (!rendered.scope && conventionalMatch[2]) {
-            rendered.scope = conventionalMatch[2];
-          }
-        } else if (typeof rendered.type === "string") {
-          rendered.displayType = rendered.type.toLowerCase();
-        } else {
-          rendered.displayType = "change";
-        }
+
+        const type =
+          typeof rendered.type === "string"
+            ? rendered.type.toLowerCase()
+            : (rawHeader.match(/^([a-z]+)(?:\([^)]*\))?:/i)?.[1]?.toLowerCase() ?? "change");
+
+        rendered.subject = friendlyChangeLine(type, rawHeader);
         return rendered;
       },
     },
