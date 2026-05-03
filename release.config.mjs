@@ -50,13 +50,16 @@ export default {
         successComment: false,
         failComment: false,
         releasedLabels: false,
+        /** Full notes stay in CHANGELOG.md; keep the GitHub release body to the preset header line + pointer. */
+        releaseBodyTemplate:
+          '<%= nextRelease.notes.trim().split("\n")[0] %>\n\nSee [`CHANGELOG.md`](<%= options.repositoryUrl.replace(/\\.git$/i, "").replace(/^git@([^:]+):(.+)$/, "https://$1/$2") %>/blob/<%= nextRelease.gitHead %>/CHANGELOG.md) for changes.',
       },
     ],
     [
       "@semantic-release/git",
       {
         assets: ["CHANGELOG.md", "package.json", "package-lock.json"],
-        message: "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}",
+        message: "chore(release): ${nextRelease.version} [skip ci]",
       },
     ],
   ],

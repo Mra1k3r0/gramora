@@ -38,9 +38,7 @@ const mainTemplate = `{{> header}}
 {{/each}}
 {{/if}}
 {{#each commitGroups}}
-{{#each commits}}
-{{> commit root=@root}}
-{{/each}}
+{{#each commits}}{{> commit root=@root}}{{/each}}
 {{/each}}
 {{> footer}}
 `;
@@ -143,8 +141,8 @@ function friendlyChangeLine(type, header) {
   return `${t}: ${sentence}`;
 }
 
+/** Trailing newline only — each iteration abuts in mainTemplate so bullets stay single-spaced. */
 const commitPartial = `- {{subject}}{{#if hash}}{{#if @root.linkReferences}} — [\`{{shortHash}}\`]({{~@root.host}}/{{#if this.owner}}{{~this.owner}}{{else}}{{~@root.owner}}{{/if}}/{{#if this.repository}}{{~this.repository}}{{else}}{{~@root.repository}}{{/if}}/commit/{{hash}}){{else}} — \`{{shortHash}}\`{{/if}}{{/if}}{{{issueRefsLine}}}
-
 `;
 
 export default function changelogPreset() {
