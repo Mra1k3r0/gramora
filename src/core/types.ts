@@ -3,6 +3,7 @@ import type { MiddlewareFn } from "../middleware/types";
 import type { Update } from "../types/telegram";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { Dispatcher, FormData as UndiciFormData } from "undici";
+import type { GramoraLogSink } from "./logger";
 
 export type Constructor<T = object> = new (...args: unknown[]) => T;
 
@@ -99,6 +100,11 @@ export interface BotRuntimeConfig {
   proxy?: string | Dispatcher;
   /** @beta Custom Bot API POST handler (`TelegramHttpTransport`); skips built-in undici path. */
   httpTransport?: TelegramHttpTransport;
+  /**
+   * Send runtime logs here instead of colorful console output (same redaction; ANSI stripped).
+   * `configure({ logSink: undefined })` restores default console logging.
+   */
+  logSink?: GramoraLogSink;
   debug?: boolean;
 }
 
@@ -122,6 +128,8 @@ export interface BotOptions {
   proxy?: string | Dispatcher;
   /** @beta @see BotRuntimeConfig.httpTransport */
   httpTransport?: TelegramHttpTransport;
+  /** @see BotRuntimeConfig.logSink */
+  logSink?: GramoraLogSink;
   debug?: boolean;
   mode?: "full" | "core";
   operations?: {

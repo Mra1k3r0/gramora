@@ -1,5 +1,30 @@
 type LogLevel = "info" | "debug" | "warn" | "error";
 
+/** Log level passed to {@link GramoraLogSink}. */
+export type GramoraLogLevel = LogLevel;
+
+/**
+ * Optional log destination. Receives the same redacted payload as console output, with ANSI stripped.
+ * Use with pino/winston/etc.; omit for default colored `console` logging.
+ */
+export type GramoraLogSink = (level: GramoraLogLevel, scope: string, message: string) => void;
+
+let activeLogSink: GramoraLogSink | undefined;
+
+/** Set or clear the global log sink (used by {@link log}). `undefined` restores default console output. */
+export const setGramoraLogSink = (sink: GramoraLogSink | undefined) => {
+  activeLogSink = sink;
+};
+
+/** Test helper: clears a registered log sink to avoid cross-test leakage. */
+export const clearLogSinkForTests = () => {
+  activeLogSink = undefined;
+};
+
+function stripAnsi(text: string): string {
+  return text.replace(/\x1b\[[0-?]*[ -/]*[@-~]/g, "");
+}
+
 const HEX_COLORS: Record<LogLevel, string> = {
   info: "#00D084",
   debug: "#5E9BFF",
@@ -108,9 +133,14 @@ export function formatProxyProbeMessage(input: {
 }
 
 export const log = (level: LogLevel, scope: string, message: string) => {
+  const redactedMessage = redact(message);
+  const plainMessage = stripAnsi(redactedMessage);
+  if (activeLogSink) {
+    activeLogSink(level, scope, plainMessage);
+    return;
+  }
   const levelTag = colorizeBg(` ${level} `, HEX_COLORS[level]);
   const scopeTag = colorize(`${scope}:`, TOKEN_COLORS.scope);
-  const redactedMessage = redact(message);
   const line = `${levelTag} ${scopeTag} ${redactedMessage}`;
   if (level === "warn") {
     console.warn(line);

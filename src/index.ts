@@ -60,7 +60,11 @@ export type { UpdateByType, UpdateFilter, UpdateType } from "./update_filters";
 export { Composer } from "./middleware/composer";
 export type { MiddlewareFn } from "./middleware/types";
 
-export { formatProxyProbeMessage } from "./core/logger";
+export {
+  formatProxyProbeMessage,
+  setGramoraLogSink,
+} from "./core/logger";
+export type { GramoraLogLevel, GramoraLogSink } from "./core/logger";
 export { logger } from "./middleware/builtin/logger";
 export { rateLimiter } from "./middleware/builtin/rate_limiter";
 export { errorHandler } from "./middleware/builtin/error_handler";

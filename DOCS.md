@@ -28,6 +28,8 @@
 - [Global Sender](#global-sender)
 - [Decorator and Scene Mode](#decorator-and-scene-mode)
 - [Logging and Debug](#logging-and-debug)
+  - [Example: debug mode and operational flags](#example-debug-mode-and-operational-flags)
+  - [Example: `logSink` with pino (JSON logs)](#example-logsink-with-pino-json-logs)
 - [API Overview](#api-overview)
 - [Telegram Coverage](#telegram-coverage)
 - [Development and Validation](#development-and-validation)
@@ -74,6 +76,7 @@ Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)
 | `proxy`                                 | `string` \| undici `Dispatcher`                    | none                   | URL (built-in agents) or custom dispatcher (e.g. `ProxyAgent`); [below](#bot-api-networking)       |
 | `httpTransport`                         | `TelegramHttpTransport`                            | none                   | Custom POST handler instead of undici ![beta](https://img.shields.io/badge/beta-yellow?style=flat) |
 | `debug`                                 | `boolean`                                          | `false`                | Enable runtime debug logs                                                                          |
+| `logSink`                               | `(level, scope, message) => void`                  | none                   | Plain redacted logs (no ANSI); pipe to pino/winston; omit for colorful console                     |
 | `operations.handlerTimeoutMs`           | `number`                                           | disabled               | Per-update handler timeout in ms                                                                   |
 | `operations.logWebhookRejects`          | `boolean`                                          | `false`                | Debug-log webhook path/secret mismatches                                                           |
 | `operations.pollingRetryLogs`           | `"quiet"\| "structured"`                           | `"structured"`         | Control polling retry debug logs                                                                   |
@@ -92,6 +95,7 @@ Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)
 | `proxy`         | `string` \| `Dispatcher` | URL or undici dispatcher ([below](#bot-api-networking)); `configure({ proxy: undefined })` clears                            |
 | `httpTransport` | `TelegramHttpTransport`  | Replace undici for Bot API POSTs ![beta](https://img.shields.io/badge/beta-yellow?style=flat) ([below](#bot-api-networking)) |
 | `debug`         | `boolean`                | Toggle debug logging at runtime                                                                                              |
+| `logSink`       | `GramoraLogSink`         | Replace console logging with your sink (`configure({ logSink: undefined })` restores default)                                |
 
 ```ts
 const bot = new Gramora({ token: process.env.TELEGRAM_BOT_TOKEN!, mode: "core" }).configure({
@@ -434,6 +438,76 @@ Operational toggles:
 - `operations.logWebhookRejects`
 - `operations.handlerTimeoutMs`
 - `operations.pollingRetryLogs`
+
+### Example: debug mode and operational flags
+
+```ts
+import { Gramora } from "@mra1k3r0/gramora";
+
+const bot = new Gramora({
+  token: process.env.TELEGRAM_BOT_TOKEN!,
+  debug: true,
+  operations: {
+    logWebhookRejects: true,
+    handlerTimeoutMs: 30_000,
+    pollingRetryLogs: "structured",
+  },
+});
+```
+
+### Example: `logSink` with pino (JSON logs)
+
+Use a **`GramoraLogSink`** when you want runtime logs on **pino**, **winston**, Datadog, etc. The callback is `(level, scope, message)`:
+
+- **`level`**: `"info" | "debug" | "warn" | "error"` (maps cleanly onto common loggers).
+- **`scope`**: Gramora’s channel label (e.g. `api.request`, `lifecycle`).
+- **`message`**: same redaction rules as console output, but **ANSI is stripped** so you can log a plain string or embed it in JSON without escape noise.
+
+Install pino in your app if you follow this example (`npm install pino`).
+
+Pass `logSink` only when that key is on the options object; omit it if you install a **global** sink with `setGramoraLogSink` instead.
+
+```ts
+import pino from "pino";
+import { Gramora, type GramoraLogSink } from "@mra1k3r0/gramora";
+
+const logger = pino({ level: process.env.LOG_LEVEL ?? "info" });
+
+const logSink: GramoraLogSink = (level, scope, message) => {
+  logger[level]({ scope, msg: message });
+};
+
+const bot = new Gramora({
+  token: process.env.TELEGRAM_BOT_TOKEN!,
+  debug: true,
+  logSink,
+});
+
+// Colorful console again (explicit clear)
+bot.configure({ logSink: undefined });
+```
+
+Global sink (e.g. shared `ApiClient` setup, or you set logging before `Gramora` exists). Omit `logSink` on the bot so you do not overwrite this registration:
+
+```ts
+import pino from "pino";
+import { Gramora, setGramoraLogSink, type GramoraLogSink } from "@mra1k3r0/gramora";
+
+const logger = pino({ level: process.env.LOG_LEVEL ?? "info" });
+
+const logSink: GramoraLogSink = (level, scope, message) => {
+  logger[level]({ scope, msg: message });
+};
+
+setGramoraLogSink(logSink);
+
+const bot = new Gramora({
+  token: process.env.TELEGRAM_BOT_TOKEN!,
+  debug: true,
+});
+```
+
+Omitting `logSink` from **`new Gramora({ ... })`** leaves any sink already installed via **`setGramoraLogSink`** in place. To clear the sink from options, pass **`logSink: undefined`** on the options object (with that key present) or call **`configure({ logSink: undefined })`**.
 
 ## API Overview
 

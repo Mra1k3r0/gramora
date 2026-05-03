@@ -7,6 +7,7 @@ import {
   highlightId,
   highlightUsername,
   log,
+  setGramoraLogSink,
   stringifyForLog,
 } from "./logger";
 import {
@@ -50,6 +51,9 @@ class Bot {
    * @param options.token - Required; other fields optional (polling, proxy, `mode`, …)
    */
   constructor(private readonly options: BotOptions) {
+    if ("logSink" in options) {
+      setGramoraLogSink(options.logSink);
+    }
     addRedactionToken(options.token);
     this.api = new ApiClient(options.token, options.apiBaseUrl, pickClientNetworkOptions(options));
     this.gram = new GramClient(this.api);
@@ -160,6 +164,9 @@ class Bot {
   }
   configure(config: BotRuntimeConfig) {
     this.api.configureNetwork(config);
+    if ("logSink" in config) {
+      setGramoraLogSink(config.logSink);
+    }
     if (typeof config.debug === "boolean") {
       this.debugEnabled = config.debug;
       this.api.setDebug(config.debug);
