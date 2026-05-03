@@ -1,7 +1,4 @@
-/**
- * @see https://semantic-release.gitbook.io/semantic-release
- * Use conventional commits (e.g. fix:, feat:, BREAKING CHANGE:) so the analyzer can pick the next semver.
- */
+/** Conventional commits drive semver; releases run manually so unreleased commits batch up. @see release.yml */
 export default {
   branches: ["master", "main"],
   tagFormat: "v${version}",
@@ -10,7 +7,6 @@ export default {
       "@semantic-release/commit-analyzer",
       {
         preset: "conventionalcommits",
-        // Keep releases meaningful: scoped fixes, features, perf, and breaking only.
         releaseRules: [
           { breaking: true, release: "major" },
           { revert: true, release: "patch" },
