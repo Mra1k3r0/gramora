@@ -58,6 +58,11 @@ const SENSITIVE_KEYS = new Set([
   "passphrase",
   "authorization",
   "auth",
+  "proxy",
+  "cookie",
+  "setcookie",
+  "credential",
+  "credentials",
 ]);
 
 /** Registers a sensitive token (like the bot token) to be replaced with [REDACTED] in all logs. */
@@ -163,7 +168,11 @@ const stringifyPrimitive = (value: unknown) => {
   return colorize(String(value), TOKEN_COLORS.string);
 };
 
+const MAX_LOG_DEPTH = 20;
+
 const prettyObject = (value: unknown, depth = 0): string => {
+  if (depth >= MAX_LOG_DEPTH) return colorize('"[DEPTH_EXCEEDED]"', TOKEN_COLORS.string);
+
   if (value === null || typeof value !== "object") {
     return stringifyPrimitive(value);
   }
@@ -175,10 +184,14 @@ const prettyObject = (value: unknown, depth = 0): string => {
   }
 
   const keys =
-    value instanceof Error ? Object.getOwnPropertyNames(value) : Object.keys(value as object);
+    value instanceof Error
+      ? Array.from(new Set(["name", "code", ...Object.getOwnPropertyNames(value)]))
+      : Object.keys(value as object);
+
   if (keys.length === 0) return colorize("{}", TOKEN_COLORS.punctuation);
   const lines = keys.map((k) => {
     const v = (value as Record<string, unknown>)[k];
+    if (v === undefined) return "";
     const key = colorize(`"${k}"`, TOKEN_COLORS.key);
     const normalizedK = k.toLowerCase().replace(/[_-]/g, "");
     const isSensitive =
@@ -188,13 +201,18 @@ const prettyObject = (value: unknown, depth = 0): string => {
       normalizedK.endsWith("secret") ||
       normalizedK.endsWith("passphrase") ||
       normalizedK.endsWith("authorization") ||
-      normalizedK.endsWith("auth");
+      normalizedK.endsWith("auth") ||
+      normalizedK.endsWith("key") ||
+      normalizedK.endsWith("pwd") ||
+      normalizedK.endsWith("pass");
+
     const val = isSensitive
       ? colorize('"[MASKED]"', TOKEN_COLORS.string)
       : prettyObject(v, depth + 1);
     return `${indent(depth + 1)}${key}${colorize(":", TOKEN_COLORS.punctuation)} ${val}`;
   });
-  return `${colorize("{", TOKEN_COLORS.punctuation)}\n${lines.join(",\n")}\n${indent(depth)}${colorize("}", TOKEN_COLORS.punctuation)}`;
+  const filteredLines = lines.filter((l) => l !== "");
+  return `${colorize("{", TOKEN_COLORS.punctuation)}\n${filteredLines.join(",\n")}\n${indent(depth)}${colorize("}", TOKEN_COLORS.punctuation)}`;
 };
 
 export const stringifyForLog = (value: unknown) => {
