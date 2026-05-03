@@ -180,7 +180,7 @@ class Bot {
   }
 
   secretPathComponent() {
-    // deterministic secret path derived from token; avoids exposing plain token.
+    // Deterministic secret path derived from token; avoids exposing plain token.
     return createHash("sha256").update(this.options.token).digest("hex").slice(0, 32);
   }
 
@@ -329,8 +329,8 @@ class Bot {
     const startedAt = Date.now();
     const timeoutMs = this.options.operations?.handlerTimeoutMs;
     try {
-      // performance: only perform expensive serialization and kind detection if debug is enabled.
-      // this improves update throughput by ~10x (measured via 'npm run bench').
+      // Performance: Only perform expensive serialization and kind detection if debug is enabled.
+      // This improves update throughput by ~10x (measured via 'npm run bench').
       if (this.debugEnabled) {
         this.debug(
           "update",

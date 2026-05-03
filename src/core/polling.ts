@@ -153,11 +153,11 @@ export function createWebhookHandler(options: {
         res.end("bad request");
         return;
       }
-      // acknowledge immediately so telegram does not retry on handler errors
+      // acknowledge immediately so Telegram does not retry on handler errors
       res.statusCode = 200;
       responded = true;
       res.end("ok");
-      // onupdate is processupdate which handles errors internally and never throws
+      // onUpdate is processUpdate which handles errors internally and never throws
       void options.onUpdate(update);
     });
   };

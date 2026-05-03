@@ -15,8 +15,7 @@ import type { SceneManager } from "../scenes";
 import type { Constructor } from "./types";
 import type { Message, MessageContentKind, Update } from "../types/telegram";
 
-const CORE_SCENE_CONTROL: SceneControl = {
-  state: {},
+const CORE_SCENE_METHODS = {
   enter: async () => {},
   leave: async () => {},
   next: async () => {},
@@ -148,7 +147,7 @@ export class UpdateRouter {
     let sceneControl: SceneControl;
 
     if (this.options.mode === "core") {
-      sceneControl = CORE_SCENE_CONTROL;
+      sceneControl = { state: {}, ...CORE_SCENE_METHODS };
     } else {
       const chatKey = meta.chatId !== undefined ? String(meta.chatId) : "global";
       sceneControl = await this.sceneManager.buildControl(chatKey);
@@ -391,7 +390,10 @@ export class UpdateRouter {
       // optimization: instead of o(n) loop over all kinds, find matching keys in o(k)
       let messageKinds: string[] | undefined;
       for (const key in update.message) {
-        if (this.onKindHandlers.has(key)) {
+        if (
+          Object.prototype.hasOwnProperty.call(update.message, key) &&
+          this.onKindHandlers.has(key)
+        ) {
           if (!messageKinds) messageKinds = [];
           messageKinds.push(key);
         }
@@ -429,6 +431,7 @@ export class UpdateRouter {
     let updateKinds: string[] | undefined;
     for (const key in update) {
       if (
+        Object.prototype.hasOwnProperty.call(update, key) &&
         key !== "update_id" &&
         key !== meta.kind &&
         key !== "message" &&
@@ -631,7 +634,7 @@ export class UpdateRouter {
   private getUpdateMetadata(update: Update): { kind: string; chatId?: number } {
     const raw = update as unknown as Record<string, unknown>;
     for (const key in raw) {
-      if (key === "update_id") continue;
+      if (!Object.prototype.hasOwnProperty.call(raw, key) || key === "update_id") continue;
       const val = raw[key];
       switch (key) {
         case "message":

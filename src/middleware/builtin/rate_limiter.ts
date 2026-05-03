@@ -40,12 +40,12 @@ export const rateLimiter = (profile?: RateProfile | number): MiddlewareFn<BaseCo
     const bucket = state.get(key);
 
     if (!bucket || bucket.window !== window) {
-      // memory safety: if the map grows too large, cleanup expired entries.
+      // Memory safety: if the map grows too large, cleanup expired entries.
       if (state.size >= MAX_STATE_SIZE) {
         for (const [k, v] of state.entries()) {
           if (v.window < window) state.delete(k);
         }
-        // bounded eviction: if still too large, remove oldest 10% to avoid full reset.
+        // Bounded eviction: if still too large, remove oldest 10% to avoid full reset.
         if (state.size >= MAX_STATE_SIZE) {
           let removed = 0;
           const limit = Math.floor(MAX_STATE_SIZE * 0.1);

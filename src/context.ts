@@ -82,8 +82,7 @@ export interface BaseContextOptions {
   chatId?: number;
 }
 
-const DEFAULT_SCENE_METHODS: SceneControl = {
-  state: {},
+const DEFAULT_SCENE_METHODS = {
   enter: async () => {},
   leave: async () => {},
   next: async () => {},
@@ -113,7 +112,7 @@ export class BaseContext {
     this.update = options.update;
     this.api = options.api;
     this._chatId = options.chatId;
-    this.scene = options.scene ?? DEFAULT_SCENE_METHODS;
+    this.scene = options.scene ?? { state: {}, ...DEFAULT_SCENE_METHODS };
     this.session = {};
     this.match = options.match;
   }
