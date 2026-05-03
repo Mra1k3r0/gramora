@@ -383,7 +383,10 @@ export class UpdateRouter {
       // find matching message kinds using for...in to avoid Object.keys() allocations
       let matchedKinds: string[] | undefined;
       for (const key in update.message) {
-        if (this.onKindHandlers.has(key)) {
+        if (
+          Object.prototype.hasOwnProperty.call(update.message, key) &&
+          this.onKindHandlers.has(key)
+        ) {
           if (!matchedKinds) matchedKinds = [key];
           else matchedKinds.push(key);
         }
@@ -419,6 +422,7 @@ export class UpdateRouter {
     let extraKinds: string[] | undefined;
     for (const key in update) {
       if (
+        Object.prototype.hasOwnProperty.call(update, key) &&
         key !== "update_id" &&
         key !== meta.kind &&
         key !== "message" &&
@@ -619,7 +623,7 @@ export class UpdateRouter {
   private getUpdateMetadata(update: Update): { kind: string; chatId?: number } {
     const data = update as unknown as Record<string, unknown>;
     for (const key in data) {
-      if (key === "update_id") continue;
+      if (!Object.prototype.hasOwnProperty.call(data, key) || key === "update_id") continue;
       const val = data[key];
       if (val && typeof val === "object" && val !== null) {
         const obj = val as { chat?: { id: number }; message?: { chat?: { id: number } } };
