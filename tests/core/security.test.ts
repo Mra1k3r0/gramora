@@ -82,6 +82,34 @@ describe("Security Log Redaction", () => {
     expect(result).toContain("[MASKED]");
   });
 
+  it("should mask auth-related keys", () => {
+    const obj = {
+      authorization: "Bearer secret-bearer",
+      X_Auth_Token: "auth-token-val",
+      basic_auth: "user:pass",
+    };
+
+    const result = stringifyForLog(obj);
+
+    expect(result).not.toContain("secret-bearer");
+    expect(result).not.toContain("auth-token-val");
+    expect(result).not.toContain("user:pass");
+    expect(result).toContain("[MASKED]");
+  });
+
+  it("should include Error properties and redact them", () => {
+    const secret = "error-secret-123";
+    addRedactionToken(secret);
+    const err = new Error(`Something failed with ${secret}`);
+
+    const result = stringifyForLog(err);
+
+    expect(result).toContain('"message"');
+    expect(result).toContain('"stack"');
+    expect(result).not.toContain(secret);
+    expect(result).toContain("[REDACTED]");
+  });
+
   it("should redact webhook secret tokens in logs", () => {
     const secret = "my-webhook-secret-123";
     addRedactionToken(secret);
