@@ -3,7 +3,6 @@ import {
   BaseContext,
   CallbackContext,
   CommandContext,
-  DEFAULT_SCENE_CONTROL,
   InlineContext,
   MessageContext,
   SceneContext,
@@ -139,7 +138,7 @@ export class UpdateRouter {
   async handleUpdate(update: Update) {
     const meta = this.getUpdateMetadata(update);
 
-    let sceneControl: SceneControl = DEFAULT_SCENE_CONTROL;
+    let sceneControl: SceneControl | undefined;
     if (this.options.mode !== "core") {
       const chatKey = meta.chatId !== undefined ? String(meta.chatId) : "global";
       sceneControl = await this.sceneManager.buildControl(chatKey);
@@ -175,7 +174,7 @@ export class UpdateRouter {
   private createContext(
     update: Update,
     handler: HandlerDefinition,
-    sceneControl: SceneControl,
+    sceneControl: SceneControl | undefined,
     chatId?: number,
   ): BaseContext {
     const options = { update, api: this.api, scene: sceneControl, chatId };
@@ -358,7 +357,7 @@ export class UpdateRouter {
    */
   private async dispatchIndexedHandlers(
     update: Update,
-    sceneControl: SceneControl,
+    sceneControl: SceneControl | undefined,
     meta: { kind: string; chatId?: number },
   ) {
     if (!this.hasIndexedHandlers) return;
@@ -385,7 +384,10 @@ export class UpdateRouter {
       // Optimization: find matching keys in O(K) using a for...in loop
       let matchedKinds: string[] | undefined;
       for (const key in update.message) {
-        if (this.onKindHandlers.has(key)) {
+        if (
+          Object.prototype.hasOwnProperty.call(update.message, key) &&
+          this.onKindHandlers.has(key)
+        ) {
           if (!matchedKinds) matchedKinds = [key];
           else matchedKinds.push(key);
         }
@@ -425,6 +427,7 @@ export class UpdateRouter {
         key !== meta.kind &&
         key !== "message" &&
         key !== "*" &&
+        Object.prototype.hasOwnProperty.call(update, key) &&
         this.onKindHandlers.has(key)
       ) {
         if (!matchedUpdateKinds) matchedUpdateKinds = [key];
@@ -558,7 +561,7 @@ export class UpdateRouter {
   private async runControllerRunner(
     update: Update,
     runner: HandlerRunner,
-    sceneControl: SceneControl,
+    sceneControl: SceneControl | undefined,
     match?: string[],
     chatId?: number,
   ) {
@@ -623,7 +626,7 @@ export class UpdateRouter {
   private getUpdateMetadata(update: Update): { kind: string; chatId?: number } {
     let kind = "unknown";
     for (const key in update) {
-      if (key === "update_id") continue;
+      if (key === "update_id" || !Object.prototype.hasOwnProperty.call(update, key)) continue;
       kind = key;
       break;
     }
