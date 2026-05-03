@@ -108,6 +108,26 @@ describe("Security Log Redaction", () => {
     expect(lastCall).toContain("[REDACTED]");
   });
 
+  it("should stringify Error objects with message and stack", () => {
+    const err = new Error("something went wrong");
+    const result = stringifyForLog(err);
+
+    expect(result).toContain("something went wrong");
+    expect(result).toContain("stack");
+    expect(result).toContain("message");
+  });
+
+  it("should redact sensitive tokens within Error objects", () => {
+    const token = "secret-token-123";
+    addRedactionToken(token);
+
+    const err = new Error(`Failed with token ${token}`);
+    const result = stringifyForLog(err);
+
+    expect(result).not.toContain(token);
+    expect(result).toContain("[REDACTED]");
+  });
+
   it("authorizes webhook requests with matching secret token", async () => {
     const port = 9500 + Math.floor(Math.random() * 500);
     const transport = new WebhookTransport(async () => {});

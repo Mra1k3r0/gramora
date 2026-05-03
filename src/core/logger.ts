@@ -142,7 +142,13 @@ const prettyObject = (value: unknown, depth = 0): string => {
     return `${colorize("[", TOKEN_COLORS.punctuation)}\n${items.join(",\n")}\n${indent(depth)}${colorize("]", TOKEN_COLORS.punctuation)}`;
   }
 
-  const entries = Object.entries(value as Record<string, unknown>);
+  const entries =
+    value instanceof Error
+      ? Object.getOwnPropertyNames(value).map(
+          (k) => [k, (value as unknown as Record<string, unknown>)[k]] as [string, unknown],
+        )
+      : Object.entries(value as Record<string, unknown>);
+
   if (entries.length === 0) return colorize("{}", TOKEN_COLORS.punctuation);
   const lines = entries.map(([k, v]) => {
     const key = colorize(`"${k}"`, TOKEN_COLORS.key);
