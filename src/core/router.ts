@@ -255,16 +255,29 @@ export class UpdateRouter {
   }
 
   private parseCommand(text?: string): { command: string; mention?: string } | undefined {
-    if (!text?.startsWith("/")) return undefined;
-    const [raw] = text.trim().split(/\s+/);
-    const body = raw.slice(1);
-    if (!body) return undefined;
-    const atIndex = body.indexOf("@");
-    if (atIndex === -1) return { command: body };
-    const command = body.slice(0, atIndex);
-    const mention = body.slice(atIndex + 1);
-    if (!command) return undefined;
-    return { command, mention };
+    if (!text) return undefined;
+    const trimmed = text.trimStart();
+    if (!trimmed.startsWith("/")) return undefined;
+
+    // avoid split() to reduce string allocations in the command hot path
+    let i = 1;
+    while (
+      i < trimmed.length &&
+      trimmed[i] !== " " &&
+      trimmed[i] !== "\n" &&
+      trimmed[i] !== "\r" &&
+      trimmed[i] !== "\t"
+    ) {
+      i++;
+    }
+    const raw = trimmed.slice(1, i);
+    if (!raw) return undefined;
+
+    const atIndex = raw.indexOf("@");
+    if (atIndex === -1) return { command: raw };
+    const command = raw.slice(0, atIndex);
+    const mention = raw.slice(atIndex + 1);
+    return command ? { command, mention } : undefined;
   }
 
   private addToIndices(runner: HandlerRunner) {
