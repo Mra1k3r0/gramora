@@ -183,6 +183,8 @@ export class UpdateRouter {
     sceneControl: SceneControl | undefined,
     conversationControl: ConversationControl | undefined,
     chatId?: number,
+    command?: string,
+    args?: string[],
   ): BaseContext {
     const options = {
       update,
@@ -190,6 +192,8 @@ export class UpdateRouter {
       scene: sceneControl,
       conv: conversationControl,
       chatId,
+      command,
+      args,
     };
     switch (handler.kind) {
       case "command":
@@ -267,7 +271,9 @@ export class UpdateRouter {
     return kind in message;
   }
 
-  private parseCommand(text?: string): { command: string; mention?: string } | undefined {
+  private parseCommand(
+    text?: string,
+  ): { command: string; mention?: string; fullCommand: string; args: string[] } | undefined {
     if (!text) return undefined;
     const trimmed = text.trimStart();
     if (!trimmed.startsWith("/")) return undefined;
@@ -283,14 +289,18 @@ export class UpdateRouter {
     ) {
       i++;
     }
-    const raw = trimmed.slice(1, i);
+    const fullCommand = trimmed.slice(0, i);
+    const raw = fullCommand.slice(1);
     if (!raw) return undefined;
 
+    const rest = trimmed.slice(i).trim();
+    const args = rest ? rest.split(/\s+/) : [];
+
     const atIndex = raw.indexOf("@");
-    if (atIndex === -1) return { command: raw };
+    if (atIndex === -1) return { command: raw, fullCommand, args };
     const command = raw.slice(0, atIndex);
     const mention = raw.slice(atIndex + 1);
-    return command ? { command, mention } : undefined;
+    return command ? { command, mention, fullCommand, args } : undefined;
   }
 
   private addToIndices(runner: HandlerRunner) {
@@ -405,6 +415,8 @@ export class UpdateRouter {
                 conversationControl,
                 undefined,
                 meta.chatId,
+                parsedCommand.fullCommand,
+                parsedCommand.args,
               );
             }
           }
@@ -727,8 +739,18 @@ export class UpdateRouter {
     conversationControl: ConversationControl | undefined,
     match?: string[],
     chatId?: number,
+    command?: string,
+    args?: string[],
   ) {
-    const ctx = this.createContext(update, runner.def, sceneControl, conversationControl, chatId);
+    const ctx = this.createContext(
+      update,
+      runner.def,
+      sceneControl,
+      conversationControl,
+      chatId,
+      command,
+      args,
+    );
     if (match) ctx.match = match;
 
     for (const guard of runner.guards) {
