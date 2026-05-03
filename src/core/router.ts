@@ -626,7 +626,13 @@ export class UpdateRouter {
   private getUpdateMetadata(update: Update): { kind: string; chatId?: number } {
     let kind = "unknown";
     for (const key in update) {
-      if (key === "update_id" || !Object.prototype.hasOwnProperty.call(update, key)) continue;
+      if (
+        key === "update_id" ||
+        !Object.prototype.hasOwnProperty.call(update, key) ||
+        !(update as any)[key]
+      ) {
+        continue;
+      }
       kind = key;
       break;
     }
