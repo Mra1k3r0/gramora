@@ -48,7 +48,8 @@ export {
   InlineContext,
   SceneContext,
 } from "./context";
-export type { AnswerCallbackOptions } from "./context";
+export type { AnswerCallbackOptions, ConversationControl } from "./context";
+export type { ConversationStep } from "./scenes";
 
 export { Keyboard } from "./keyboard";
 export { InlineResult, InlineResultBuilder } from "./inline_result";
@@ -60,10 +61,7 @@ export type { UpdateByType, UpdateFilter, UpdateType } from "./update_filters";
 export { Composer } from "./middleware/composer";
 export type { MiddlewareFn } from "./middleware/types";
 
-export {
-  formatProxyProbeMessage,
-  setGramoraLogSink,
-} from "./core/logger";
+export { formatProxyProbeMessage, setGramoraLogSink } from "./core/logger";
 export type { GramoraLogLevel, GramoraLogSink } from "./core/logger";
 export { logger } from "./middleware/builtin/logger";
 export { rateLimiter } from "./middleware/builtin/rate_limiter";

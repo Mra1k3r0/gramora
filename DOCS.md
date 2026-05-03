@@ -27,6 +27,7 @@
 - [Modules and Lazy Modules](#modules-and-lazy-modules)
 - [Global Sender](#global-sender)
 - [Decorator and Scene Mode](#decorator-and-scene-mode)
+- [Conversations (functional flows)](#conversations-functional-flows)
 - [Logging and Debug](#logging-and-debug)
   - [Example: debug mode and operational flags](#example-debug-mode-and-operational-flags)
   - [Example: `logSink` with pino (JSON logs)](#example-logsink-with-pino-json-logs)
@@ -426,6 +427,35 @@ class RegisterScene {
 }
 ```
 
+## Conversations (functional flows)
+
+For grammY-style **conversation** ergonomics without decorators, register ordered steps with `bot.conversation(id, steps)`. Enter from any handler via `await ctx.conv.enter(id)`. Each step runs on the **next** update for that chat; call `await ctx.conv.next()` to advance, or `await ctx.conv.leave()` to exit. Shared data lives on `ctx.conv.state`. Entering a conversation clears an active decorator scene and vice versa.
+
+```ts
+import { Gramora } from "@mra1k3r0/gramora";
+
+const bot = new Gramora({ token: process.env.TELEGRAM_BOT_TOKEN! });
+
+bot.conversation("signup", [
+  async (ctx) => {
+    Object.assign(ctx.conv.state, { name: ctx.text ?? "" });
+    await ctx.reply("How old are you?");
+    await ctx.conv.next();
+  },
+  async (ctx) => {
+    await ctx.reply(`Hi ${String(ctx.conv.state.name ?? "")}, age ${ctx.text}`);
+    await ctx.conv.leave();
+  },
+]);
+
+bot.command("start", async (ctx) => {
+  await ctx.conv.enter("signup");
+  await ctx.reply("What is your name?");
+});
+```
+
+See [`examples/conversation_bot.ts`](./examples/conversation_bot.ts). `mode: "core"` disables both decorator scenes and conversations (same router gate).
+
 ## Logging and Debug
 
 With `debug: true`, Gramora emits structured logs for:
@@ -536,7 +566,7 @@ Omitting `logSink` from **`new Gramora({ ... })`** leaves any sink already insta
 | Forward/copy messages                   | Implemented                                                                                                                                                                 |
 | Callback queries                        | Implemented                                                                                                                                                                 |
 | Inline mode                             | Implemented                                                                                                                                                                 |
-| Scenes/session                          | Implemented (core)                                                                                                                                                          |
+| Scenes/session                          | Implemented (decorator scenes + functional `conversation()` flows)                                                                                                          |
 | Middleware                              | Implemented                                                                                                                                                                 |
 | Polling/webhook transports              | Implemented (core)                                                                                                                                                          |
 | Chat admin/moderation                   | Implemented (core methods)                                                                                                                                                  |
@@ -567,6 +597,7 @@ npm run size
 
 - [`examples/echo_bot.ts`](./examples/echo_bot.ts)
 - [`examples/scene_bot.ts`](./examples/scene_bot.ts)
+- [`examples/conversation_bot.ts`](./examples/conversation_bot.ts)
 - [`examples/config_bot.ts`](./examples/config_bot.ts)
 - [`examples/callback_menu_bot.ts`](./examples/callback_menu_bot.ts)
 - [`examples/media_advanced_bot.ts`](./examples/media_advanced_bot.ts)

@@ -33,9 +33,8 @@ export default {
     ],
     [
       "@semantic-release/release-notes-generator",
-      {
-        config: "./scripts/changelog-preset.mjs",
-      },
+      /** Writer templates live in ./scripts/changelog-preset.mjs (avoid duplicating writerOpts here). */
+      { config: "./scripts/changelog-preset.mjs" },
     ],
     [
       "@semantic-release/changelog",

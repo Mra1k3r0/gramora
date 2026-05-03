@@ -19,7 +19,7 @@ import {
 import { UpdateRouter } from "./router";
 import type { BaseContext } from "../context";
 import type { MiddlewareFn } from "../middleware/types";
-import { SceneManager } from "../scenes";
+import { SceneManager, type ConversationStep } from "../scenes";
 import type {
   BotModule,
   BotOptions,
@@ -73,6 +73,16 @@ class Bot {
     this.scenes.register(sceneClass);
     return this;
   }
+
+  /**
+   * Register a functional multi-step flow (no `@Scene` class). Enter with `ctx.conv.enter(id)`.
+   * Each step runs on the next chat update until you call `ctx.conv.next()` or `ctx.conv.leave()`.
+   */
+  conversation(id: string, steps: ConversationStep[]) {
+    this.scenes.registerConversation(id, steps);
+    return this;
+  }
+
   use(mw: MiddlewareFn<BaseContext>) {
     this.router.use(mw);
     return this;

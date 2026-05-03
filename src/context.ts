@@ -74,10 +74,24 @@ export interface SceneControl {
   next: () => Promise<void>;
 }
 
+/**
+ * Functional multi-step flows registered with `Gramora.prototype.conversation`.
+ * Steps are 1-based in storage; call `next()` after handling an update to advance.
+ */
+export interface ConversationControl {
+  id?: string;
+  step?: number;
+  state: Record<string, unknown>;
+  enter: (conversationId: string, initialState?: Record<string, unknown>) => Promise<void>;
+  leave: () => Promise<void>;
+  next: () => Promise<void>;
+}
+
 export interface BaseContextOptions {
   update: Update;
   api: ApiClient;
   scene?: SceneControl;
+  conv?: ConversationControl;
   match?: string[];
   chatId?: number;
 }
@@ -91,6 +105,7 @@ export class BaseContext {
   public readonly api: ApiClient;
   private _gram?: GramClient;
   private _scene?: SceneControl;
+  private _conv?: ConversationControl;
   public session: Record<string, unknown>;
   public match?: string[];
   private readonly _chatId?: number;
@@ -99,6 +114,7 @@ export class BaseContext {
    * @param options.update - Raw Telegram update
    * @param options.api - Bot API client
    * @param options.scene - Scene control when inside a scene
+   * @param options.conv - Conversation control for functional multi-step flows
    * @param options.match - Regex groups from callback patterns
    * @param options.chatId - Optional pre-calculated chat ID
    */
@@ -107,8 +123,25 @@ export class BaseContext {
     this.api = options.api;
     this._chatId = options.chatId;
     this._scene = options.scene;
+    this._conv = options.conv;
     this.session = {};
     this.match = options.match;
+  }
+
+  /**
+   * Conversation API for programmatic multi-step flows (`bot.conversation(...)`).
+   * Lazily initializes a no-op control if not provided via constructor.
+   */
+  get conv(): ConversationControl {
+    if (!this._conv) {
+      this._conv = {
+        state: {},
+        enter: async () => {},
+        leave: async () => {},
+        next: async () => {},
+      };
+    }
+    return this._conv;
   }
 
   /**

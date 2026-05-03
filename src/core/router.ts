@@ -3,6 +3,7 @@ import {
   BaseContext,
   CallbackContext,
   CommandContext,
+  ConversationControl,
   InlineContext,
   MessageContext,
   SceneContext,
@@ -76,7 +77,7 @@ export class UpdateRouter {
     private readonly options: { mode?: RouterMode } = {},
   ) {}
   /**
-   * @param mw - Runs before each dispatched handler (after scene short-circuit)
+   * @param mw - Runs before each dispatched handler (after conversation/scene short-circuit)
    */
   use(mw: MiddlewareFn<BaseContext>) {
     this.globalMiddleware.push(mw);
@@ -139,19 +140,23 @@ export class UpdateRouter {
     const meta = this.getUpdateMetadata(update);
 
     let sceneControl: SceneControl | undefined;
+    let conversationControl: ConversationControl | undefined;
     if (this.options.mode !== "core") {
       const chatKey = meta.chatId !== undefined ? String(meta.chatId) : "global";
       sceneControl = await this.sceneManager.buildControl(chatKey);
+      conversationControl = await this.sceneManager.buildConversationControl(chatKey);
       const sceneCtx = new SceneContext({
         update,
         api: this.api,
         scene: sceneControl,
+        conv: conversationControl,
         chatId: meta.chatId,
       });
+      if (await this.sceneManager.tryHandleActiveConversation(chatKey, sceneCtx)) return;
       if (await this.sceneManager.tryHandleActiveScene(chatKey, sceneCtx)) return;
     }
 
-    await this.dispatchIndexedHandlers(update, sceneControl, meta);
+    await this.dispatchIndexedHandlers(update, sceneControl, conversationControl, meta);
 
     for (const item of this.filteredHandlers) {
       if (!item.filter(update)) continue;
@@ -159,6 +164,7 @@ export class UpdateRouter {
         update,
         api: this.api,
         scene: sceneControl,
+        conv: conversationControl,
         chatId: meta.chatId,
       });
       await this.runWithGlobalMiddleware(gram, async () => item.fn(gram));
@@ -175,9 +181,16 @@ export class UpdateRouter {
     update: Update,
     handler: HandlerDefinition,
     sceneControl: SceneControl | undefined,
+    conversationControl: ConversationControl | undefined,
     chatId?: number,
   ): BaseContext {
-    const options = { update, api: this.api, scene: sceneControl, chatId };
+    const options = {
+      update,
+      api: this.api,
+      scene: sceneControl,
+      conv: conversationControl,
+      chatId,
+    };
     switch (handler.kind) {
       case "command":
         return new CommandContext(options);
@@ -371,6 +384,7 @@ export class UpdateRouter {
   private async dispatchIndexedHandlers(
     update: Update,
     sceneControl: SceneControl | undefined,
+    conversationControl: ConversationControl | undefined,
     meta: { kind: string; chatId?: number },
   ) {
     if (!this.hasIndexedHandlers) return;
@@ -384,14 +398,28 @@ export class UpdateRouter {
           const commandRunners = this.commandHandlers.get(commandName);
           if (commandRunners) {
             for (const runner of commandRunners) {
-              await this.runControllerRunner(update, runner, sceneControl, undefined, meta.chatId);
+              await this.runControllerRunner(
+                update,
+                runner,
+                sceneControl,
+                conversationControl,
+                undefined,
+                meta.chatId,
+              );
             }
           }
         }
       }
 
       for (const runner of this.onMessageHandlers) {
-        await this.runControllerRunner(update, runner, sceneControl, undefined, meta.chatId);
+        await this.runControllerRunner(
+          update,
+          runner,
+          sceneControl,
+          conversationControl,
+          undefined,
+          meta.chatId,
+        );
       }
 
       // Optimization: find matching keys in O(K) using a for...in loop
@@ -417,7 +445,14 @@ export class UpdateRouter {
           const runners = this.onKindHandlers.get(kind);
           if (runners) {
             for (const runner of runners) {
-              await this.runControllerRunner(update, runner, sceneControl, undefined, meta.chatId);
+              await this.runControllerRunner(
+                update,
+                runner,
+                sceneControl,
+                conversationControl,
+                undefined,
+                meta.chatId,
+              );
             }
           }
         }
@@ -428,7 +463,14 @@ export class UpdateRouter {
     const otherKindRunners = this.onKindHandlers.get(meta.kind);
     if (otherKindRunners && meta.kind !== "message") {
       for (const runner of otherKindRunners) {
-        await this.runControllerRunner(update, runner, sceneControl, undefined, meta.chatId);
+        await this.runControllerRunner(
+          update,
+          runner,
+          sceneControl,
+          conversationControl,
+          undefined,
+          meta.chatId,
+        );
       }
     }
 
@@ -459,7 +501,14 @@ export class UpdateRouter {
         const runners = this.onKindHandlers.get(kind);
         if (runners) {
           for (const runner of runners) {
-            await this.runControllerRunner(update, runner, sceneControl, undefined, meta.chatId);
+            await this.runControllerRunner(
+              update,
+              runner,
+              sceneControl,
+              conversationControl,
+              undefined,
+              meta.chatId,
+            );
           }
         }
       }
@@ -469,7 +518,14 @@ export class UpdateRouter {
     const catchAllRunners = this.onKindHandlers.get("*");
     if (catchAllRunners) {
       for (const runner of catchAllRunners) {
-        await this.runControllerRunner(update, runner, sceneControl, undefined, meta.chatId);
+        await this.runControllerRunner(
+          update,
+          runner,
+          sceneControl,
+          conversationControl,
+          undefined,
+          meta.chatId,
+        );
       }
     }
 
@@ -481,7 +537,14 @@ export class UpdateRouter {
         const literalRunners = this.callbackLiteralHandlers.get(data);
         if (literalRunners) {
           for (const runner of literalRunners) {
-            await this.runControllerRunner(update, runner, sceneControl, undefined, meta.chatId);
+            await this.runControllerRunner(
+              update,
+              runner,
+              sceneControl,
+              conversationControl,
+              undefined,
+              meta.chatId,
+            );
           }
         }
       } else {
@@ -494,6 +557,7 @@ export class UpdateRouter {
                 update,
                 item.runner,
                 sceneControl,
+                conversationControl,
                 undefined,
                 meta.chatId,
               );
@@ -506,6 +570,7 @@ export class UpdateRouter {
                 update,
                 item.runner,
                 sceneControl,
+                conversationControl,
                 matched.slice(1),
                 meta.chatId,
               );
@@ -520,53 +585,137 @@ export class UpdateRouter {
         const pattern = runner.def.trigger ?? "*";
         if (pattern !== "*" && pattern !== "" && !update.inline_query.query.includes(pattern))
           continue;
-        await this.runControllerRunner(update, runner, sceneControl, undefined, meta.chatId);
+        await this.runControllerRunner(
+          update,
+          runner,
+          sceneControl,
+          conversationControl,
+          undefined,
+          meta.chatId,
+        );
       }
     }
 
     if (meta.kind === "shipping_query") {
       for (const runner of this.shippingQueryHandlers) {
-        await this.runControllerRunner(update, runner, sceneControl, undefined, meta.chatId);
+        await this.runControllerRunner(
+          update,
+          runner,
+          sceneControl,
+          conversationControl,
+          undefined,
+          meta.chatId,
+        );
       }
     } else if (meta.kind === "pre_checkout_query") {
       for (const runner of this.preCheckoutQueryHandlers) {
-        await this.runControllerRunner(update, runner, sceneControl, undefined, meta.chatId);
+        await this.runControllerRunner(
+          update,
+          runner,
+          sceneControl,
+          conversationControl,
+          undefined,
+          meta.chatId,
+        );
       }
     } else if (meta.kind === "chat_member") {
       for (const runner of this.chatMemberHandlers) {
-        await this.runControllerRunner(update, runner, sceneControl, undefined, meta.chatId);
+        await this.runControllerRunner(
+          update,
+          runner,
+          sceneControl,
+          conversationControl,
+          undefined,
+          meta.chatId,
+        );
       }
     } else if (meta.kind === "my_chat_member") {
       for (const runner of this.myChatMemberHandlers) {
-        await this.runControllerRunner(update, runner, sceneControl, undefined, meta.chatId);
+        await this.runControllerRunner(
+          update,
+          runner,
+          sceneControl,
+          conversationControl,
+          undefined,
+          meta.chatId,
+        );
       }
     } else if (meta.kind === "chat_join_request") {
       for (const runner of this.chatJoinRequestHandlers) {
-        await this.runControllerRunner(update, runner, sceneControl, undefined, meta.chatId);
+        await this.runControllerRunner(
+          update,
+          runner,
+          sceneControl,
+          conversationControl,
+          undefined,
+          meta.chatId,
+        );
       }
     } else if (meta.kind === "message_reaction") {
       for (const runner of this.messageReactionHandlers) {
-        await this.runControllerRunner(update, runner, sceneControl, undefined, meta.chatId);
+        await this.runControllerRunner(
+          update,
+          runner,
+          sceneControl,
+          conversationControl,
+          undefined,
+          meta.chatId,
+        );
       }
     } else if (meta.kind === "message_reaction_count") {
       for (const runner of this.messageReactionCountHandlers) {
-        await this.runControllerRunner(update, runner, sceneControl, undefined, meta.chatId);
+        await this.runControllerRunner(
+          update,
+          runner,
+          sceneControl,
+          conversationControl,
+          undefined,
+          meta.chatId,
+        );
       }
     } else if (meta.kind === "business_connection") {
       for (const runner of this.businessConnectionHandlers) {
-        await this.runControllerRunner(update, runner, sceneControl, undefined, meta.chatId);
+        await this.runControllerRunner(
+          update,
+          runner,
+          sceneControl,
+          conversationControl,
+          undefined,
+          meta.chatId,
+        );
       }
     } else if (meta.kind === "business_message") {
       for (const runner of this.businessMessageHandlers) {
-        await this.runControllerRunner(update, runner, sceneControl, undefined, meta.chatId);
+        await this.runControllerRunner(
+          update,
+          runner,
+          sceneControl,
+          conversationControl,
+          undefined,
+          meta.chatId,
+        );
       }
     } else if (meta.kind === "edited_business_message") {
       for (const runner of this.editedBusinessMessageHandlers) {
-        await this.runControllerRunner(update, runner, sceneControl, undefined, meta.chatId);
+        await this.runControllerRunner(
+          update,
+          runner,
+          sceneControl,
+          conversationControl,
+          undefined,
+          meta.chatId,
+        );
       }
     } else if (meta.kind === "deleted_business_messages") {
       for (const runner of this.deletedBusinessMessagesHandlers) {
-        await this.runControllerRunner(update, runner, sceneControl, undefined, meta.chatId);
+        await this.runControllerRunner(
+          update,
+          runner,
+          sceneControl,
+          conversationControl,
+          undefined,
+          meta.chatId,
+        );
       }
     }
   }
@@ -575,10 +724,11 @@ export class UpdateRouter {
     update: Update,
     runner: HandlerRunner,
     sceneControl: SceneControl | undefined,
+    conversationControl: ConversationControl | undefined,
     match?: string[],
     chatId?: number,
   ) {
-    const ctx = this.createContext(update, runner.def, sceneControl, chatId);
+    const ctx = this.createContext(update, runner.def, sceneControl, conversationControl, chatId);
     if (match) ctx.match = match;
 
     for (const guard of runner.guards) {
