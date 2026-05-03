@@ -252,11 +252,22 @@ export class UpdateRouter {
   }
 
   private parseCommand(text?: string): { command: string; mention?: string } | undefined {
-    if (!text || text[0] !== "/") return undefined;
-    // avoid trim() and split() to reduce string allocations
-    let spaceIndex = text.indexOf(" ");
-    if (spaceIndex === -1) spaceIndex = text.length;
-    const raw = text.slice(1, spaceIndex);
+    if (!text) return undefined;
+    const trimmed = text.trimStart();
+    if (!trimmed.startsWith("/")) return undefined;
+
+    // avoid split() to reduce string allocations in the command hot path
+    let i = 1;
+    while (
+      i < trimmed.length &&
+      trimmed[i] !== " " &&
+      trimmed[i] !== "\n" &&
+      trimmed[i] !== "\r" &&
+      trimmed[i] !== "\t"
+    ) {
+      i++;
+    }
+    const raw = trimmed.slice(1, i);
     if (!raw) return undefined;
 
     const atIndex = raw.indexOf("@");
@@ -426,6 +437,7 @@ export class UpdateRouter {
         key !== "update_id" &&
         key !== meta.kind &&
         key !== "message" &&
+        key !== "*" &&
         this.onKindHandlers.has(key)
       ) {
         if (!extraKinds) extraKinds = [key];
@@ -623,7 +635,9 @@ export class UpdateRouter {
   private getUpdateMetadata(update: Update): { kind: string; chatId?: number } {
     const data = update as unknown as Record<string, unknown>;
     for (const key in data) {
-      if (!Object.prototype.hasOwnProperty.call(data, key) || key === "update_id") continue;
+      if (!Object.prototype.hasOwnProperty.call(data, key) || key === "update_id" || key === "*") {
+        continue;
+      }
       const val = data[key];
       if (val && typeof val === "object" && val !== null) {
         const obj = val as { chat?: { id: number }; message?: { chat?: { id: number } } };
