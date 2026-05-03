@@ -629,7 +629,7 @@ export class UpdateRouter {
       if (
         key === "update_id" ||
         !Object.prototype.hasOwnProperty.call(update, key) ||
-        !(update as any)[key]
+        !update[key as keyof Update]
       ) {
         continue;
       }
