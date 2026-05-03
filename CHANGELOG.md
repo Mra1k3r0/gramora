@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.2.0](https://github.com/Mra1k3r0/gramora/compare/v0.1.1...v0.2.0) (2026-05-03)
+
+### What's Changed
+
+- added pluggable Bot API transport and proxy options — [`74b13ae`](https://github.com/Mra1k3r0/gramora/commit/74b13aeb57a6df871a8a440b23bdbdb02b48c119)
+
+- added functional multi-step bot.conversation flows — [`672ccf4`](https://github.com/Mra1k3r0/gramora/commit/672ccf4a43f5ec3ef91c47a9be944edbbea0db1d)
+
+- added optional GramoraLogSink for structured logs — [`015fc6a`](https://github.com/Mra1k3r0/gramora/commit/015fc6a3d7ca97b3426f692c19fa711e6beff883)
+
+- improved allocations in parseCommand — [`33d5561`](https://github.com/Mra1k3r0/gramora/commit/33d5561d789b88d99d8ff5fa20b89e4226b364a8) closes ([#35](https://github.com/Mra1k3r0/gramora/issues/35))
+
+- improved update processing hot path — [`758f782`](https://github.com/Mra1k3r0/gramora/commit/758f782983f2d32a7445e19059fe4abeb38b7a17)
+
 ## [0.1.1](https://github.com/Mra1k3r0/gramora/compare/v0.1.0...v0.1.1) (2026-04-28)
 
 ### What's Changed
