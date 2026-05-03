@@ -380,7 +380,10 @@ export class UpdateRouter {
       // Optimization: Instead of O(N) loop over all kinds, find matching keys in O(K)
       const messageKinds: string[] = [];
       for (const key in update.message) {
-        if (this.onKindHandlers.has(key)) {
+        if (
+          Object.prototype.hasOwnProperty.call(update.message, key) &&
+          this.onKindHandlers.has(key)
+        ) {
           messageKinds.push(key);
         }
       }
@@ -415,6 +418,7 @@ export class UpdateRouter {
     const updateKinds: string[] = [];
     for (const key in update) {
       if (
+        Object.prototype.hasOwnProperty.call(update, key) &&
         key !== "update_id" &&
         key !== meta.kind &&
         key !== "message" &&
