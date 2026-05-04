@@ -87,6 +87,12 @@ export interface ConversationControl {
   next: () => Promise<void>;
 }
 
+const DEFAULT_ASYNC_METHODS = {
+  enter: async () => {},
+  leave: async () => {},
+  next: async () => {},
+};
+
 export interface BaseContextOptions {
   update: Update;
   api: ApiClient;
@@ -94,6 +100,8 @@ export interface BaseContextOptions {
   conv?: ConversationControl;
   match?: string[];
   chatId?: number;
+  command?: string;
+  args?: string[];
 }
 
 /**
@@ -136,9 +144,7 @@ export class BaseContext {
     if (!this._conv) {
       this._conv = {
         state: {},
-        enter: async () => {},
-        leave: async () => {},
-        next: async () => {},
+        ...DEFAULT_ASYNC_METHODS,
       };
     }
     return this._conv;
@@ -152,9 +158,7 @@ export class BaseContext {
     if (!this._scene) {
       this._scene = {
         state: {},
-        enter: async () => {},
-        leave: async () => {},
-        next: async () => {},
+        ...DEFAULT_ASYNC_METHODS,
       };
     }
     return this._scene;
@@ -214,6 +218,7 @@ export class BaseContext {
   }
 
   get chatId(): number | undefined {
+    if (this._chatId !== undefined) return this._chatId;
     return (
       this.message?.chat.id ??
       this.callbackQuery?.message?.chat.id ??
@@ -811,9 +816,14 @@ export class CommandContext<C extends string = string> extends BaseContext {
 
   constructor(options: BaseContextOptions) {
     super(options);
-    const [raw, ...rest] = (this.text ?? "").trim().split(/\s+/);
-    this.command = raw as C;
-    this.args = rest;
+    if (options.command !== undefined && options.args !== undefined) {
+      this.command = options.command as C;
+      this.args = options.args;
+    } else {
+      const [raw, ...rest] = (this.text ?? "").trim().split(/\s+/);
+      this.command = raw as C;
+      this.args = rest;
+    }
   }
 }
 
