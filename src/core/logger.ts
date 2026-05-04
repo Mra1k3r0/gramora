@@ -58,7 +58,14 @@ const SENSITIVE_KEYS = new Set([
   "passphrase",
   "authorization",
   "auth",
+  "proxy",
+  "cookie",
+  "setcookie",
+  "credential",
+  "credentials",
 ]);
+
+const MAX_LOG_DEPTH = 20;
 
 /** Registers a sensitive token (like the bot token) to be replaced with [REDACTED] in all logs. */
 export const addRedactionToken = (token: string) => {
@@ -164,6 +171,10 @@ const stringifyPrimitive = (value: unknown) => {
 };
 
 const prettyObject = (value: unknown, depth = 0): string => {
+  if (depth > MAX_LOG_DEPTH) {
+    return colorize("[DEPTH_EXCEEDED]", TOKEN_COLORS.punctuation);
+  }
+
   if (value === null || typeof value !== "object") {
     return stringifyPrimitive(value);
   }
@@ -188,7 +199,10 @@ const prettyObject = (value: unknown, depth = 0): string => {
       normalizedK.endsWith("secret") ||
       normalizedK.endsWith("passphrase") ||
       normalizedK.endsWith("authorization") ||
-      normalizedK.endsWith("auth");
+      normalizedK.endsWith("auth") ||
+      normalizedK.endsWith("key") ||
+      normalizedK.endsWith("pwd") ||
+      normalizedK.endsWith("pass");
     const val = isSensitive
       ? colorize('"[MASKED]"', TOKEN_COLORS.string)
       : prettyObject(v, depth + 1);
