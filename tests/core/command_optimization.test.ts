@@ -1,14 +1,15 @@
 import { describe, it, expect } from "vitest";
 import { Gramora } from "../../src/index";
 import { CommandContext } from "../../src/context";
+import type { Update } from "../../src/types/telegram";
 
 describe("Command Optimization and Correctness", () => {
   it("should handle extra spaces in command text", async () => {
     const bot = new Gramora({ token: "TEST", mode: "core" });
-    let capturedCtx: any;
+    let capturedCtx: CommandContext | undefined;
 
     bot.command("test", async (ctx) => {
-      capturedCtx = ctx;
+      capturedCtx = ctx as CommandContext;
     });
 
     await bot.handleUpdate({
@@ -17,20 +18,20 @@ describe("Command Optimization and Correctness", () => {
         message_id: 1,
         chat: { id: 1, type: "private" },
         text: "  /test   arg1  arg2  ",
-      } as any,
-    });
+      } as unknown as Update["message"],
+    } as Update);
 
     expect(capturedCtx).toBeDefined();
-    expect(capturedCtx.command).toBe("/test");
-    expect(capturedCtx.args).toEqual(["arg1", "arg2"]);
+    expect(capturedCtx?.command).toBe("/test");
+    expect(capturedCtx?.args).toEqual(["arg1", "arg2"]);
   });
 
   it("should handle command with mention (/cmd@bot)", async () => {
     const bot = new Gramora({ token: "TEST", mode: "core" });
-    let capturedCtx: any;
+    let capturedCtx: CommandContext | undefined;
 
     bot.command("start", async (ctx) => {
-      capturedCtx = ctx;
+      capturedCtx = ctx as CommandContext;
     });
 
     await bot.handleUpdate({
@@ -39,12 +40,12 @@ describe("Command Optimization and Correctness", () => {
         message_id: 2,
         chat: { id: 1, type: "private" },
         text: "/start@my_bot hello world",
-      } as any,
-    });
+      } as unknown as Update["message"],
+    } as Update);
 
     expect(capturedCtx).toBeDefined();
-    expect(capturedCtx.command).toBe("/start@my_bot");
-    expect(capturedCtx.args).toEqual(["hello", "world"]);
+    expect(capturedCtx?.command).toBe("/start@my_bot");
+    expect(capturedCtx?.args).toEqual(["hello", "world"]);
   });
 
   it("should prevent shared args mutation across multiple handlers", async () => {
@@ -67,26 +68,28 @@ describe("Command Optimization and Correctness", () => {
         message_id: 3,
         chat: { id: 1, type: "private" },
         text: "/mutate original",
-      } as any,
-    });
+      } as unknown as Update["message"],
+    } as Update);
 
     expect(handler1Args).toEqual(["original"]);
     expect(handler2Args).toEqual(["original"]); // Should NOT see "mutated"
   });
 
   it("should correctly identify command even if text doesn't start with it (leading whitespace)", async () => {
-     const bot = new Gramora({ token: "TEST", mode: "core" });
-     let captured: boolean = false;
-     bot.command("start", async () => { captured = true; });
+    const bot = new Gramora({ token: "TEST", mode: "core" });
+    let captured: boolean = false;
+    bot.command("start", async () => {
+      captured = true;
+    });
 
-     await bot.handleUpdate({
-         update_id: 4,
-         message: {
-             message_id: 4,
-             chat: { id: 1, type: "private" },
-             text: "   /start"
-         } as any
-     });
-     expect(captured).toBe(true);
+    await bot.handleUpdate({
+      update_id: 4,
+      message: {
+        message_id: 4,
+        chat: { id: 1, type: "private" },
+        text: "   /start",
+      } as unknown as Update["message"],
+    } as Update);
+    expect(captured).toBe(true);
   });
 });
