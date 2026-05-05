@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.3.0](https://github.com/Mra1k3r0/gramora/compare/v0.2.0...v0.3.0) (2026-05-05)
+
+### What's Changed
+
+- fixed tighten release note bullets (preset + 0.2.0 entry) — [`af043db`](https://github.com/Mra1k3r0/gramora/commit/af043db3e4b25d3a91ae6c5b8e472469bbf418f0)
+- added createTransport adapters and webhook helpers layout — [`96d6851`](https://github.com/Mra1k3r0/gramora/commit/96d6851231b8fc553635992bb1f1003cfa56f7de)
+- improved command parsing and context allocation (#47) — [`28ded7f`](https://github.com/Mra1k3r0/gramora/commit/28ded7f4269892c2ff793e7f7761e8cf1fc6bd53)
+- improved command parsing and context initialization (#46) — [`0d32e2d`](https://github.com/Mra1k3r0/gramora/commit/0d32e2d5bc8ae0f94355133bec33c8650fdad5ea)
+
 ## [0.2.0](https://github.com/Mra1k3r0/gramora/compare/v0.1.1...v0.2.0) (2026-05-03)
 
 ### What's Changed
