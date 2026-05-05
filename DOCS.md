@@ -159,60 +159,106 @@ const bot = new Gramora({
 });
 ```
 
-#### `httpTransport`
+#### `httpTransport` ![Beta](https://img.shields.io/badge/beta-orange?style=flat) ![Unstable](https://img.shields.io/static/v1?label=%E2%9A%A0%EF%B8%8F&message=unstable&color=critical&logoColor=white&style=flat)
 
-- Install **`axios`** yourself (not a Gramora dependency).
+Custom Bot API HTTP stack (**`TelegramHttpTransport`**, **`createTransport`**, helpers): **beta** in package types — behavior and signatures may shift without treating every tweak as semver-major until this stabilizes.
 
-  ```bash
-  npm i axios
-  ```
+Bot API calls pass **`TelegramHttpTransportRequest`** (`url`, **`headers`**, **`body`**, **`timeoutMs`**, **`signal`**). Use **`createTransport`** for axios / fetch / ky / got (positional **`("adapter", client?, options?)`** or object **`{ adapter, … }`**), or implement **`TelegramHttpTransport`** / **`telegramHttpResultFromJson`** yourself.
 
-- For proxies, install **`http-proxy-agent`** / **`https-proxy-agent`** and/or **`socks-proxy-agent`** and pass `httpAgent` / `httpsAgent` into `axios.post`.
+| Export                           | Role                                                                    |
+| -------------------------------- | ----------------------------------------------------------------------- |
+| **`createTransport`**            | Positional **`("adapter", client?, options?)`** or **`{ adapter, … }`** |
+| **`wrapTelegramHttpTransport`**  | **`beforeRequest`** / **`afterResponse`** around any transport          |
+| **`telegramHttpResultFromJson`** | **`(status, parsedBody)`** → Gramora result shape for custom clients    |
 
-  ```bash
-  npm i http-proxy-agent https-proxy-agent socks-proxy-agent
-  ```
+**`fetch`** and **`ky`** return a standard **`Response`**. **`axios`** and **`got`** are mapped to **`{ ok, status, json }`** inside Gramora.
+
+**Proxies are optional.** **`httpTransport`** only swaps **how** Gramora POSTs to Telegram’s Bot API — you can use a normal client with **no** proxy, **`axios`** defaults only, **`ky`** without **`dispatcher`**, etc.
+
+**axios** (install **`axios`**):
+
+```bash
+npm i axios
+```
+
+Plain client (no proxy):
 
 ```ts
-/** TelegramHttpTransport — beta API; bring your own HTTP stack. */
 import axios from "axios";
-import { Gramora, type TelegramHttpTransport } from "@mra1k3r0/gramora";
-import { HttpProxyAgent } from "http-proxy-agent";
-import { HttpsProxyAgent } from "https-proxy-agent";
-// import { SocksProxyAgent } from "socks-proxy-agent";
-
-const proxyUrl = "http://127.0.0.1:8080";
-
-const httpTransport: TelegramHttpTransport = async ({ url, headers, body, timeoutMs, signal }) => {
-  /* HTTP CONNECT — comment out if you use SOCKS below */
-  const httpAgent = new HttpProxyAgent(proxyUrl);
-  const httpsAgent = new HttpsProxyAgent(proxyUrl);
-
-  /* SOCKS — comment out the HTTP block above when using this */
-  // const socksAgent = new SocksProxyAgent("socks5://127.0.0.1:1080");
-  // const httpAgent = socksAgent;
-  // const httpsAgent = socksAgent;
-
-  const { status, data } = await axios.post(url, body ?? {}, {
-    headers,
-    timeout: timeoutMs,
-    signal,
-    validateStatus: () => true,
-    httpAgent,
-    httpsAgent,
-  });
-  return {
-    ok: status >= 200 && status < 300,
-    status,
-    json: async () => data,
-  };
-};
+import { Gramora, createTransport } from "@mra1k3r0/gramora";
 
 const bot = new Gramora({
   token: process.env.TELEGRAM_BOT_TOKEN!,
-  httpTransport,
+  httpTransport: createTransport("axios", axios),
 });
 ```
+
+With HTTP CONNECT proxy agents (install **`http-proxy-agent`** / **`https-proxy-agent`**):
+
+```ts
+import axios from "axios";
+import { Gramora, createTransport } from "@mra1k3r0/gramora";
+import { HttpProxyAgent } from "http-proxy-agent";
+import { HttpsProxyAgent } from "https-proxy-agent";
+
+const proxyUrl = "http://127.0.0.1:8080";
+
+const bot = new Gramora({
+  token: process.env.TELEGRAM_BOT_TOKEN!,
+  httpTransport: createTransport("axios", axios, {
+    axiosConfig: {
+      httpAgent: new HttpProxyAgent(proxyUrl),
+      httpsAgent: new HttpsProxyAgent(proxyUrl),
+    },
+  }),
+});
+```
+
+**fetch** / **node-fetch** (omit the second argument for `globalThis.fetch`). Third argument `{ requestInit }` merges into each POST (node-fetch **`agent`**, undici **`dispatcher`**, etc.):
+
+```ts
+import fetch from "node-fetch";
+import { Gramora, createTransport } from "@mra1k3r0/gramora";
+
+const bot = new Gramora({
+  token: process.env.TELEGRAM_BOT_TOKEN!,
+  httpTransport: createTransport("fetch", fetch),
+});
+```
+
+**ky**:
+
+```bash
+npm i ky
+```
+
+```ts
+import ky from "ky";
+import { Gramora, createTransport } from "@mra1k3r0/gramora";
+
+const bot = new Gramora({
+  token: process.env.TELEGRAM_BOT_TOKEN!,
+  httpTransport: createTransport("ky", ky),
+});
+```
+
+**got**:
+
+```bash
+npm i got
+```
+
+```ts
+import got from "got";
+import { Gramora, createTransport } from "@mra1k3r0/gramora";
+
+const bot = new Gramora({
+  token: process.env.TELEGRAM_BOT_TOKEN!,
+  httpTransport: createTransport("got", got),
+});
+```
+
+**Custom** (corporate SDK, odd **`got`** options): implement **`TelegramHttpTransport`** or return **`telegramHttpResultFromJson(status, body)`** from your wrapper.
 
 ### Webhook Configuration (`configureWebhook`)
 
@@ -773,6 +819,7 @@ Omitting `logSink` from **`new Gramora({ ... })`** leaves any sink already insta
 | Global sender   | `bot.gram.withChat(chatId).send/photo/editText/deleteMessage/forward/copy/...`                                                                                                                                                                                                                                                                                                                                                |
 | Raw control     | `gram.api` exposes a growing typed subset of Bot API methods (see `ApiClient` and `TelegramApiMethods`)                                                                                                                                                                                                                                                                                                                       |
 | Webhook URLs    | automatic `domain` normalization for tunnels; optional `normalizeWebhookOrigin`, `buildWebhookUrl` for custom `setWebhook` URLs                                                                                                                                                                                                                                                                                               |
+| Bot API HTTP    | `createTransport("fetch"\|…, client?, options?)` or `{ adapter, … }`, `wrapTelegramHttpTransport`, `telegramHttpResultFromJson`; types `CreateTransportOptions`, `CreateTransportFetchOptions`, `TelegramHttpTransportRequest`, `TelegramHttpTransportResult`                                                                                                                                                                 |
 | Decorators      | `@Controller`, `@Command`, `@On`, `@CallbackQuery`, `@InlineQuery`, `@OnChatMember`, `@OnMyChatMember`, `@OnChatJoinRequest`, `@OnMessageReaction`, `@OnMessageReactionCount`, `@OnBusinessConnection`, `@OnBusinessMessage`, `@OnEditedBusinessMessage`, `@OnDeletedBusinessMessages`, `@Guard`, `@UseMiddleware`, `@Scene`, `@Step`                                                                                         |
 
 ## Telegram Coverage

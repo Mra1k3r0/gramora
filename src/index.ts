@@ -1,5 +1,5 @@
 export { Gramora } from "./core/bot";
-export { normalizeWebhookOrigin, buildWebhookUrl } from "./core/webhook_helpers";
+export { normalizeWebhookOrigin, buildWebhookUrl } from "./core/helpers";
 export { ApiClient } from "./core/api/client";
 export { DEFAULT_BOT_USER_AGENT } from "./core/api/client";
 export { GRAMORA_VERSION, DEFAULT_GRAMORA_USER_AGENT } from "./version";
@@ -13,8 +13,27 @@ export type { Dispatcher } from "undici";
 export type {
   TelegramHttpPostBody,
   TelegramHttpTransport,
+  TelegramHttpTransportRequest,
   TelegramHttpTransportResponse,
+  TelegramHttpTransportResult,
 } from "./core/types";
+export {
+  createTransport,
+  telegramHttpResultFromJson,
+  wrapTelegramHttpTransport,
+} from "./core/helpers";
+export type {
+  AxiosLikePost,
+  CreateTransportAxiosOptions,
+  CreateTransportFetchOptions,
+  CreateTransportGotOptions,
+  CreateTransportKyOptions,
+  CreateTransportOptions,
+  FetchLike,
+  GotLikePost,
+  KyLikePost,
+  WrapTelegramHttpTransportHooks,
+} from "./core/helpers";
 export type { BotWebhookConfig } from "./core/types";
 export type { CreateWebhookAdapter, CreateWebhookOptions } from "./core/types";
 export type { BotHooks } from "./core/types";

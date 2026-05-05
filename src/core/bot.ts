@@ -16,7 +16,7 @@ import {
   validateWebhookSecretToken,
   WebhookTransport,
 } from "./polling";
-import { normalizeWebhookOrigin } from "./webhook_helpers";
+import { normalizeWebhookOrigin } from "./helpers";
 import { UpdateRouter } from "./router";
 import type { BaseContext } from "../context";
 import type { MiddlewareFn } from "../middleware/types";

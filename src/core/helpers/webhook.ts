@@ -1,4 +1,4 @@
-import { ValidationError } from "./errors";
+import { ValidationError } from "../errors";
 
 /**
  * Normalize a public webhook origin for Telegram (`setWebhook`): trims wrappers,

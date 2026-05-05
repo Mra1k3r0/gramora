@@ -79,17 +79,29 @@ export interface TelegramHttpTransportResponse {
   json(): Promise<unknown>;
 }
 
-/**
- * Custom Bot API POST handler. When set, built-in `proxy` is not used for Bot API calls.
- * @beta — wire your own client (e.g. axios + proxy agents); multipart uses undici `FormData`.
- */
-export type TelegramHttpTransport = (request: {
+/** Single Bot API POST as passed to {@link TelegramHttpTransport}. */
+export type TelegramHttpTransportRequest = {
   url: string;
   headers: Record<string, string>;
   body?: TelegramHttpPostBody;
   timeoutMs: number;
   signal: AbortSignal;
-}) => Promise<TelegramHttpTransportResponse>;
+};
+
+/**
+ * Return value from {@link TelegramHttpTransport}. A standard `Response` (fetch / undici / ky) is
+ * supported; Gramora reads the body via `text()` or `json()` when present.
+ */
+export type TelegramHttpTransportResult = TelegramHttpTransportResponse | Response;
+
+/**
+ * Custom Bot API POST handler. When set, built-in `proxy` is not used for Bot API calls.
+ * @beta — package export `createTransport("fetch"|…, client?, options?)` (object form still OK)
+ *   wraps common HTTP clients; multipart uses undici `FormData`.
+ */
+export type TelegramHttpTransport = (
+  request: TelegramHttpTransportRequest,
+) => Promise<TelegramHttpTransportResult>;
 
 export interface BotRuntimeConfig {
   userAgent?: string;

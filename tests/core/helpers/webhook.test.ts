@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { normalizeWebhookOrigin, buildWebhookUrl } from "../../src/core/webhook_helpers";
-import { ValidationError } from "../../src/core/errors";
+import { normalizeWebhookOrigin, buildWebhookUrl } from "../../../src/core/helpers";
+import { ValidationError } from "../../../src/core/errors";
 
-describe("webhook_helpers", () => {
+describe("helpers/webhook", () => {
   it("normalizeWebhookOrigin adds https and strips trailing slash", () => {
     expect(normalizeWebhookOrigin("example.com")).toBe("https://example.com");
     expect(normalizeWebhookOrigin("example.com/")).toBe("https://example.com");
