@@ -116,7 +116,7 @@ export class BaseContext {
   private _conv?: ConversationControl;
   public session: Record<string, unknown>;
   public match?: string[];
-  private readonly _chatId?: number;
+  private _chatId?: number;
 
   /**
    * @param options.update - Raw Telegram update
@@ -219,7 +219,7 @@ export class BaseContext {
 
   get chatId(): number | undefined {
     if (this._chatId !== undefined) return this._chatId;
-    return (
+    this._chatId =
       this.message?.chat.id ??
       this.callbackQuery?.message?.chat.id ??
       this.chatMember?.chat.id ??
@@ -229,8 +229,8 @@ export class BaseContext {
       this.messageReactionCount?.chat.id ??
       this.businessMessage?.chat.id ??
       this.editedBusinessMessage?.chat.id ??
-      this.deletedBusinessMessages?.chat.id
-    );
+      this.deletedBusinessMessages?.chat.id;
+    return this._chatId;
   }
   get fromId(): number | undefined {
     return (
@@ -818,7 +818,8 @@ export class CommandContext<C extends string = string> extends BaseContext {
     super(options);
     if (options.command !== undefined && options.args !== undefined) {
       this.command = options.command as C;
-      this.args = options.args;
+      // performance: shallow copy args to prevent side effects if shared
+      this.args = [...options.args];
     } else {
       const [raw, ...rest] = (this.text ?? "").trim().split(/\s+/);
       this.command = raw as C;

@@ -293,7 +293,8 @@ export class UpdateRouter {
     const raw = fullCommand.slice(1);
     if (!raw) return undefined;
 
-    const args = trimmed.slice(i).trim().split(/\s+/).filter(Boolean);
+    const tail = trimmed.slice(i).trim();
+    const args = tail === "" ? [] : tail.split(/\s+/);
 
     const atIndex = raw.indexOf("@");
     if (atIndex === -1) return { command: raw, fullCommand, args };
