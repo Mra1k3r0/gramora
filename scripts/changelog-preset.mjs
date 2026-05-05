@@ -77,6 +77,31 @@ function resolvedOwnerRepo(ref, defaultOwner, defaultRepo) {
   return { owner, repo };
 }
 
+/** GitHub squash-merge titles often end with `(#123)`; parser does not always populate `references`. */
+function stripParenRefsFromSubject(subject, references) {
+  let s = String(subject ?? "");
+  for (const ref of references ?? []) {
+    const n = String(ref.issue ?? "").trim();
+    if (!n) continue;
+    s = s.replace(new RegExp(`\\s*\\(#${n}\\)`, "g"), "");
+  }
+  return s.replace(/\s{2,}/g, " ").trim();
+}
+
+/** Turn `(#123)` into `([#123](url))` when changelog runs with GitHub link context. */
+function linkifyParenIssueRefs(subject, context) {
+  const linkRefs = context?.linkReferences !== false;
+  const host = String(context?.host ?? "").replace(/\/$/, "");
+  const owner = String(context?.owner ?? "");
+  const repo = String(context?.repository ?? "");
+  if (!linkRefs || !host || !owner || !repo) return subject;
+
+  return String(subject).replace(/\(#(\d+)\)/g, (_, issue) => {
+    const url = `${host}/${owner}/${repo}/issues/${issue}`;
+    return `([#${issue}](${url}))`;
+  });
+}
+
 /** GitHub-style line suffix: `closes ([#34](url)), ([#35](url))` */
 function buildIssueRefsMarkdown(references, context, referenceAction, isRoadmapReference) {
   if (isRoadmapReference || !Array.isArray(references) || references.length === 0) {
@@ -191,6 +216,11 @@ export default function changelogPreset() {
           rendered.referenceAction,
           rendered.isRoadmapReference,
         );
+
+        if (rendered.issueRefsLine) {
+          rendered.subject = stripParenRefsFromSubject(rendered.subject, rendered.references);
+        }
+        rendered.subject = linkifyParenIssueRefs(rendered.subject, context);
 
         return rendered;
       },

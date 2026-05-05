@@ -52,7 +52,7 @@ export default {
         releasedLabels: false,
         /** Full notes stay in CHANGELOG.md; keep the GitHub release body to the preset header line + pointer. */
         releaseBodyTemplate:
-          '<%= nextRelease.notes.trim().split("\n")[0] %>\n\nSee [`CHANGELOG.md`](<%= options.repositoryUrl.replace(/\\.git$/i, "").replace(/^git@([^:]+):(.+)$/, "https://$1/$2") %>/blob/<%= nextRelease.gitHead %>/CHANGELOG.md) for changes.',
+          '<%= nextRelease.notes.trim().split("\\n")[0] %>\n\nSee [`CHANGELOG.md`](<%= options.repositoryUrl.replace(/\\.git$/i, "").replace(/^git@([^:]+):(.+)$/, "https://$1/$2") %>/blob/<%= nextRelease.gitHead %>/CHANGELOG.md) for changes.',
       },
     ],
     [
