@@ -28,9 +28,17 @@ describe("Logger Enhancements", () => {
     expect(log).toContain('"api_key": "[MASKED]"');
     expect(log).toContain('"db_pwd": "[MASKED]"');
     expect(log).toContain('"admin_pass": "[MASKED]"');
+
+    const innocent = {
+      monkey: "banana",
+      compass: "north",
+    };
+    const innocentLog = stripAnsi(stringifyForLog(innocent));
+    expect(innocentLog).toContain('"monkey": "banana"');
+    expect(innocentLog).toContain('"compass": "north"');
   });
 
-  it("should truncate deep objects", () => {
+  it("should truncate deep objects (hits MAX_LOG_DEPTH limit)", () => {
     const root: Record<string, unknown> = {};
     let curr = root;
     for (let i = 0; i < 25; i++) {
@@ -51,10 +59,34 @@ describe("Logger Enhancements", () => {
     expect(log).toContain('"message": "test error"');
   });
 
-  it("should handle circular references via depth limit", () => {
+  it("should handle circular references (hits MAX_LOG_DEPTH limit)", () => {
     const a: Record<string, unknown> = { name: "circle" };
     a.self = a;
     const log = stripAnsi(stringifyForLog(a));
     expect(log).toContain("[DEPTH_EXCEEDED]");
+  });
+
+  it("should keep undefined in plain objects but filter in Errors", () => {
+    const obj = { key: undefined };
+    const log = stripAnsi(stringifyForLog(obj));
+    expect(log).toContain('"key": undefined');
+
+    const err = new Error("test") as Error & { extra?: string };
+    err.extra = undefined;
+    const errLog = stripAnsi(stringifyForLog(err));
+    expect(errLog).not.toContain('"extra":');
+  });
+
+  it("should return {} for objects that become empty after filtering", () => {
+    // Only happens if all keys are filtered out (like undefined in Errors)
+    const err = new Error("test") as Record<string, unknown>;
+    const keys = Object.getOwnPropertyNames(err);
+    for (const k of keys) err[k] = undefined;
+    // name and code are explicitly added in logger for Errors, so we need to clear them too if we want empty
+    err.name = undefined;
+    err.code = undefined;
+
+    const log = stripAnsi(stringifyForLog(err));
+    expect(log).toBe("{}");
   });
 });

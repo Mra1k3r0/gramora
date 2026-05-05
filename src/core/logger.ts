@@ -189,11 +189,16 @@ const prettyObject = (value: unknown, depth = 0): string => {
       : Object.keys(value as object);
 
   if (keys.length === 0) return colorize("{}", TOKEN_COLORS.punctuation);
+
   const lines = keys.map((k) => {
     const v = (value as Record<string, unknown>)[k];
-    if (v === undefined) return "";
+
+    // Only skip undefined for Errors to keep output concise; keep for plain objects
+    if (v === undefined && value instanceof Error) return "";
+
     const key = colorize(`"${k}"`, TOKEN_COLORS.key);
     const normalizedK = k.toLowerCase().replace(/[_-]/g, "");
+    const lowerK = k.toLowerCase();
     const isSensitive =
       SENSITIVE_KEYS.has(normalizedK) ||
       normalizedK.endsWith("token") ||
@@ -202,16 +207,25 @@ const prettyObject = (value: unknown, depth = 0): string => {
       normalizedK.endsWith("passphrase") ||
       normalizedK.endsWith("authorization") ||
       normalizedK.endsWith("auth") ||
-      normalizedK.endsWith("key") ||
-      normalizedK.endsWith("pwd") ||
-      normalizedK.endsWith("pass");
+      lowerK.endsWith("_key") ||
+      lowerK.endsWith("-key") ||
+      lowerK.endsWith("_pwd") ||
+      lowerK.endsWith("-pwd") ||
+      lowerK.endsWith("_pass") ||
+      lowerK.endsWith("-pass") ||
+      k.endsWith("Key") ||
+      k.endsWith("Pwd") ||
+      k.endsWith("Pass");
 
     const val = isSensitive
       ? colorize('"[MASKED]"', TOKEN_COLORS.string)
       : prettyObject(v, depth + 1);
     return `${indent(depth + 1)}${key}${colorize(":", TOKEN_COLORS.punctuation)} ${val}`;
   });
+
   const filteredLines = lines.filter((l) => l !== "");
+  if (filteredLines.length === 0) return colorize("{}", TOKEN_COLORS.punctuation);
+
   return `${colorize("{", TOKEN_COLORS.punctuation)}\n${filteredLines.join(",\n")}\n${indent(depth)}${colorize("}", TOKEN_COLORS.punctuation)}`;
 };
 
