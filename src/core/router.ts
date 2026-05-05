@@ -287,12 +287,12 @@ export class UpdateRouter {
         : undefined;
 
     if (text !== undefined) {
-      if (text.trimStart().startsWith("/")) return text;
+      if (text.startsWith("/") || text.trimStart().startsWith("/")) return text;
       const synthetic = this.commandLineFromBotCommandEntity(text, textEntities);
       if (synthetic) return synthetic;
     }
     if (caption !== undefined) {
-      if (caption.trimStart().startsWith("/")) return caption;
+      if (caption.startsWith("/") || caption.trimStart().startsWith("/")) return caption;
       return this.commandLineFromBotCommandEntity(caption, captionEntities);
     }
     return undefined;
@@ -317,7 +317,7 @@ export class UpdateRouter {
     text?: string,
   ): { command: string; mention?: string; fullCommand: string; args: string[] } | undefined {
     if (!text) return undefined;
-    const trimmed = text.trimStart();
+    const trimmed = text.startsWith("/") ? text : text.trimStart();
     if (!trimmed.startsWith("/")) return undefined;
 
     // avoid split() to reduce string allocations in the command hot path
