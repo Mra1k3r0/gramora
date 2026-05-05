@@ -818,12 +818,22 @@ export class CommandContext<C extends string = string> extends BaseContext {
     super(options);
     if (options.command !== undefined && options.args !== undefined) {
       this.command = options.command as C;
-      // performance: shallow copy args to prevent side effects if shared
       this.args = [...options.args];
     } else {
-      const [raw, ...rest] = (this.text ?? "").trim().split(/\s+/);
-      this.command = raw as C;
-      this.args = rest;
+      const text = this.text ?? "";
+      const trimmed = text.trim();
+      if (!trimmed) {
+        this.command = "" as C;
+        this.args = [];
+      } else {
+        let i = 0;
+        while (i < trimmed.length && !/\s/.test(trimmed[i])) {
+          i++;
+        }
+        this.command = trimmed.slice(0, i) as C;
+        const rest = trimmed.slice(i).trim();
+        this.args = rest ? rest.split(/\s+/) : [];
+      }
     }
   }
 }

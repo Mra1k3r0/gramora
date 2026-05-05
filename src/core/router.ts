@@ -193,7 +193,7 @@ export class UpdateRouter {
       conv: conversationControl,
       chatId,
       command,
-      args,
+      args: args ? [...args] : undefined,
     };
     switch (handler.kind) {
       case "command":
@@ -401,7 +401,7 @@ export class UpdateRouter {
 
     if (meta.kind === "message" && update.message) {
       const text = "text" in update.message ? update.message.text : undefined;
-      if (text?.startsWith("/") && this.commandHandlers.size > 0) {
+      if (text && this.commandHandlers.size > 0 && text.trimStart().startsWith("/")) {
         const parsedCommand = this.parseCommand(text);
         if (parsedCommand) {
           const commandName = parsedCommand.command;
