@@ -94,6 +94,8 @@ export interface BaseContextOptions {
   conv?: ConversationControl;
   match?: string[];
   chatId?: number;
+  command?: string;
+  args?: string[];
 }
 
 /**
@@ -811,9 +813,26 @@ export class CommandContext<C extends string = string> extends BaseContext {
 
   constructor(options: BaseContextOptions) {
     super(options);
-    const [raw, ...rest] = (this.text ?? "").trim().split(/\s+/);
-    this.command = raw as C;
-    this.args = rest;
+    if (options.command !== undefined && options.args !== undefined) {
+      this.command = options.command as C;
+      this.args = options.args;
+    } else {
+      // optimization: manual scan to avoid split() allocations if pre-parsed data is missing
+      const text = this.text ?? "";
+      const trimmed = text.trim();
+      if (!trimmed) {
+        this.command = "" as C;
+        this.args = [];
+      } else {
+        let i = 0;
+        while (i < trimmed.length && !/\s/.test(trimmed[i])) {
+          i++;
+        }
+        this.command = trimmed.slice(0, i) as C;
+        const rest = trimmed.slice(i).trim();
+        this.args = rest ? rest.split(/\s+/) : [];
+      }
+    }
   }
 }
 
