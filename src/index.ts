@@ -1,6 +1,8 @@
 export { Gramora } from "./core/bot";
+export { normalizeWebhookOrigin, buildWebhookUrl } from "./core/webhook_helpers";
 export { ApiClient } from "./core/api/client";
 export { DEFAULT_BOT_USER_AGENT } from "./core/api/client";
+export { GRAMORA_VERSION, DEFAULT_GRAMORA_USER_AGENT } from "./version";
 export { TelegramApiError, RateLimitError, ValidationError } from "./core/errors";
 export { TELEGRAM_BOT_API_DOC_VERSION, TELEGRAM_BOT_API_DOCS_URL } from "./core/api/version";
 export { GramClient } from "./core/gram";

@@ -1,5 +1,6 @@
 import type { BaseContext } from "../context";
 import type { MiddlewareFn } from "../middleware/types";
+import type { SetWebhookParams } from "../types/api";
 import type { Update } from "../types/telegram";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { Dispatcher, FormData as UndiciFormData } from "undici";
@@ -162,12 +163,19 @@ export interface BotWebhookConfig {
   port: number;
   path?: string;
   secretToken?: string;
+  /**
+   * Extra `setWebhook` fields (`allowed_updates`, `drop_pending_updates`, …).
+   * `url` is always taken from `domain` + `path`; top-level `secretToken` overrides `secret_token` here when set.
+   */
+  setWebhook?: Omit<SetWebhookParams, "url">;
 }
 
 export interface CreateWebhookOptions {
   domain?: string;
   path?: string;
   secretToken?: string;
+  /** Same merge rules as {@link BotWebhookConfig.setWebhook}. */
+  setWebhook?: Omit<SetWebhookParams, "url">;
 }
 
 export interface CreateWebhookAdapter {

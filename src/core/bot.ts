@@ -16,6 +16,7 @@ import {
   validateWebhookSecretToken,
   WebhookTransport,
 } from "./polling";
+import { normalizeWebhookOrigin } from "./webhook_helpers";
 import { UpdateRouter } from "./router";
 import type { BaseContext } from "../context";
 import type { MiddlewareFn } from "../middleware/types";
@@ -218,12 +219,9 @@ class Bot {
         : `/${resolvedPathRaw}`;
 
       if (webhookConfig.domain) {
-        const base =
-          webhookConfig.domain.startsWith("http://") || webhookConfig.domain.startsWith("https://")
-            ? webhookConfig.domain
-            : `https://${webhookConfig.domain}`;
-        const normalizedBase = base.endsWith("/") ? base.slice(0, -1) : base;
+        const normalizedBase = normalizeWebhookOrigin(webhookConfig.domain);
         await this.api.setWebhook({
+          ...(webhookConfig.setWebhook ?? {}),
           url: `${normalizedBase}${resolvedPath}`,
           ...(webhookConfig.secretToken ? { secret_token: webhookConfig.secretToken } : {}),
         });
@@ -317,12 +315,10 @@ class Bot {
 
     const setWebhook = domain
       ? async () => {
-          const base =
-            domain.startsWith("http://") || domain.startsWith("https://")
-              ? domain
-              : `https://${domain}`;
-          const normalizedBase = base.endsWith("/") ? base.slice(0, -1) : base;
+          const normalizedBase = normalizeWebhookOrigin(domain);
           return this.api.setWebhook({
+            ...(this.webhookConfig?.setWebhook ?? {}),
+            ...(options?.setWebhook ?? {}),
             url: `${normalizedBase}${path}`,
             ...(secretToken ? { secret_token: secretToken } : {}),
           });

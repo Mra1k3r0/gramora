@@ -87,6 +87,12 @@ export interface ConversationControl {
   next: () => Promise<void>;
 }
 
+const DEFAULT_ASYNC_METHODS = {
+  enter: async () => {},
+  leave: async () => {},
+  next: async () => {},
+};
+
 export interface BaseContextOptions {
   update: Update;
   api: ApiClient;
@@ -110,7 +116,7 @@ export class BaseContext {
   private _conv?: ConversationControl;
   public session: Record<string, unknown>;
   public match?: string[];
-  private readonly _chatId?: number;
+  private _chatId?: number;
 
   /**
    * @param options.update - Raw Telegram update
@@ -138,9 +144,7 @@ export class BaseContext {
     if (!this._conv) {
       this._conv = {
         state: {},
-        enter: async () => {},
-        leave: async () => {},
-        next: async () => {},
+        ...DEFAULT_ASYNC_METHODS,
       };
     }
     return this._conv;
@@ -154,9 +158,7 @@ export class BaseContext {
     if (!this._scene) {
       this._scene = {
         state: {},
-        enter: async () => {},
-        leave: async () => {},
-        next: async () => {},
+        ...DEFAULT_ASYNC_METHODS,
       };
     }
     return this._scene;
@@ -173,7 +175,7 @@ export class BaseContext {
   }
 
   get message() {
-    return this.update.message;
+    return this.update.message ?? this.update.edited_message;
   }
   get callbackQuery() {
     return this.update.callback_query;
@@ -216,7 +218,8 @@ export class BaseContext {
   }
 
   get chatId(): number | undefined {
-    return (
+    if (this._chatId !== undefined) return this._chatId;
+    this._chatId =
       this.message?.chat.id ??
       this.callbackQuery?.message?.chat.id ??
       this.chatMember?.chat.id ??
@@ -226,8 +229,8 @@ export class BaseContext {
       this.messageReactionCount?.chat.id ??
       this.businessMessage?.chat.id ??
       this.editedBusinessMessage?.chat.id ??
-      this.deletedBusinessMessages?.chat.id
-    );
+      this.deletedBusinessMessages?.chat.id;
+    return this._chatId;
   }
   get fromId(): number | undefined {
     return (
@@ -815,9 +818,8 @@ export class CommandContext<C extends string = string> extends BaseContext {
     super(options);
     if (options.command !== undefined && options.args !== undefined) {
       this.command = options.command as C;
-      this.args = options.args;
+      this.args = [...options.args];
     } else {
-      // optimization: manual scan to avoid split() allocations if pre-parsed data is missing
       const text = this.text ?? "";
       const trimmed = text.trim();
       if (!trimmed) {

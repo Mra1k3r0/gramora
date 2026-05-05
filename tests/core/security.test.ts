@@ -292,6 +292,35 @@ describe("Security Log Redaction", () => {
     });
   });
 
+  it("createWebhook merges setWebhook params into deferred call", async () => {
+    const bot = new Gramora({
+      token: "123456789:ABCdefGHIjklMNOpqrsTUVwxyz",
+      mode: "core",
+    });
+    vi.spyOn(bot.api, "getMe").mockResolvedValue({
+      id: 1,
+      is_bot: true,
+      first_name: "bot",
+      username: "bot_user",
+    });
+    const setWebhookSpy = vi.spyOn(bot.api, "setWebhook").mockResolvedValue(true);
+
+    const webhook = await bot.createWebhook({
+      domain: "example.com",
+      path: "/hook",
+      secretToken: "secret",
+      setWebhook: { drop_pending_updates: true, allowed_updates: ["message"] },
+    });
+
+    await webhook.setWebhook?.();
+    expect(setWebhookSpy).toHaveBeenCalledWith({
+      drop_pending_updates: true,
+      allowed_updates: ["message"],
+      url: "https://example.com/hook",
+      secret_token: "secret",
+    });
+  });
+
   it("createWebhook adapter handles updates on existing http server", async () => {
     const bot = new Gramora({
       token: "123456789:ABCdefGHIjklMNOpqrsTUVwxyz",

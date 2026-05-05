@@ -5,14 +5,14 @@ import { readFile } from "node:fs/promises";
 import { Blob } from "node:buffer";
 import { fetch, FormData, ProxyAgent, Socks5ProxyAgent, type Dispatcher } from "undici";
 import type { InputFile } from "../../types/telegram";
-import type { BotOptions, BotRuntimeConfig } from "../types";
+import type { BotOptions, BotRuntimeConfig, TelegramHttpTransportResponse } from "../types";
 import { addRedactionToken, log, stringifyForLog } from "../logger";
 import { TelegramApiError, RateLimitError } from "../errors";
+import { DEFAULT_GRAMORA_USER_AGENT } from "../../version";
 
 export { TelegramApiError } from "../errors";
 
-export const DEFAULT_BOT_USER_AGENT =
-  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
+export const DEFAULT_BOT_USER_AGENT = DEFAULT_GRAMORA_USER_AGENT;
 
 const NETWORK_OPTION_KEYS = [
   "userAgent",
@@ -120,6 +120,46 @@ export class ApiClient {
     return httpTransport
       ? httpTransport({ url, headers, body, timeoutMs, signal })
       : fetch(url, { method: "POST", headers, body, dispatcher: this.dispatcher, signal });
+  }
+
+  /**
+   * Undici `Response` exposes `text()`; custom {@link BotRuntimeConfig.httpTransport} returns JSON via `json()`.
+   */
+  private async readBotApiResponseBody(
+    response: Awaited<ReturnType<ApiClient["postBotApi"]>>,
+  ): Promise<string> {
+    const res = response as Response | TelegramHttpTransportResponse;
+    if ("text" in res && typeof res.text === "function") {
+      return res.text();
+    }
+    const data = await res.json();
+    return typeof data === "string" ? data : JSON.stringify(data);
+  }
+
+  private throwTelegramFailure(
+    method: TelegramMethodName,
+    payload: TelegramResponse<unknown>,
+    startedAt: number,
+  ): never {
+    if (this.debugEnabled) {
+      log(
+        "error",
+        "api.response",
+        `${String(method)} failed in ${Date.now() - startedAt}ms:\n${stringifyForLog(payload)}`,
+      );
+    }
+    if (payload.error_code === 429) {
+      throw new RateLimitError(
+        payload.description ?? "Too Many Requests",
+        payload.parameters?.retry_after ?? 1,
+        String(method),
+      );
+    }
+    throw new TelegramApiError(
+      payload.description ?? "Telegram API failed",
+      payload.error_code,
+      String(method),
+    );
   }
 
   /** Whether proxy routing or a custom HTTP transport is configured (used for launch-time health logging). */
@@ -317,30 +357,28 @@ export class ApiClient {
             `${String(method)} HTTP ${response.status} in ${Date.now() - startedAt}ms`,
           );
         }
-        throw new TelegramApiError(`HTTP ${response.status}`, response.status, String(method));
+        const raw = await this.readBotApiResponseBody(response);
+        let parsed: TelegramResponse<unknown> | undefined;
+        try {
+          parsed = JSON.parse(raw) as TelegramResponse<unknown>;
+        } catch {
+          parsed = undefined;
+        }
+        if (parsed && typeof parsed === "object" && parsed.ok === false) {
+          this.throwTelegramFailure(method, parsed, startedAt);
+        }
+        const snippet = raw.length > 512 ? `${raw.slice(0, 512)}…` : raw;
+        throw new TelegramApiError(
+          snippet.length ? `HTTP ${response.status}: ${snippet}` : `HTTP ${response.status}`,
+          response.status,
+          String(method),
+          { httpStatus: response.status, responseBodySnippet: snippet },
+        );
       }
 
       const payload = (await response.json()) as TelegramResponse<TelegramApiMethods[M]["result"]>;
       if (!payload.ok) {
-        if (this.debugEnabled) {
-          log(
-            "error",
-            "api.response",
-            `${String(method)} failed in ${Date.now() - startedAt}ms:\n${stringifyForLog(payload)}`,
-          );
-        }
-        if (payload.error_code === 429) {
-          throw new RateLimitError(
-            payload.description ?? "Too Many Requests",
-            payload.parameters?.retry_after ?? 1,
-            String(method),
-          );
-        }
-        throw new TelegramApiError(
-          payload.description ?? "Telegram API failed",
-          payload.error_code,
-          String(method),
-        );
+        this.throwTelegramFailure(method, payload as TelegramResponse<unknown>, startedAt);
       }
       if (this.debugEnabled) {
         log(

@@ -3,13 +3,28 @@
  * @see https://core.telegram.org/bots/api#making-requests
  */
 export class TelegramApiError extends Error {
+  public readonly errorCode?: number;
+  public readonly method?: string;
+  /**
+   * When the failure was returned with a non-2xx HTTP status (e.g. reverse proxy in front of Telegram).
+   * Telegram’s JSON error body can still be present; see `responseBodySnippet` for raw text if unparsed.
+   */
+  public readonly httpStatus?: number;
+  /** Truncated body when the response was not a parsable `ok: false` Bot API payload. */
+  public readonly responseBodySnippet?: string;
+
   constructor(
     message: string,
-    public readonly errorCode?: number,
-    public readonly method?: string,
+    errorCode?: number,
+    method?: string,
+    options?: { httpStatus?: number; responseBodySnippet?: string },
   ) {
     super(message);
     this.name = "TelegramApiError";
+    this.errorCode = errorCode;
+    this.method = method;
+    this.httpStatus = options?.httpStatus;
+    this.responseBodySnippet = options?.responseBodySnippet;
   }
 }
 

@@ -14,7 +14,7 @@ import { compose } from "../middleware/pipeline";
 import type { MiddlewareFn } from "../middleware/types";
 import type { SceneManager } from "../scenes";
 import type { Constructor } from "./types";
-import type { Message, MessageContentKind, Update } from "../types/telegram";
+import type { Message, MessageContentKind, MessageEntity, Update } from "../types/telegram";
 
 interface RegisteredController {
   instance: object;
@@ -271,6 +271,48 @@ export class UpdateRouter {
     return kind in message;
   }
 
+  /**
+   * Slash commands from the menu attach a `bot_command` entity; text may not start with `/`.
+   * Commands in photo captions use `caption` + `caption_entities`.
+   */
+  private resolveCommandLine(message: Message): string | undefined {
+    const text = "text" in message && typeof message.text === "string" ? message.text : undefined;
+    const caption =
+      "caption" in message && typeof message.caption === "string" ? message.caption : undefined;
+    const textEntities =
+      "entities" in message && Array.isArray(message.entities) ? message.entities : undefined;
+    const captionEntities =
+      "caption_entities" in message && Array.isArray(message.caption_entities)
+        ? message.caption_entities
+        : undefined;
+
+    if (text !== undefined) {
+      if (text.trimStart().startsWith("/")) return text;
+      const synthetic = this.commandLineFromBotCommandEntity(text, textEntities);
+      if (synthetic) return synthetic;
+    }
+    if (caption !== undefined) {
+      if (caption.trimStart().startsWith("/")) return caption;
+      return this.commandLineFromBotCommandEntity(caption, captionEntities);
+    }
+    return undefined;
+  }
+
+  private commandLineFromBotCommandEntity(
+    fullText: string,
+    entities?: MessageEntity[],
+  ): string | undefined {
+    const cmd = entities?.find((e) => e.type === "bot_command");
+    if (!cmd) return undefined;
+    const start = cmd.offset;
+    const len = cmd.length;
+    if (start < 0 || len <= 0 || start + len > fullText.length) return undefined;
+    const commandWord = fullText.slice(start, start + len);
+    if (!commandWord.startsWith("/")) return undefined;
+    const rest = fullText.slice(start + len).trimStart();
+    return rest.length > 0 ? `${commandWord} ${rest}` : commandWord;
+  }
+
   private parseCommand(
     text?: string,
   ): { command: string; mention?: string; fullCommand: string; args: string[] } | undefined {
@@ -279,7 +321,7 @@ export class UpdateRouter {
     if (!trimmed.startsWith("/")) return undefined;
 
     // avoid split() to reduce string allocations in the command hot path
-    let i = 1;
+    let i = 0;
     while (
       i < trimmed.length &&
       trimmed[i] !== " " &&
@@ -293,8 +335,8 @@ export class UpdateRouter {
     const raw = fullCommand.slice(1);
     if (!raw) return undefined;
 
-    const rest = trimmed.slice(i).trim();
-    const args = rest ? rest.split(/\s+/) : [];
+    const tail = trimmed.slice(i).trim();
+    const args = tail === "" ? [] : tail.split(/\s+/);
 
     const atIndex = raw.indexOf("@");
     if (atIndex === -1) return { command: raw, fullCommand, args };
@@ -400,9 +442,10 @@ export class UpdateRouter {
     if (!this.hasIndexedHandlers) return;
 
     if (meta.kind === "message" && update.message) {
-      const text = "text" in update.message ? update.message.text : undefined;
-      if (text && this.commandHandlers.size > 0) {
-        const parsedCommand = this.parseCommand(text);
+      const commandLine =
+        this.commandHandlers.size > 0 ? this.resolveCommandLine(update.message) : undefined;
+      if (commandLine) {
+        const parsedCommand = this.parseCommand(commandLine);
         if (parsedCommand) {
           const commandName = parsedCommand.command;
           const commandRunners = this.commandHandlers.get(commandName);
@@ -464,6 +507,32 @@ export class UpdateRouter {
                 conversationControl,
                 undefined,
                 meta.chatId,
+              );
+            }
+          }
+        }
+      }
+    }
+
+    if (meta.kind === "edited_message" && update.edited_message) {
+      const commandLine =
+        this.commandHandlers.size > 0 ? this.resolveCommandLine(update.edited_message) : undefined;
+      if (commandLine) {
+        const parsedCommand = this.parseCommand(commandLine);
+        if (parsedCommand) {
+          const commandName = parsedCommand.command;
+          const commandRunners = this.commandHandlers.get(commandName);
+          if (commandRunners) {
+            for (const runner of commandRunners) {
+              await this.runControllerRunner(
+                update,
+                runner,
+                sceneControl,
+                conversationControl,
+                undefined,
+                meta.chatId,
+                parsedCommand.fullCommand,
+                parsedCommand.args,
               );
             }
           }

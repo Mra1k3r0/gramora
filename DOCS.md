@@ -8,6 +8,13 @@
   - [Runtime Configuration (`configure`)](#runtime-configuration-configure)
   - [Bot API networking](#bot-api-networking)
   - [Webhook Configuration (`configureWebhook`)](#webhook-configuration-configurewebhook)
+  - [Local dev tunnels](#local-dev-tunnels)
+    - [Optional webhook URL helpers](#optional-webhook-url-helpers)
+  - [Slash commands (`bot.command`)](#slash-commands-botcommand)
+    - [`Gramora.prototype.command`](#gramoraprototypecommand)
+    - [`CommandContext`](#commandcontext)
+    - [When a slash handler runs](#when-a-slash-handler-runs)
+    - [Bot menu and `setMyCommands`](#bot-menu-and-setmycommands)
 - [Core Usage Patterns](#core-usage-patterns)
   - [Sending Messages](#sending-messages)
   - [Media](#media)
@@ -39,6 +46,10 @@
 
 ## Getting Started
 
+```bash
+npm i @mra1k3r0/gramora@latest
+```
+
 ```ts
 import { Gramora } from "@mra1k3r0/gramora";
 
@@ -60,43 +71,43 @@ void bot.launch();
 Default user-agent:
 
 ```text
-Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36
+gramora-bot/<version>
 ```
 
 ### Constructor Options
 
-| Option                                  | Type                                               | Default                | Description                                                                                        |
-| --------------------------------------- | -------------------------------------------------- | ---------------------- | -------------------------------------------------------------------------------------------------- |
-| `token`                                 | `string`                                           | required               | Telegram bot token                                                                                 |
-| `mode`                                  | `"full" \| "core"`                                 | `"full"`               | `core` keeps runtime lightweight                                                                   |
-| `polling.timeout`                       | `number`                                           | `20`                   | Long-poll timeout (seconds)                                                                        |
-| `polling.limit`                         | `number`                                           | Telegram default       | Max updates per poll                                                                               |
-| `polling.allowedUpdates`                | `string[]`                                         | Telegram default       | Include update kinds like `chat_member`, `chat_join_request`, `message_reaction`                   |
-| `userAgent`                             | `string`                                           | default UA             | Telegram Bot API request user-agent                                                                |
-| `timeoutMs`                             | `number`                                           | `15000`                | Bot API request timeout (ms); long-polls extend automatically                                      |
-| `proxy`                                 | `string` \| undici `Dispatcher`                    | none                   | URL (built-in agents) or custom dispatcher (e.g. `ProxyAgent`); [below](#bot-api-networking)       |
-| `httpTransport`                         | `TelegramHttpTransport`                            | none                   | Custom POST handler instead of undici ![beta](https://img.shields.io/badge/beta-yellow?style=flat) |
-| `debug`                                 | `boolean`                                          | `false`                | Enable runtime debug logs                                                                          |
-| `logSink`                               | `(level, scope, message) => void`                  | none                   | Plain redacted logs (no ANSI); pipe to pino/winston; omit for colorful console                     |
-| `operations.handlerTimeoutMs`           | `number`                                           | disabled               | Per-update handler timeout in ms                                                                   |
-| `operations.logWebhookRejects`          | `boolean`                                          | `false`                | Debug-log webhook path/secret mismatches                                                           |
-| `operations.pollingRetryLogs`           | `"quiet"\| "structured"`                           | `"structured"`         | Control polling retry debug logs                                                                   |
-| `operations.webhookMaxBodyBytes`        | `number`                                           | `1048576`              | Max webhook request body size before `413`                                                         |
-| `operations.webhookAllowedContentTypes` | `string[]`                                         | `["application/json"]` | Allowed webhook content types                                                                      |
-| `operations.pollingRetryBaseMs`         | `number`                                           | `1000`                 | Base polling retry delay in milliseconds                                                           |
-| `operations.pollingRetryMaxMs`          | `number`                                           | `30000`                | Max polling retry delay in milliseconds                                                            |
-| `operations.pollingRetryOn`             | `("rate_limit"\| "network"\| "api"\| "unknown")[]` | all listed             | Retry-eligible polling error classes                                                               |
+| Option                                  | Type                                               | Default                | Description                                                                                  |
+| --------------------------------------- | -------------------------------------------------- | ---------------------- | -------------------------------------------------------------------------------------------- |
+| `token`                                 | `string`                                           | required               | Telegram bot token                                                                           |
+| `mode`                                  | `"full" \| "core"`                                 | `"full"`               | `core` keeps runtime lightweight                                                             |
+| `polling.timeout`                       | `number`                                           | `20`                   | Long-poll timeout (seconds)                                                                  |
+| `polling.limit`                         | `number`                                           | Telegram default       | Max updates per poll                                                                         |
+| `polling.allowedUpdates`                | `string[]`                                         | Telegram default       | Include update kinds like `chat_member`, `chat_join_request`, `message_reaction`             |
+| `userAgent`                             | `string`                                           | default UA             | Telegram Bot API request user-agent                                                          |
+| `timeoutMs`                             | `number`                                           | `15000`                | Bot API request timeout (ms); long-polls extend automatically                                |
+| `proxy`                                 | `string` \| undici `Dispatcher`                    | none                   | URL (built-in agents) or custom dispatcher (e.g. `ProxyAgent`); [below](#bot-api-networking) |
+| `httpTransport`                         | `TelegramHttpTransport`                            | none                   | Custom POST handler instead of undici ([usage](#bot-api-networking))                         |
+| `debug`                                 | `boolean`                                          | `false`                | Enable runtime debug logs                                                                    |
+| `logSink`                               | `(level, scope, message) => void`                  | none                   | Plain redacted logs (no ANSI); pipe to pino/winston; omit for colorful console               |
+| `operations.handlerTimeoutMs`           | `number`                                           | disabled               | Per-update handler timeout in ms                                                             |
+| `operations.logWebhookRejects`          | `boolean`                                          | `false`                | Debug-log webhook path/secret mismatches                                                     |
+| `operations.pollingRetryLogs`           | `"quiet"\| "structured"`                           | `"structured"`         | Control polling retry debug logs                                                             |
+| `operations.webhookMaxBodyBytes`        | `number`                                           | `1048576`              | Max webhook request body size before `413`                                                   |
+| `operations.webhookAllowedContentTypes` | `string[]`                                         | `["application/json"]` | Allowed webhook content types                                                                |
+| `operations.pollingRetryBaseMs`         | `number`                                           | `1000`                 | Base polling retry delay in milliseconds                                                     |
+| `operations.pollingRetryMaxMs`          | `number`                                           | `30000`                | Max polling retry delay in milliseconds                                                      |
+| `operations.pollingRetryOn`             | `("rate_limit"\| "network"\| "api"\| "unknown")[]` | all listed             | Retry-eligible polling error classes                                                         |
 
 ### Runtime Configuration (`configure`)
 
-| Key             | Type                     | Description                                                                                                                  |
-| --------------- | ------------------------ | ---------------------------------------------------------------------------------------------------------------------------- |
-| `userAgent`     | `string`                 | Custom UA for Telegram API requests                                                                                          |
-| `timeoutMs`     | `number`                 | Request timeout in milliseconds                                                                                              |
-| `proxy`         | `string` \| `Dispatcher` | URL or undici dispatcher ([below](#bot-api-networking)); `configure({ proxy: undefined })` clears                            |
-| `httpTransport` | `TelegramHttpTransport`  | Replace undici for Bot API POSTs ![beta](https://img.shields.io/badge/beta-yellow?style=flat) ([below](#bot-api-networking)) |
-| `debug`         | `boolean`                | Toggle debug logging at runtime                                                                                              |
-| `logSink`       | `GramoraLogSink`         | Replace console logging with your sink (`configure({ logSink: undefined })` restores default)                                |
+| Key             | Type                     | Description                                                                                       |
+| --------------- | ------------------------ | ------------------------------------------------------------------------------------------------- |
+| `userAgent`     | `string`                 | Custom UA for Telegram API requests                                                               |
+| `timeoutMs`     | `number`                 | Request timeout in milliseconds                                                                   |
+| `proxy`         | `string` \| `Dispatcher` | URL or undici dispatcher ([below](#bot-api-networking)); `configure({ proxy: undefined })` clears |
+| `httpTransport` | `TelegramHttpTransport`  | Replace undici for Bot API POSTs ([below](#bot-api-networking))                                   |
+| `debug`         | `boolean`                | Toggle debug logging at runtime                                                                   |
+| `logSink`       | `GramoraLogSink`         | Replace console logging with your sink (`configure({ logSink: undefined })` restores default)     |
 
 ```ts
 const bot = new Gramora({ token: process.env.TELEGRAM_BOT_TOKEN!, mode: "core" }).configure({
@@ -110,11 +121,11 @@ const bot = new Gramora({ token: process.env.TELEGRAM_BOT_TOKEN!, mode: "core" }
 
 Gramora calls Telegram over [`undici`](https://undici.nodejs.org/) `fetch` unless you plug in something else:
 
-| Option                                                                       | Still uses undici `fetch`? | Typical reason                                                                                                                                                         |
-| ---------------------------------------------------------------------------- | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `proxy` ![URL](https://img.shields.io/badge/URL-blue?style=flat)             | Yes                        | Built-in `ProxyAgent` / `Socks5ProxyAgent` from a string.                                                                                                              |
-| `proxy` ![obj](https://img.shields.io/badge/obj-orange?style=flat)           | Yes                        | Your undici [`Dispatcher`](https://undici.nodejs.org/#/docs/api/Dispatcher), e.g. `ProxyAgent` with extra options ([similar idea](https://grammy.dev/advanced/proxy)). |
-| `httpTransport` ![beta](https://img.shields.io/badge/beta-yellow?style=flat) | No                         | Bring your own HTTP client (`TelegramHttpTransport`).                                                                                                                  |
+| Option                 | Still uses undici `fetch`? | Typical reason                                                                                                                                      |
+| ---------------------- | -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `proxy` (URL)          | Yes                        | Built-in `ProxyAgent` / `Socks5ProxyAgent` from a string.                                                                                           |
+| `proxy` (`Dispatcher`) | Yes                        | Pass an undici [`Dispatcher`](https://undici.nodejs.org/#/docs/api/Dispatcher) (object form, e.g. `ProxyAgent` [obj]) with extra options as needed. |
+| `httpTransport`        | No                         | Bring your own HTTP client (`TelegramHttpTransport`).                                                                                               |
 
 **Precedence:** `httpTransport` wins over `proxy`. Same keys work in `.configure({ … })`.
 
@@ -148,12 +159,22 @@ const bot = new Gramora({
 });
 ```
 
-**`httpTransport`** ![beta](https://img.shields.io/badge/beta-yellow?style=flat)
+#### `httpTransport`
 
 - Install **`axios`** yourself (not a Gramora dependency).
+
+  ```bash
+  npm i axios
+  ```
+
 - For proxies, install **`http-proxy-agent`** / **`https-proxy-agent`** and/or **`socks-proxy-agent`** and pass `httpAgent` / `httpsAgent` into `axios.post`.
 
+  ```bash
+  npm i http-proxy-agent https-proxy-agent socks-proxy-agent
+  ```
+
 ```ts
+/** TelegramHttpTransport — beta API; bring your own HTTP stack. */
 import axios from "axios";
 import { Gramora, type TelegramHttpTransport } from "@mra1k3r0/gramora";
 import { HttpProxyAgent } from "http-proxy-agent";
@@ -207,6 +228,194 @@ await bot.launch({ transport: "webhook" });
 ```
 
 If `path` is omitted, Gramora auto-generates a secure token-derived path.
+
+**Extra `setWebhook` fields** (forwarded to Telegram’s [`setWebhook`](https://core.telegram.org/bots/api#setwebhook); `url` is always built from `domain` + `path`):
+
+```ts
+.configureWebhook({
+  domain: "example.com",
+  port: 8080,
+  path: "/telegram/webhook",
+  secretToken: process.env.WEBHOOK_SECRET!,
+  setWebhook: {
+    drop_pending_updates: true,
+    allowed_updates: ["message", "edited_message", "callback_query"],
+  },
+});
+```
+
+**`createWebhook`** accepts the same **`setWebhook`** merge into **`adapter.setWebhook()`** (Gramora still sets **`url`** / **`secretToken`**).
+
+### Local dev tunnels
+
+Tunnels live in **your** app, not in Gramora: **`await`** a public URL, pass it as **`domain`** on **`createWebhook`** or **`configureWebhook`**. **`domain`** is normalized and combined with **`path`** automatically; **[optional helpers](#optional-webhook-url-helpers)** are only for manual **`bot.api.setWebhook`** or logging.
+
+- **`untun`**
+- **`localtunnel`**
+- **ngrok**
+
+**`createWebhook` + untun** (for Cloudflare’s notice see [untun](https://www.npmjs.com/package/untun))
+
+```bash
+npm i untun
+```
+
+```ts
+import { createServer } from "node:http";
+import { startTunnel } from "untun";
+import { Gramora } from "@mra1k3r0/gramora";
+
+const PORT = 8080;
+const bot = new Gramora({ token: process.env.TELEGRAM_BOT_TOKEN! });
+// Normalization: createWebhook applies it to `domain` internally (no helper import here).
+
+const t = await startTunnel({
+  port: PORT,
+  acceptCloudflareNotice: process.env.UNTUN_ACCEPT_CLOUDFLARE_NOTICE === "1",
+});
+if (!t) throw new Error("untun failed");
+
+const adapter = await bot.createWebhook({
+  domain: await t.getURL(),
+  path: "/telegram/webhook",
+  secretToken: process.env.WEBHOOK_SECRET,
+});
+
+createServer(adapter.handler).listen(PORT, async () => {
+  await adapter.setWebhook?.();
+});
+
+process.on("SIGINT", async () => {
+  await t.close();
+  process.exit(0);
+});
+```
+
+**`createWebhook` + localtunnel**
+
+```bash
+npm i localtunnel
+```
+
+```ts
+import { createServer } from "node:http";
+import localtunnel from "localtunnel";
+import { Gramora } from "@mra1k3r0/gramora";
+
+const PORT = 8080;
+const bot = new Gramora({ token: process.env.TELEGRAM_BOT_TOKEN! });
+
+const tunnel = await localtunnel({ port: PORT });
+const adapter = await bot.createWebhook({
+  domain: tunnel.url, // same internal normalization as untun example above
+  path: "/telegram/webhook",
+  secretToken: process.env.WEBHOOK_SECRET,
+});
+
+createServer(adapter.handler).listen(PORT, async () => {
+  await adapter.setWebhook?.();
+});
+
+process.on("SIGINT", () => {
+  tunnel.close();
+  process.exit(0);
+});
+```
+
+**`launch({ transport: "webhook" })`:** open the tunnel first, then pass the same URL string as **`domain`** — uses **localtunnel** like the **`createWebhook` + localtunnel** block above (same **`npm i localtunnel`**).
+
+```ts
+import localtunnel from "localtunnel";
+import { Gramora } from "@mra1k3r0/gramora";
+
+const PORT = 8080;
+const tunnel = await localtunnel({ port: PORT });
+
+const bot = new Gramora({ token: process.env.TELEGRAM_BOT_TOKEN! }).configureWebhook({
+  domain: tunnel.url, // configureWebhook normalizes before setWebhook (still no helper import)
+  port: PORT,
+  path: "/telegram/webhook",
+  secretToken: process.env.WEBHOOK_SECRET,
+});
+
+await bot.launch({ transport: "webhook" });
+```
+
+#### Optional webhook URL helpers
+
+**Different from the tunnel examples:** those pass **`domain`** into **`createWebhook`** / **`configureWebhook`** and Gramora normalizes for you. Use these imports only when you call **`bot.api.setWebhook`** yourself, log/compare origins, or need the canonical strings outside Gramora.
+
+- **`normalizeWebhookOrigin(raw)`**: **`raw`** is any pasted/host/tunnel string → canonical **`https://…`** origin (no trailing slash); empty **`raw`** throws **`ValidationError`**.
+- **`buildWebhookUrl(raw, mountPath)`**: same normalization + **`mountPath`** (leading **`/`** added if missing) → full webhook URL.
+
+Tunnel/ngrok/etc. stay outside Gramora: **`await`** their URL, then pass into **`domain`** or into **`raw`** below.
+
+```ts
+// Manual Bot API path — you build `url`; buildWebhookUrl matches Gramora’s internal domain + path rules.
+import { buildWebhookUrl } from "@mra1k3r0/gramora";
+
+const rawFromTunnelOrEnv = "https://abc.ngrok.io"; // example pasted tunnel / env string
+await bot.api.setWebhook({
+  url: buildWebhookUrl(rawFromTunnelOrEnv, "/telegram/webhook"),
+  secret_token: process.env.WEBHOOK_SECRET,
+});
+```
+
+### Slash commands (`bot.command`)
+
+Typed `/cmd`, [menu `bot_command` entities](https://core.telegram.org/bots/api#messageentity), captions, or **edited** messages. Matched **before** `onMessage` / `onText`. Pair with **`setMyCommands`** for the client menu.
+
+#### `Gramora.prototype.command`
+
+| Item        | Description                                                                                         |
+| ----------- | --------------------------------------------------------------------------------------------------- |
+| **Call**    | `command(name, handler): Gramora` — register **`name`** without `/` (matches `/name`, `/name@Bot`). |
+| **Handler** | Declared as `BaseContext`; narrow to **`CommandContext`**.                                          |
+| **Returns** | **`Gramora`** (chainable).                                                                          |
+
+```ts
+import { Gramora, type CommandContext } from "@mra1k3r0/gramora";
+
+const bot = new Gramora({ token: process.env.TELEGRAM_BOT_TOKEN! });
+bot.command("start", async (ctx) => {
+  const { command, args } = ctx as CommandContext;
+  await ctx.reply(`${command} → ${args.join(" ") || "(none)"}`);
+});
+```
+
+#### `CommandContext`
+
+| Field         | Meaning                                                                                                           |
+| ------------- | ----------------------------------------------------------------------------------------------------------------- |
+| **`command`** | First token with **`/`** and optional **`@bot`** (e.g. `/start@x`); not the same string as the registered `name`. |
+| **`args`**    | Whitespace-split args after that token; **copy** per handler.                                                     |
+
+Also: **`update`**, **`message`** (prefers `update.message`, else `edited_message`), **`gram`**, **`api`**, **`session`**, plus **`BaseContext`** (`scene`, `conv`, `reply`, …).
+
+#### When a slash handler runs
+
+| Source      | Note                                                                        |
+| ----------- | --------------------------------------------------------------------------- |
+| **Text**    | Line’s first word is `/…` (after trim).                                     |
+| **Entity**  | First **`bot_command`** span → rebuild line if text doesn’t start with `/`. |
+| **Caption** | Same for **`caption`** / **`caption_entities`**.                            |
+| **Edited**  | **`edited_message`** uses the same rules.                                   |
+
+**Order:** matching **`bot.command`** handlers (registration order) → **`onMessage`** / kind handlers → rest.
+
+#### Bot menu and `setMyCommands`
+
+```ts
+await bot.api.setMyCommands({
+  commands: [
+    { command: "start", description: "Welcome" },
+    { command: "echo", description: "Echo text" },
+  ],
+});
+await bot.gram.setMenuButton({ menuButton: { type: "commands" } });
+```
+
+Telegram: **`command`** = `a-z`/`0-9`/`_`, 1–32 chars, no `/`. Same string as **`bot.command("…")`**. **`@Command`** controllers: same routing — [Decorator and Scene Mode](#decorator-and-scene-mode).
 
 ## Core Usage Patterns
 
@@ -302,6 +511,8 @@ await gram.deleteTopic(topic.message_thread_id);
 
 ### Bot Profile and Commands
 
+See [slash commands](#slash-commands-botcommand) for routing. API:
+
 ```ts
 await bot.api.setMyCommands({
   commands: [{ command: "start", description: "Start" }],
@@ -377,8 +588,11 @@ bot.use(
 import { RateLimitError, TelegramApiError, ValidationError } from "@mra1k3r0/gramora";
 ```
 
-`RateLimitError` extends `TelegramApiError` and includes `retryAfter`.  
-`ValidationError` is thrown before network calls for invalid input shapes/limits.
+| Error                  | Notes                                                                                                                                                                                             |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`ValidationError`**  | Invalid inputs before HTTP (shape / limits).                                                                                                                                                      |
+| **`RateLimitError`**   | Extends **`TelegramApiError`**; adds **`retryAfter`**.                                                                                                                                            |
+| **`TelegramApiError`** | **`errorCode`**, **`method`**; message text carries Telegram **`description`** when JSON is `ok: false` (even behind proxies). Non-Telegram bodies: **`httpStatus`** + **`responseBodySnippet`**. |
 
 ## Modules and Lazy Modules
 
@@ -429,7 +643,7 @@ class RegisterScene {
 
 ## Conversations (functional flows)
 
-For grammY-style **conversation** ergonomics without decorators, register ordered steps with `bot.conversation(id, steps)`. Enter from any handler via `await ctx.conv.enter(id)`. Each step runs on the **next** update for that chat; call `await ctx.conv.next()` to advance, or `await ctx.conv.leave()` to exit. Shared data lives on `ctx.conv.state`. Entering a conversation clears an active decorator scene and vice versa.
+Without decorators, **`bot.conversation(id, steps)`** registers ordered handlers. **`await ctx.conv.enter(id)`** starts the flow; each step runs on the **next** update for that chat. Use **`ctx.conv.next()`** / **`ctx.conv.leave()`** to advance or exit; **`ctx.conv.state`** holds shared data. An active conversation and an active decorator scene exclude each other.
 
 ```ts
 import { Gramora } from "@mra1k3r0/gramora";
@@ -454,7 +668,7 @@ bot.command("start", async (ctx) => {
 });
 ```
 
-See [`examples/conversation_bot.ts`](./examples/conversation_bot.ts). `mode: "core"` disables both decorator scenes and conversations (same router gate).
+See [`examples/conversation_bot.ts`](./examples/conversation_bot.ts). **`mode: "core"`** disables scenes and conversations.
 
 ## Logging and Debug
 
@@ -493,7 +707,11 @@ Use a **`GramoraLogSink`** when you want runtime logs on **pino**, **winston**, 
 - **`scope`**: Gramora’s channel label (e.g. `api.request`, `lifecycle`).
 - **`message`**: same redaction rules as console output, but **ANSI is stripped** so you can log a plain string or embed it in JSON without escape noise.
 
-Install pino in your app if you follow this example (`npm install pino`).
+Install **pino** in your app if you follow this example.
+
+```bash
+npm install pino
+```
 
 Pass `logSink` only when that key is on the options object; omit it if you install a **global** sink with `setGramoraLogSink` instead.
 
@@ -554,6 +772,7 @@ Omitting `logSink` from **`new Gramora({ ... })`** leaves any sink already insta
 | Inline mode     | `answerInline`, `InlineResult.builder()`, `InlineResult.article()`, `InlineResult.photo()`, `InlineResult.textContent()`                                                                                                                                                                                                                                                                                                      |
 | Global sender   | `bot.gram.withChat(chatId).send/photo/editText/deleteMessage/forward/copy/...`                                                                                                                                                                                                                                                                                                                                                |
 | Raw control     | `gram.api` exposes a growing typed subset of Bot API methods (see `ApiClient` and `TelegramApiMethods`)                                                                                                                                                                                                                                                                                                                       |
+| Webhook URLs    | automatic `domain` normalization for tunnels; optional `normalizeWebhookOrigin`, `buildWebhookUrl` for custom `setWebhook` URLs                                                                                                                                                                                                                                                                                               |
 | Decorators      | `@Controller`, `@Command`, `@On`, `@CallbackQuery`, `@InlineQuery`, `@OnChatMember`, `@OnMyChatMember`, `@OnChatJoinRequest`, `@OnMessageReaction`, `@OnMessageReactionCount`, `@OnBusinessConnection`, `@OnBusinessMessage`, `@OnEditedBusinessMessage`, `@OnDeletedBusinessMessages`, `@Guard`, `@UseMiddleware`, `@Scene`, `@Step`                                                                                         |
 
 ## Telegram Coverage
