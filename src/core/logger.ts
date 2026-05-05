@@ -207,14 +207,16 @@ const prettyObject = (value: unknown, depth = 0): string => {
       normalizedK.endsWith("passphrase") ||
       normalizedK.endsWith("authorization") ||
       normalizedK.endsWith("auth") ||
+      normalizedK.endsWith("credential") ||
+      normalizedK.endsWith("credentials") ||
+      normalizedK.endsWith("pwd") ||
+      normalizedK === "key" ||
       lowerK.endsWith("_key") ||
       lowerK.endsWith("-key") ||
-      lowerK.endsWith("_pwd") ||
-      lowerK.endsWith("-pwd") ||
+      k.endsWith("Key") ||
+      normalizedK === "pass" ||
       lowerK.endsWith("_pass") ||
       lowerK.endsWith("-pass") ||
-      k.endsWith("Key") ||
-      k.endsWith("Pwd") ||
       k.endsWith("Pass");
 
     const val = isSensitive

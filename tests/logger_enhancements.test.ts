@@ -67,9 +67,9 @@ describe("Logger Enhancements", () => {
   });
 
   it("should keep undefined in plain objects but filter in Errors", () => {
-    const obj = { key: undefined };
+    const obj = { some_val: undefined };
     const log = stripAnsi(stringifyForLog(obj));
-    expect(log).toContain('"key": undefined');
+    expect(log).toContain('"some_val": undefined');
 
     const err = new Error("test") as Error & { extra?: string };
     err.extra = undefined;
