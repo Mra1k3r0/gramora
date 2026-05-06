@@ -146,7 +146,7 @@ describe("command and argument parsing", () => {
     expect(capturedCtx?.args).toEqual(["arg1"]);
   });
 
-  it("shallow copies args to prevent side effects", async () => {
+  it("shares readonly args to prevent side effects", async () => {
     const bot = new Gramora({ token: "test", mode: "core" });
     let ctx1: CommandContext | undefined;
     let ctx2: CommandContext | undefined;
@@ -154,10 +154,11 @@ describe("command and argument parsing", () => {
     bot.command("test", (ctx) => {
       if (!ctx1) {
         ctx1 = ctx as CommandContext;
-        ctx1.args.push("mutated");
-      } else {
-        ctx2 = ctx as CommandContext;
       }
+    });
+
+    bot.command("test", (ctx) => {
+      ctx2 = ctx as CommandContext;
     });
 
     const update: Update = {
@@ -170,15 +171,10 @@ describe("command and argument parsing", () => {
       },
     };
 
-    // Register second handler for the same command
-    bot.command("test", (ctx) => {
-      ctx2 = ctx as CommandContext;
-    });
-
     await bot.handleUpdate(update);
 
-    expect(ctx1?.args).toEqual(["arg", "mutated"]);
-    expect(ctx2?.args).toEqual(["arg"]); // Should not be mutated by first handler
+    expect(ctx1?.args).toBe(ctx2?.args); // Should be the exact same shared object
+    expect(Object.isFrozen(ctx1?.args)).toBe(true);
   });
 
   it("caches chatId after first access", async () => {

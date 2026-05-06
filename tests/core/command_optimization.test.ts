@@ -50,16 +50,15 @@ describe("Command Optimization and Correctness", () => {
 
   it("should prevent shared args mutation across multiple handlers", async () => {
     const bot = new Gramora({ token: "TEST", mode: "core" });
-    let handler1Args: string[] = [];
-    let handler2Args: string[] = [];
+    let ctx1Args: readonly string[] = [];
+    let ctx2Args: readonly string[] = [];
 
     bot.command("mutate", async (ctx) => {
-      handler1Args = [...(ctx as CommandContext).args];
-      (ctx as CommandContext).args.push("mutated");
+      ctx1Args = (ctx as CommandContext).args;
     });
 
     bot.command("mutate", async (ctx) => {
-      handler2Args = [...(ctx as CommandContext).args];
+      ctx2Args = (ctx as CommandContext).args;
     });
 
     await bot.handleUpdate({
@@ -71,8 +70,8 @@ describe("Command Optimization and Correctness", () => {
       } as unknown as Update["message"],
     } as Update);
 
-    expect(handler1Args).toEqual(["original"]);
-    expect(handler2Args).toEqual(["original"]); // Should NOT see "mutated"
+    expect(ctx1Args).toBe(ctx2Args);
+    expect(Object.isFrozen(ctx1Args)).toBe(true);
   });
 
   it("should correctly identify command even if text doesn't start with it (leading whitespace)", async () => {

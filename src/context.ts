@@ -101,7 +101,7 @@ export interface BaseContextOptions {
   match?: string[];
   chatId?: number;
   command?: string;
-  args?: string[];
+  args?: readonly string[];
 }
 
 /**
@@ -114,7 +114,7 @@ export class BaseContext {
   private _gram?: GramClient;
   private _scene?: SceneControl;
   private _conv?: ConversationControl;
-  public session: Record<string, unknown>;
+  private _session?: Record<string, unknown>;
   public match?: string[];
   private _chatId?: number;
 
@@ -132,8 +132,22 @@ export class BaseContext {
     this._chatId = options.chatId;
     this._scene = options.scene;
     this._conv = options.conv;
-    this.session = {};
     this.match = options.match;
+  }
+
+  /**
+   * General-purpose session storage for the current context.
+   * Lazily initializes an empty object on first access to avoid redundant allocations.
+   */
+  get session(): Record<string, unknown> {
+    if (!this._session) {
+      this._session = {};
+    }
+    return this._session;
+  }
+
+  set session(value: Record<string, unknown>) {
+    this._session = value;
   }
 
   /**
@@ -812,13 +826,17 @@ export class MessageContext<K extends MessageContentKind> extends BaseContext {
 
 export class CommandContext<C extends string = string> extends BaseContext {
   public readonly command: C;
-  public readonly args: string[];
+  /**
+   * The arguments provided after the command.
+   * @remarks This array is shared with the router for performance and should be treated as read-only.
+   */
+  public readonly args: readonly string[];
 
   constructor(options: BaseContextOptions) {
     super(options);
     if (options.command !== undefined && options.args !== undefined) {
       this.command = options.command as C;
-      this.args = [...options.args];
+      this.args = options.args;
     } else {
       const text = this.text ?? "";
       const trimmed = text.trim();
@@ -832,7 +850,7 @@ export class CommandContext<C extends string = string> extends BaseContext {
         }
         this.command = trimmed.slice(0, i) as C;
         const rest = trimmed.slice(i).trim();
-        this.args = rest ? rest.split(/\s+/) : [];
+        this.args = rest ? Object.freeze(rest.split(/\s+/)) : Object.freeze([]);
       }
     }
   }
