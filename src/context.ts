@@ -101,7 +101,7 @@ export interface BaseContextOptions {
   match?: string[];
   chatId?: number;
   command?: string;
-  args?: string[];
+  args?: readonly string[];
 }
 
 /**
@@ -826,7 +826,11 @@ export class MessageContext<K extends MessageContentKind> extends BaseContext {
 
 export class CommandContext<C extends string = string> extends BaseContext {
   public readonly command: C;
-  public readonly args: string[];
+  /**
+   * The arguments provided after the command.
+   * @remarks This array is shared with the router for performance and should be treated as read-only.
+   */
+  public readonly args: readonly string[];
 
   constructor(options: BaseContextOptions) {
     super(options);
@@ -846,7 +850,7 @@ export class CommandContext<C extends string = string> extends BaseContext {
         }
         this.command = trimmed.slice(0, i) as C;
         const rest = trimmed.slice(i).trim();
-        this.args = rest ? rest.split(/\s+/) : [];
+        this.args = rest ? Object.freeze(rest.split(/\s+/)) : Object.freeze([]);
       }
     }
   }

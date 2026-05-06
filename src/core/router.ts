@@ -184,7 +184,7 @@ export class UpdateRouter {
     conversationControl: ConversationControl | undefined,
     chatId?: number,
     command?: string,
-    args?: string[],
+    args?: readonly string[],
   ): BaseContext {
     const options = {
       update,
@@ -193,7 +193,7 @@ export class UpdateRouter {
       conv: conversationControl,
       chatId,
       command,
-      args: args ? [...args] : undefined,
+      args,
     };
     switch (handler.kind) {
       case "command":
@@ -450,6 +450,7 @@ export class UpdateRouter {
           const commandName = parsedCommand.command;
           const commandRunners = this.commandHandlers.get(commandName);
           if (commandRunners) {
+            const sharedArgs = Object.freeze([...parsedCommand.args]);
             for (const runner of commandRunners) {
               await this.runControllerRunner(
                 update,
@@ -459,7 +460,7 @@ export class UpdateRouter {
                 undefined,
                 meta.chatId,
                 parsedCommand.fullCommand,
-                parsedCommand.args,
+                sharedArgs,
               );
             }
           }
@@ -523,6 +524,7 @@ export class UpdateRouter {
           const commandName = parsedCommand.command;
           const commandRunners = this.commandHandlers.get(commandName);
           if (commandRunners) {
+            const sharedArgs = Object.freeze([...parsedCommand.args]);
             for (const runner of commandRunners) {
               await this.runControllerRunner(
                 update,
@@ -532,7 +534,7 @@ export class UpdateRouter {
                 undefined,
                 meta.chatId,
                 parsedCommand.fullCommand,
-                parsedCommand.args,
+                sharedArgs,
               );
             }
           }
@@ -809,7 +811,7 @@ export class UpdateRouter {
     match?: string[],
     chatId?: number,
     command?: string,
-    args?: string[],
+    args?: readonly string[],
   ) {
     const ctx = this.createContext(
       update,
