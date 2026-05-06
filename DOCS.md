@@ -753,6 +753,9 @@ Use a **`GramoraLogSink`** when you want runtime logs on **pino**, **winston**, 
 - **`scope`**: Gramora’s channel label (e.g. `api.request`, `lifecycle`).
 - **`message`**: same redaction rules as console output, but **ANSI is stripped** so you can log a plain string or embed it in JSON without escape noise.
 
+> [!NOTE]
+> Gramora automatically masks sensitive data in logs. Keys such as `token`, `secret`, `password`, `key`, `pass`, `pwd`, `credential`, and `credentials` are replaced with `[MASKED]` to prevent secret leakage.
+
 Install **pino** in your app if you follow this example.
 
 ```bash
