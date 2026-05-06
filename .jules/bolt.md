@@ -1,3 +1,0 @@
-## 2025-05-15 - [allocation-reduction] | learning: Identified significant overhead from constructor-initialized empty objects ({}) and redundant array cloning in the update processing hot path. | action: Use lazy getters for optional context properties like 'session' and ensure single-copy semantics for parsed command arguments.
-
-## 2025-05-15 - [string-fast-path] | learning: 'trimStart()' followed by 'startsWith("/")' causes unnecessary string allocations for most commands that are already trimmed. | action: Add a fast-path check using 'startsWith("/")' on the raw string before attempting to trim.
