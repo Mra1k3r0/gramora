@@ -321,6 +321,46 @@ describe("Security Log Redaction", () => {
     });
   });
 
+  it("should include security headers in webhook responses", async () => {
+    const transport = new WebhookTransport(async () => {});
+    const port = 9900 + Math.floor(Math.random() * 100);
+    await transport.start({ port, path: "/hook" });
+
+    try {
+      const response = await fetch(`http://127.0.0.1:${String(port)}/hook`, {
+        method: "POST",
+        body: JSON.stringify({ update_id: 1 }),
+      });
+      expect(response.headers.get("X-Content-Type-Options")).toBe("nosniff");
+      expect(response.headers.get("X-Frame-Options")).toBe("DENY");
+    } finally {
+      transport.stop();
+    }
+  });
+
+  it("should use timing-safe comparison for webhook path", async () => {
+    const transport = new WebhookTransport(async () => {});
+    const port = 9910 + Math.floor(Math.random() * 100);
+    const path = "/secret-path-123";
+    await transport.start({ port, path });
+
+    try {
+      const response = await fetch(`http://127.0.0.1:${String(port)}/wrong-path`, {
+        method: "POST",
+      });
+      expect(response.status).toBe(404);
+
+      const okResponse = await fetch(`http://127.0.0.1:${String(port)}${path}`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ update_id: 1 }),
+      });
+      expect(okResponse.status).toBe(200);
+    } finally {
+      transport.stop();
+    }
+  });
+
   it("createWebhook adapter handles updates on existing http server", async () => {
     const bot = new Gramora({
       token: "123456789:ABCdefGHIjklMNOpqrsTUVwxyz",
