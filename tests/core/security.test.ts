@@ -372,4 +372,48 @@ describe("Security Log Redaction", () => {
       });
     }
   });
+
+  it("sets security headers and handles request errors in createWebhookHandler", async () => {
+    const bot = new Gramora({
+      token: "123456789:ABCdefGHIjklMNOpqrsTUVwxyz",
+      mode: "core",
+    });
+    vi.spyOn(bot.api, "getMe").mockResolvedValue({
+      id: 1,
+      is_bot: true,
+      first_name: "bot",
+      username: "bot_user",
+    });
+
+    const onRuntimeError = vi.fn();
+    bot.configure({
+      hooks: {
+        onRuntimeError,
+      },
+    } as any);
+
+    const webhook = await bot.createWebhook({
+      path: "/hook",
+    });
+
+    const port = 9950 + Math.floor(Math.random() * 50);
+    const server = createServer(webhook.handler);
+    await new Promise<void>((resolve) => server.listen(port, resolve));
+
+    try {
+      const response = await fetch(`http://127.0.0.1:${String(port)}/hook`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ update_id: 600, message: { text: "hi" } }),
+      });
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get("x-content-type-options")).toBe("nosniff");
+      expect(response.headers.get("x-frame-options")).toBe("DENY");
+    } finally {
+      await new Promise<void>((resolve, reject) => {
+        server.close((error) => (error ? reject(error) : resolve()));
+      });
+    }
+  });
 });
