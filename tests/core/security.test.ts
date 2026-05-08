@@ -390,7 +390,7 @@ describe("Security Log Redaction", () => {
       hooks: {
         onRuntimeError,
       },
-    } as any);
+    });
 
     const webhook = await bot.createWebhook({
       path: "/hook",
