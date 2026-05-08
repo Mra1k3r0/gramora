@@ -16,6 +16,8 @@ import type { SceneManager } from "../scenes";
 import type { Constructor } from "./types";
 import type { Message, MessageContentKind, MessageEntity, Update } from "../types/telegram";
 
+const EMPTY_FROZEN_ARRAY = Object.freeze([]);
+
 interface RegisteredController {
   instance: object;
   handlers: HandlerDefinition[];
@@ -336,7 +338,7 @@ export class UpdateRouter {
     if (!raw) return undefined;
 
     const tail = trimmed.slice(i).trim();
-    const args = tail === "" ? [] : tail.split(/\s+/);
+    const args = tail === "" ? (EMPTY_FROZEN_ARRAY as unknown as string[]) : tail.split(/\s+/);
 
     const atIndex = raw.indexOf("@");
     if (atIndex === -1) return { command: raw, fullCommand, args };
@@ -450,7 +452,7 @@ export class UpdateRouter {
           const commandName = parsedCommand.command;
           const commandRunners = this.commandHandlers.get(commandName);
           if (commandRunners) {
-            const sharedArgs = Object.freeze([...parsedCommand.args]);
+            const sharedArgs = Object.freeze(parsedCommand.args);
             for (const runner of commandRunners) {
               await this.runControllerRunner(
                 update,
@@ -524,7 +526,7 @@ export class UpdateRouter {
           const commandName = parsedCommand.command;
           const commandRunners = this.commandHandlers.get(commandName);
           if (commandRunners) {
-            const sharedArgs = Object.freeze([...parsedCommand.args]);
+            const sharedArgs = Object.freeze(parsedCommand.args);
             for (const runner of commandRunners) {
               await this.runControllerRunner(
                 update,
@@ -880,17 +882,26 @@ export class UpdateRouter {
    * to match the original framework behavior of using "global" as the chat key.
    */
   private getUpdateMetadata(update: Update): { kind: string; chatId?: number } {
+    // optimization: fast-path common update types to avoid property enumeration
     let kind = "unknown";
-    for (const key in update) {
-      if (
-        key === "update_id" ||
-        !Object.prototype.hasOwnProperty.call(update, key) ||
-        !update[key as keyof Update]
-      ) {
-        continue;
+    if (update.message) {
+      kind = "message";
+    } else if (update.callback_query) {
+      kind = "callback_query";
+    } else if (update.edited_message) {
+      kind = "edited_message";
+    } else {
+      for (const key in update) {
+        if (
+          key === "update_id" ||
+          !Object.prototype.hasOwnProperty.call(update, key) ||
+          !update[key as keyof Update]
+        ) {
+          continue;
+        }
+        kind = key;
+        break;
       }
-      kind = key;
-      break;
     }
 
     switch (kind) {
