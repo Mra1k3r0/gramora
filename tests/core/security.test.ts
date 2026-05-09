@@ -97,6 +97,25 @@ describe("Security Log Redaction", () => {
     expect(result).toContain("[MASKED]");
   });
 
+  it("should mask PII keys", () => {
+    const obj = {
+      email: "test@example.com",
+      phone: "+1234567890",
+      phoneNumber: "+0987654321",
+      cardnumber: "1234-5678-9012-3456",
+      cvv: "123",
+    };
+
+    const result = stringifyForLog(obj);
+
+    expect(result).not.toContain("test@example.com");
+    expect(result).not.toContain("+1234567890");
+    expect(result).not.toContain("+0987654321");
+    expect(result).not.toContain("1234-5678-9012-3456");
+    expect(result).not.toContain("123");
+    expect(result).toContain("[MASKED]");
+  });
+
   it("should include Error properties and redact them", () => {
     const secret = "error-secret-123";
     addRedactionToken(secret);
@@ -156,7 +175,7 @@ describe("Security Log Redaction", () => {
     expect(result).toContain("[REDACTED]");
   });
 
-  it("authorizes webhook requests with matching secret token", async () => {
+  it("authorizes webhook requests with matching secret token and security headers", async () => {
     const port = 9500 + Math.floor(Math.random() * 500);
     const transport = new WebhookTransport(async () => {});
     await transport.start({ port, path: "/webhook", secretToken: "expected-secret-token" });
@@ -172,6 +191,8 @@ describe("Security Log Redaction", () => {
       });
 
       expect(response.status).toBe(200);
+      expect(response.headers.get("x-content-type-options")).toBe("nosniff");
+      expect(response.headers.get("x-frame-options")).toBe("DENY");
     } finally {
       transport.stop();
     }
