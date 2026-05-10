@@ -372,4 +372,24 @@ describe("Security Log Redaction", () => {
       });
     }
   });
+
+  it("includes security headers in webhook responses", async () => {
+    const port = 9880 + Math.floor(Math.random() * 100);
+    const transport = new WebhookTransport(async () => {});
+    await transport.start({ port, path: "/hook" });
+
+    try {
+      const response = await fetch(`http://127.0.0.1:${String(port)}/hook`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ update_id: 1 }),
+      });
+
+      expect(response.headers.get("X-Content-Type-Options")).toBe("nosniff");
+      expect(response.headers.get("X-Frame-Options")).toBe("DENY");
+      expect(response.status).toBe(200);
+    } finally {
+      transport.stop();
+    }
+  });
 });
