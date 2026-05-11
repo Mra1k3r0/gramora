@@ -217,6 +217,7 @@ class Bot {
       const resolvedPath = resolvedPathRaw.startsWith("/")
         ? resolvedPathRaw
         : `/${resolvedPathRaw}`;
+      if (resolvedPath.length > 8) addRedactionToken(resolvedPath);
 
       if (webhookConfig.domain) {
         const normalizedBase = normalizeWebhookOrigin(webhookConfig.domain);
@@ -293,6 +294,7 @@ class Bot {
 
     const resolvedPathRaw = options?.path ?? this.webhookConfig?.path ?? this.secretPathComponent();
     const path = resolvedPathRaw.startsWith("/") ? resolvedPathRaw : `/${resolvedPathRaw}`;
+    if (path.length > 8) addRedactionToken(path);
     const domain = options?.domain ?? this.webhookConfig?.domain;
 
     const handler = createWebhookHandler({

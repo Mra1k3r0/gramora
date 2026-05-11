@@ -48,9 +48,32 @@ export function createWebhookHandler(options: {
   const allowedContentTypes = options.allowedContentTypes ?? ["application/json"];
 
   return (req: IncomingMessage, res: ServerResponse) => {
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("X-Frame-Options", "DENY");
+
     let responded = false;
+
+    req.on("error", (err) => {
+      if (responded) return;
+      options.onRuntimeError?.(
+        {
+          source: "webhook",
+          class: "network",
+          retryable: false,
+          message: err.message,
+          timestamp: Date.now(),
+        },
+        err,
+      );
+      if (!res.writableEnded) {
+        res.statusCode = 500;
+        res.end("internal server error");
+      }
+      responded = true;
+    });
+
     const pathOnly = (req.url ?? "").split("?")[0] ?? "";
-    if (req.method !== "POST" || pathOnly !== targetPath) {
+    if (req.method !== "POST" || !timingSafeSecretEqual(pathOnly, targetPath)) {
       options.onReject?.("path", req);
       res.statusCode = 404;
       responded = true;
