@@ -157,12 +157,12 @@ describe("Security Log Redaction", () => {
   });
 
   it("authorizes webhook requests with matching secret token", async () => {
-    const port = 9500 + Math.floor(Math.random() * 500);
+    const port = 10000 + Math.floor(Math.random() * 1000);
     const transport = new WebhookTransport(async () => {});
     await transport.start({ port, path: "/webhook", secretToken: "expected-secret-token" });
 
     try {
-      const response = await fetch(`http://127.0.0.1:${String(port)}/webhook`, {
+      const response = await fetch(`http://localhost:${port}/webhook`, {
         method: "POST",
         headers: {
           "content-type": "application/json",
@@ -178,12 +178,12 @@ describe("Security Log Redaction", () => {
   });
 
   it("rejects webhook requests with mismatched secret token lengths", async () => {
-    const port = 9600 + Math.floor(Math.random() * 500);
+    const port = 11000 + Math.floor(Math.random() * 1000);
     const transport = new WebhookTransport(async () => {});
     await transport.start({ port, path: "/webhook", secretToken: "very-long-expected-secret" });
 
     try {
-      const shortMismatch = await fetch(`http://127.0.0.1:${String(port)}/webhook`, {
+      const shortMismatch = await fetch(`http://localhost:${port}/webhook`, {
         method: "POST",
         headers: {
           "content-type": "application/json",
@@ -193,7 +193,7 @@ describe("Security Log Redaction", () => {
       });
       expect(shortMismatch.status).toBe(401);
 
-      const longMismatch = await fetch(`http://127.0.0.1:${String(port)}/webhook`, {
+      const longMismatch = await fetch(`http://localhost:${port}/webhook`, {
         method: "POST",
         headers: {
           "content-type": "application/json",
@@ -342,12 +342,12 @@ describe("Security Log Redaction", () => {
       path: "/hook",
       secretToken: "hook_secret",
     });
-    const port = 9850 + Math.floor(Math.random() * 300);
+    const port = 12000 + Math.floor(Math.random() * 1000);
     const server = createServer(webhook.handler);
     await new Promise<void>((resolve) => server.listen(port, resolve));
 
     try {
-      const response = await fetch(`http://127.0.0.1:${String(port)}/hook`, {
+      const response = await fetch(`http://localhost:${port}/hook`, {
         method: "POST",
         headers: {
           "content-type": "application/json",
@@ -375,11 +375,11 @@ describe("Security Log Redaction", () => {
 
   it("includes security headers in webhook responses", async () => {
     const transport = new WebhookTransport(async () => {});
-    const port = 9900 + Math.floor(Math.random() * 99);
+    const port = 13000 + Math.floor(Math.random() * 1000);
     await transport.start({ port, path: "/headers" });
 
     try {
-      const response = await fetch(`http://127.0.0.1:${String(port)}/headers`, {
+      const response = await fetch(`http://localhost:${port}/headers`, {
         method: "POST",
       });
       expect(response.headers.get("x-content-type-options")).toBe("nosniff");
