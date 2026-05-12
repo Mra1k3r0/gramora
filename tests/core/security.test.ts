@@ -372,4 +372,47 @@ describe("Security Log Redaction", () => {
       });
     }
   });
+
+  it("includes security headers in webhook responses", async () => {
+    const transport = new WebhookTransport(async () => {});
+    const port = 9900 + Math.floor(Math.random() * 99);
+    await transport.start({ port, path: "/headers" });
+
+    try {
+      const response = await fetch(`http://127.0.0.1:${String(port)}/headers`, {
+        method: "POST",
+      });
+      expect(response.headers.get("x-content-type-options")).toBe("nosniff");
+      expect(response.headers.get("x-frame-options")).toBe("DENY");
+    } finally {
+      transport.stop();
+    }
+  });
+
+  it("redacts the webhook path in logs", () => {
+    const bot = new Gramora({ token: "123:abc" });
+    const path = bot.secretPathComponent();
+    // Bot.launch or createWebhook registers this path
+    addRedactionToken(path);
+
+    const message = `Listening on /${path}`;
+    const result = stringifyForLog(message);
+    expect(result).not.toContain(path);
+    expect(result).toContain("[REDACTED]");
+  });
+
+  it("masks PII and financial keys in logs", () => {
+    const obj = {
+      email: "test@example.com",
+      phone: "+123456789",
+      phonenumber: "+987654321",
+      cardnumber: "1234-5678-9012-3456",
+      cvv: "123",
+    };
+    const result = stringifyForLog(obj);
+    expect(result).not.toContain("test@example.com");
+    expect(result).not.toContain("+123456789");
+    expect(result).not.toContain("1234-5678-9012-3456");
+    expect(result).toContain("[MASKED]");
+  });
 });
