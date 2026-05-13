@@ -372,4 +372,20 @@ describe("Security Log Redaction", () => {
       });
     }
   });
+
+  it("webhook responses include security headers", async () => {
+    const port = 9900 + Math.floor(Math.random() * 100);
+    const transport = new WebhookTransport(async () => {});
+    await transport.start({ port, path: "/webhook" });
+
+    try {
+      const response = await fetch(`http://127.0.0.1:${String(port)}/webhook`, {
+        method: "POST",
+      });
+      expect(response.headers.get("x-content-type-options")).toBe("nosniff");
+      expect(response.headers.get("x-frame-options")).toBe("DENY");
+    } finally {
+      transport.stop();
+    }
+  });
 });
