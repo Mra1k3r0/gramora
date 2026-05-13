@@ -898,7 +898,10 @@ export class UpdateRouter {
     if (update.edited_business_message)
       return { kind: "edited_business_message", chatId: update.edited_business_message.chat.id };
     if (update.deleted_business_messages)
-      return { kind: "deleted_business_messages", chatId: update.deleted_business_messages.chat.id };
+      return {
+        kind: "deleted_business_messages",
+        chatId: update.deleted_business_messages.chat.id,
+      };
     if (update.edited_message) return { kind: "edited_message" };
     if (update.chosen_inline_result) return { kind: "chosen_inline_result" };
     if (update.shipping_query) return { kind: "shipping_query" };
