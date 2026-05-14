@@ -1,0 +1,3 @@
+## 2025-05-15 - Update Metadata & Command Argument Optimization
+learning: Property enumeration via `for...in` on the `Update` object during `getUpdateMetadata` and redundant array cloning/freezing for command arguments were significant sources of overhead in the hot path. Replacing the loop with an `if-chain` for common types and using a shared `EMPTY_FROZEN_ARRAY` for empty arguments (while reusing pre-frozen arrays from `parseCommand`) measurably improves throughput.
+action: Prioritize `if-chain` or direct property access over `for...in` for fixed-schema objects like Telegram Updates in performance-critical paths. Reuse frozen structures instead of cloning them when they are intended to be read-only across handlers.
