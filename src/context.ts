@@ -93,6 +93,8 @@ const DEFAULT_ASYNC_METHODS = {
   next: async () => {},
 };
 
+export const EMPTY_FROZEN_ARRAY = Object.freeze([]) as unknown as string[];
+
 export interface BaseContextOptions {
   update: Update;
   api: ApiClient;
@@ -842,7 +844,7 @@ export class CommandContext<C extends string = string> extends BaseContext {
       const trimmed = text.trim();
       if (!trimmed) {
         this.command = "" as C;
-        this.args = [];
+        this.args = EMPTY_FROZEN_ARRAY;
       } else {
         let i = 0;
         while (i < trimmed.length && !/\s/.test(trimmed[i])) {
@@ -850,7 +852,7 @@ export class CommandContext<C extends string = string> extends BaseContext {
         }
         this.command = trimmed.slice(0, i) as C;
         const rest = trimmed.slice(i).trim();
-        this.args = rest ? Object.freeze(rest.split(/\s+/)) : Object.freeze([]);
+        this.args = rest ? Object.freeze(rest.split(/\s+/)) : EMPTY_FROZEN_ARRAY;
       }
     }
   }
