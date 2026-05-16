@@ -1,5 +1,6 @@
 import type { ApiClient } from "./core/api/client";
 import { ValidationError } from "./core/errors";
+
 import {
   GramClient,
   type AnimationOptions,
@@ -57,6 +58,9 @@ import type {
   ReplyMarkup,
   Update,
 } from "./types/telegram";
+
+/** shared empty frozen array to avoid redundant allocations in hot paths */
+export const EMPTY_FROZEN_ARRAY = Object.freeze([]) as unknown as string[];
 
 export interface AnswerCallbackOptions {
   text?: string;
@@ -842,7 +846,8 @@ export class CommandContext<C extends string = string> extends BaseContext {
       const trimmed = text.trim();
       if (!trimmed) {
         this.command = "" as C;
-        this.args = [];
+        // share empty array to avoid allocations
+        this.args = EMPTY_FROZEN_ARRAY;
       } else {
         let i = 0;
         while (i < trimmed.length && !/\s/.test(trimmed[i])) {
@@ -850,7 +855,8 @@ export class CommandContext<C extends string = string> extends BaseContext {
         }
         this.command = trimmed.slice(0, i) as C;
         const rest = trimmed.slice(i).trim();
-        this.args = rest ? Object.freeze(rest.split(/\s+/)) : Object.freeze([]);
+        // freeze result to allow safe sharing across multiple handlers
+        this.args = rest ? Object.freeze(rest.split(/\s+/)) : EMPTY_FROZEN_ARRAY;
       }
     }
   }

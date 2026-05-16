@@ -4,6 +4,7 @@ import {
   CallbackContext,
   CommandContext,
   ConversationControl,
+  EMPTY_FROZEN_ARRAY,
   InlineContext,
   MessageContext,
   SceneContext,
@@ -315,7 +316,9 @@ export class UpdateRouter {
 
   private parseCommand(
     text?: string,
-  ): { command: string; mention?: string; fullCommand: string; args: string[] } | undefined {
+  ):
+    | { command: string; mention?: string; fullCommand: string; args: readonly string[] }
+    | undefined {
     if (!text) return undefined;
     const trimmed = text.startsWith("/") ? text : text.trimStart();
     if (!trimmed.startsWith("/")) return undefined;
@@ -336,7 +339,8 @@ export class UpdateRouter {
     if (!raw) return undefined;
 
     const tail = trimmed.slice(i).trim();
-    const args = tail === "" ? [] : tail.split(/\s+/);
+    // share empty array or freeze split result to allow safe reuse without cloning
+    const args = tail === "" ? EMPTY_FROZEN_ARRAY : Object.freeze(tail.split(/\s+/));
 
     const atIndex = raw.indexOf("@");
     if (atIndex === -1) return { command: raw, fullCommand, args };
@@ -450,7 +454,7 @@ export class UpdateRouter {
           const commandName = parsedCommand.command;
           const commandRunners = this.commandHandlers.get(commandName);
           if (commandRunners) {
-            const sharedArgs = Object.freeze([...parsedCommand.args]);
+            const sharedArgs = parsedCommand.args;
             for (const runner of commandRunners) {
               await this.runControllerRunner(
                 update,
@@ -524,7 +528,7 @@ export class UpdateRouter {
           const commandName = parsedCommand.command;
           const commandRunners = this.commandHandlers.get(commandName);
           if (commandRunners) {
-            const sharedArgs = Object.freeze([...parsedCommand.args]);
+            const sharedArgs = parsedCommand.args;
             for (const runner of commandRunners) {
               await this.runControllerRunner(
                 update,
@@ -881,16 +885,25 @@ export class UpdateRouter {
    */
   private getUpdateMetadata(update: Update): { kind: string; chatId?: number } {
     let kind = "unknown";
-    for (const key in update) {
-      if (
-        key === "update_id" ||
-        !Object.prototype.hasOwnProperty.call(update, key) ||
-        !update[key as keyof Update]
-      ) {
-        continue;
+
+    // fast path for common update types to avoid for...in overhead
+    if (update.message) kind = "message";
+    else if (update.callback_query) kind = "callback_query";
+    else if (update.edited_message) kind = "edited_message";
+    else if (update.business_message) kind = "business_message";
+    else if (update.inline_query) kind = "inline_query";
+    else {
+      for (const key in update) {
+        if (
+          key === "update_id" ||
+          !Object.prototype.hasOwnProperty.call(update, key) ||
+          !update[key as keyof Update]
+        ) {
+          continue;
+        }
+        kind = key;
+        break;
       }
-      kind = key;
-      break;
     }
 
     switch (kind) {
