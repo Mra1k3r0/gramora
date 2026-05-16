@@ -316,7 +316,9 @@ export class UpdateRouter {
 
   private parseCommand(
     text?: string,
-  ): { command: string; mention?: string; fullCommand: string; args: readonly string[] } | undefined {
+  ):
+    | { command: string; mention?: string; fullCommand: string; args: readonly string[] }
+    | undefined {
     if (!text) return undefined;
     const trimmed = text.startsWith("/") ? text : text.trimStart();
     if (!trimmed.startsWith("/")) return undefined;
