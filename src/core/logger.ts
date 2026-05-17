@@ -63,6 +63,12 @@ const SENSITIVE_KEYS = new Set([
   "setcookie",
   "credential",
   "credentials",
+  // pii and pci fields should always be masked
+  "email",
+  "phone",
+  "phonenumber",
+  "cardnumber",
+  "cvv",
 ]);
 
 /** Registers a sensitive token (like the bot token) to be replaced with [REDACTED] in all logs. */
