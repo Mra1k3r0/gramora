@@ -316,7 +316,9 @@ export class UpdateRouter {
 
   private parseCommand(
     text?: string,
-  ): { command: string; mention?: string; fullCommand: string; args: readonly string[] } | undefined {
+  ):
+    | { command: string; mention?: string; fullCommand: string; args: readonly string[] }
+    | undefined {
     if (!text) return undefined;
     const trimmed = text.startsWith("/") ? text : text.trimStart();
     if (!trimmed.startsWith("/")) return undefined;
@@ -898,7 +900,10 @@ export class UpdateRouter {
     if (update.edited_business_message)
       return { kind: "edited_business_message", chatId: update.edited_business_message.chat.id };
     if (update.deleted_business_messages)
-      return { kind: "deleted_business_messages", chatId: update.deleted_business_messages.chat.id };
+      return {
+        kind: "deleted_business_messages",
+        chatId: update.deleted_business_messages.chat.id,
+      };
 
     if (update.inline_query) return { kind: "inline_query" };
     if (update.chosen_inline_result) return { kind: "chosen_inline_result" };
