@@ -145,7 +145,18 @@ export class SceneManager {
       }
       return false;
     }
-    await steps[stepIndex](ctx);
+    try {
+      await steps[stepIndex](ctx);
+    } catch (error) {
+      const current = await this.sessionStore.get(chatKey);
+      if (current?.conversation) {
+        const rest = { ...current };
+        delete rest.conversation;
+        if (Object.keys(rest).length === 0) await this.sessionStore.delete(chatKey);
+        else await this.sessionStore.set(chatKey, rest as SessionRecord);
+      }
+      throw error;
+    }
     return true;
   }
 
@@ -164,7 +175,18 @@ export class SceneManager {
     >;
     const fn = instance[handler.methodName];
     if (typeof fn !== "function") return false;
-    await fn.call(instance, ctx);
+    try {
+      await fn.call(instance, ctx);
+    } catch (error) {
+      const current = await this.sessionStore.get(chatKey);
+      if (current?.scene) {
+        const rest = { ...current };
+        delete rest.scene;
+        if (Object.keys(rest).length === 0) await this.sessionStore.delete(chatKey);
+        else await this.sessionStore.set(chatKey, rest as SessionRecord);
+      }
+      throw error;
+    }
     return true;
   }
 }

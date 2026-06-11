@@ -40,7 +40,7 @@ export class RateLimitError extends TelegramApiError {
     public readonly retryAfter: number,
     method?: string,
   ) {
-    super(message, 429, method);
+    super(message, 429, method, { httpStatus: 429 });
     this.name = "RateLimitError";
   }
 }

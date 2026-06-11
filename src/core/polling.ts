@@ -166,6 +166,7 @@ export function createWebhookHandler(options: {
 export class PollingTransport {
   private running = false;
   private offset?: number;
+  private abortController?: AbortController;
 
   /**
    * @param api - API client for getUpdates
@@ -186,17 +187,21 @@ export class PollingTransport {
 
   async start(options?: { timeout?: number; limit?: number; allowedUpdates?: string[] }) {
     this.running = true;
+    this.abortController = new AbortController();
     let retryDelayMs = this.options?.retryBaseMs ?? 1000;
     const maxRetryDelayMs = this.options?.retryMaxMs ?? 30000;
 
     while (this.running) {
       try {
-        const updates = await this.api.getUpdates({
-          offset: this.offset,
-          timeout: options?.timeout ?? 20,
-          limit: options?.limit,
-          allowed_updates: options?.allowedUpdates,
-        });
+        const updates = await this.api.getUpdates(
+          {
+            offset: this.offset,
+            timeout: options?.timeout ?? 20,
+            limit: options?.limit,
+            allowed_updates: options?.allowedUpdates,
+          },
+          { signal: this.abortController.signal },
+        );
 
         retryDelayMs = 1000;
         for (const update of updates) {
@@ -241,6 +246,7 @@ export class PollingTransport {
 
   stop() {
     this.running = false;
+    this.abortController?.abort();
   }
 }
 
@@ -268,7 +274,8 @@ export class WebhookTransport {
     });
     const server = createServer(handler);
 
-    await new Promise<void>((resolve) => {
+    await new Promise<void>((resolve, reject) => {
+      server.on("error", reject);
       server.listen(options.port, resolve);
     });
     this.closeServer = () => server.close();

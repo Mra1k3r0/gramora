@@ -283,7 +283,7 @@ export class ApiClient {
       ([key, value]) => UPLOAD_FIELDS.has(key) && this.isUploadObject(value),
     );
     if (!needsMultipart) {
-      return { body: JSON.stringify(params), isMultipart: false };
+      return { body: JSON.stringify(Object.fromEntries(entries)), isMultipart: false };
     }
 
     const form = new FormData();
@@ -295,6 +295,10 @@ export class ApiClient {
       }
       if (typeof value === "object" && value !== null && !(value instanceof Uint8Array)) {
         form.append(key, JSON.stringify(value));
+        continue;
+      }
+      if (value instanceof Uint8Array) {
+        form.append(key, new Blob([this.toSafeArrayBuffer(value)]));
         continue;
       }
       form.append(key, String(value));
@@ -312,6 +316,7 @@ export class ApiClient {
   async call<M extends TelegramMethodName>(
     method: M,
     params?: TelegramApiMethods[M]["params"],
+    options?: { signal?: AbortSignal },
   ): Promise<TelegramApiMethods[M]["result"]> {
     const startedAt = Date.now();
     const longPollTimeoutSec =
@@ -340,7 +345,10 @@ export class ApiClient {
         "User-Agent": this.network.userAgent,
         ...(body.isMultipart ? {} : { "Content-Type": "application/json" }),
       };
-      const signal = AbortSignal.timeout(requestTimeoutMs);
+      const timeoutSignal = AbortSignal.timeout(requestTimeoutMs);
+      const signal = options?.signal
+        ? AbortSignal.any([timeoutSignal, options.signal])
+        : timeoutSignal;
       const url = `${this.endpoint}/${String(method)}`;
       const response = await this.postBotApi(url, {
         headers,
@@ -415,8 +423,11 @@ export class ApiClient {
   getMe() {
     return this.call("getMe");
   }
-  getUpdates(params: TelegramApiMethods["getUpdates"]["params"]) {
-    return this.call("getUpdates", params);
+  getUpdates(
+    params: TelegramApiMethods["getUpdates"]["params"],
+    options?: { signal?: AbortSignal },
+  ) {
+    return this.call("getUpdates", params, options);
   }
   sendMessage(params: TelegramApiMethods["sendMessage"]["params"]) {
     return this.call("sendMessage", params);

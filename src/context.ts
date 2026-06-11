@@ -233,7 +233,7 @@ export class BaseContext {
 
   get chatId(): number | undefined {
     if (this._chatId !== undefined) return this._chatId;
-    this._chatId =
+    const id =
       this.message?.chat.id ??
       this.callbackQuery?.message?.chat.id ??
       this.chatMember?.chat.id ??
@@ -244,7 +244,8 @@ export class BaseContext {
       this.businessMessage?.chat.id ??
       this.editedBusinessMessage?.chat.id ??
       this.deletedBusinessMessages?.chat.id;
-    return this._chatId;
+    if (id !== undefined) this._chatId = id;
+    return id;
   }
   get fromId(): number | undefined {
     return (
@@ -416,7 +417,10 @@ export class BaseContext {
       return this.gram.editText({ text: textOrOptions, messageId: resolvedId, replyMarkup });
     }
     if (textOrOptions.messageId === undefined && !textOrOptions.inlineMessageId) {
-      textOrOptions.messageId = this.callbackQuery?.message?.message_id;
+      return this.gram.editText({
+        ...textOrOptions,
+        messageId: this.callbackQuery?.message?.message_id,
+      });
     }
     return this.gram.editText(textOrOptions);
   }
@@ -429,7 +433,10 @@ export class BaseContext {
       return this.gram.editCaption({ caption: captionOrOptions, messageId: resolvedId });
     }
     if (captionOrOptions.messageId === undefined && !captionOrOptions.inlineMessageId) {
-      captionOrOptions.messageId = this.callbackQuery?.message?.message_id;
+      return this.gram.editCaption({
+        ...captionOrOptions,
+        messageId: this.callbackQuery?.message?.message_id,
+      });
     }
     return this.gram.editCaption(captionOrOptions);
   }
@@ -445,7 +452,10 @@ export class BaseContext {
       return this.gram.editReplyMarkup({ replyMarkup: markupOrOptions, messageId: resolvedId });
     }
     if (markupOrOptions.messageId === undefined && !markupOrOptions.inlineMessageId) {
-      markupOrOptions.messageId = this.callbackQuery?.message?.message_id;
+      return this.gram.editReplyMarkup({
+        ...markupOrOptions,
+        messageId: this.callbackQuery?.message?.message_id,
+      });
     }
     return this.gram.editReplyMarkup(markupOrOptions);
   }
@@ -458,7 +468,10 @@ export class BaseContext {
       return this.gram.editMedia({ media: mediaOrOptions, messageId: resolvedId });
     }
     if (mediaOrOptions.messageId === undefined && !mediaOrOptions.inlineMessageId) {
-      mediaOrOptions.messageId = this.callbackQuery?.message?.message_id;
+      return this.gram.editMedia({
+        ...mediaOrOptions,
+        messageId: this.callbackQuery?.message?.message_id,
+      });
     }
     return this.gram.editMedia(mediaOrOptions);
   }
@@ -848,7 +861,9 @@ export class CommandContext<C extends string = string> extends BaseContext {
         while (i < trimmed.length && !/\s/.test(trimmed[i])) {
           i++;
         }
-        this.command = trimmed.slice(0, i) as C;
+        const fullToken = trimmed.slice(0, i);
+        const atIndex = fullToken.indexOf("@");
+        this.command = (atIndex === -1 ? fullToken : fullToken.slice(0, atIndex)) as C;
         const rest = trimmed.slice(i).trim();
         this.args = rest ? Object.freeze(rest.split(/\s+/)) : Object.freeze([]);
       }

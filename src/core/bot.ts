@@ -47,6 +47,7 @@ class Bot {
   private webhookConfig?: BotWebhookConfig;
   private debugEnabled: boolean;
   private initialized = false;
+  private initializing?: Promise<void>;
 
   /**
    * @param options.token - Required; other fields optional (polling, proxy, `mode`, …)
@@ -203,6 +204,9 @@ class Bot {
    * @throws {Error} Webhook transport when neither `options.webhook` nor `configureWebhook` was set
    */
   async launch(options?: LaunchOptions) {
+    if (this.polling || this.webhook) {
+      throw new Error("Bot is already running. Call stop() before re-launching.");
+    }
     await this.initializeRuntime();
 
     const transport = options?.transport ?? "polling";
@@ -453,6 +457,13 @@ class Bot {
 
   private async initializeRuntime() {
     if (this.initialized) return;
+    if (this.initializing) return this.initializing;
+    this.initializing = this._doInitialize();
+    await this.initializing;
+    this.initializing = undefined;
+  }
+
+  private async _doInitialize() {
     const started = Date.now();
     let me: User;
     try {

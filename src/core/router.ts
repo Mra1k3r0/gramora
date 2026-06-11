@@ -364,7 +364,8 @@ export class UpdateRouter {
         this.onKindHandlers.set(trigger, current);
       }
     } else if (handler.kind === "callback_query") {
-      const isLiteral = Boolean(handler.trigger) && !/[.+*?^${}()|[\]\\]/.test(handler.trigger!);
+      const isLiteral =
+        handler.trigger !== undefined && !/[.+*?^${}()|[\]\\]/.test(handler.trigger);
       if (isLiteral) {
         const trigger = handler.trigger!;
         const current = this.callbackLiteralHandlers.get(trigger) ?? [];
@@ -414,7 +415,7 @@ export class UpdateRouter {
         middleware: [...controller.classMiddleware, ...handler.middleware],
         guards: handler.guards,
         callbackRegex:
-          handler.kind === "callback_query" && handler.trigger
+          handler.kind === "callback_query" && handler.trigger !== undefined
             ? this.toRegex(handler.trigger)
             : undefined,
         run: async (ctx) => method.call(controller.instance, ctx),

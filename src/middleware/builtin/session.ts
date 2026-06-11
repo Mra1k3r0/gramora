@@ -74,10 +74,14 @@ export function session<T extends Record<string, unknown> = Record<string, unkno
       await next();
     } finally {
       const current = entry.value;
-      if (Object.keys(current).length === 0) {
-        await options.store.delete(key);
-      } else {
-        await options.store.set(key, current);
+      try {
+        if (Object.keys(current).length === 0) {
+          await options.store.delete(key);
+        } else {
+          await options.store.set(key, current);
+        }
+      } catch {
+        // store write failed — still clean up cache refs
       }
 
       entry.refs -= 1;

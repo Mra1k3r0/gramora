@@ -9,9 +9,17 @@ export const errorHandler = (
     try {
       await next();
     } catch (error) {
-      if (onError) await onError(error, ctx);
-      else log("error", "mw.error", stringifyForLog(error));
-      if (ctx.chatId) await ctx.reply("Something went wrong while processing your request.");
+      try {
+        if (onError) await onError(error, ctx);
+        else log("error", "mw.error", stringifyForLog(error));
+      } catch {
+        log("error", "mw.error", "onError callback itself threw");
+      }
+      try {
+        if (ctx.chatId) await ctx.reply("Something went wrong while processing your request.");
+      } catch {
+        // ignore: reply failed (e.g. deleted chat, network issue)
+      }
     }
   };
 };
