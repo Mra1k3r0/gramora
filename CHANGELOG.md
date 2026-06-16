@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.4.0](https://github.com/Mra1k3r0/gramora/compare/v0.3.0...v0.4.0) (2026-06-16)
+
+### What's Changed
+
+- fixed harden transport, session, and context handling — [`323f608`](https://github.com/Mra1k3r0/gramora/commit/323f60883542f2e22cfb39c5beae36035840d0ee)
+- fixed remove redundant default assignments in location and contact — [`8efb26d`](https://github.com/Mra1k3r0/gramora/commit/8efb26d1bb61ce0b98b4745fe166e54c8e257e99)
+- improved redundant allocations in update hot path ([#50](https://github.com/Mra1k3r0/gramora/issues/50)) — [`b77d259`](https://github.com/Mra1k3r0/gramora/commit/b77d2593c9506420e654d12b7f74b2409ba4050c)
+- fixed escape github releaseBodyTemplate newline and linkify squash-merge (#nn) in changelog — [`6c0cf76`](https://github.com/Mra1k3r0/gramora/commit/6c0cf76424f8cc5419478c0f573b0b5f04178378)
+- added align Telegram Bot API types with 9.6–10.1 — [`5cc9863`](https://github.com/Mra1k3r0/gramora/commit/5cc98630456babf8e3038c7a0923571402dbbdd1)
+- added missing Bot API 9.6–10.1 type fields — [`cf122ba`](https://github.com/Mra1k3r0/gramora/commit/cf122ba6a0b8b34117c6d0b5e6467bbf4f22c287)
+
 ## [0.3.0](https://github.com/Mra1k3r0/gramora/compare/v0.2.0...v0.3.0) (2026-05-05)
 
 ### What's Changed
