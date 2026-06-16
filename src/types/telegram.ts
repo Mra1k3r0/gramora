@@ -5,6 +5,18 @@ export interface User {
   last_name?: string;
   username?: string;
   language_code?: string;
+  is_premium?: true;
+  added_to_attachment_menu?: true;
+  can_join_groups?: boolean;
+  can_read_all_group_messages?: boolean;
+  supports_inline_queries?: boolean;
+  can_connect_to_business?: boolean;
+  has_main_web_app?: boolean;
+  has_topics_enabled?: true;
+  allows_users_to_create_topics?: true;
+  can_manage_bots?: true;
+  supports_guest_queries?: true;
+  supports_join_request_queries?: true;
 }
 
 export type ChatType = "private" | "group" | "supergroup" | "channel";
@@ -67,18 +79,304 @@ export interface MessageEntity {
     | "spoiler"
     | "code"
     | "pre"
-    | "text_link";
+    | "text_link"
+    | "text_mention"
+    | "custom_emoji"
+    | "blockquote"
+    | "expandable_blockquote"
+    | "date_time";
   offset: number;
   length: number;
   url?: string;
+  user?: User;
+  language?: string;
+  custom_emoji_id?: string;
 }
+
+export type MessageOrigin =
+  | { type: "user"; date: number; from: User; sender_chat?: Chat }
+  | { type: "chat"; date: number; sender_chat: Chat; author_signature?: string }
+  | { type: "channel"; date: number; chat: Chat; message_id: number; author_signature?: string }
+  | { type: "hidden_user"; date: number; sender_user_name: string }
+  | { type: "chat"; date: number; chat: Chat; author_signature?: string };
+
+export interface TextQuote {
+  text: string;
+  entities?: MessageEntity[];
+  position?: number;
+  is_disabled?: boolean;
+}
+
+export interface ExternalReplyInfo {
+  origin: MessageOrigin;
+  chat?: Chat;
+  message_id?: number;
+  link_preview_options?: LinkPreviewOptions;
+  animation?: Animation;
+  audio?: Audio;
+  document?: Document;
+  photo?: PhotoSize[];
+  sticker?: Sticker;
+  story?: Story;
+  video?: Video;
+  video_note?: VideoNote;
+  voice?: Voice;
+  has_media_spoiler?: boolean;
+}
+
+export interface Story {
+  chat: Chat;
+  id: number;
+}
+
+export interface LinkPreviewOptions {
+  is_disabled?: boolean;
+  url?: string;
+  prefer_small_media?: boolean;
+  prefer_large_media?: boolean;
+  show_above_text?: boolean;
+}
+
+export interface SuggestedPostInfo {
+  price?: SuggestedPostPrice;
+}
+
+export interface SuggestedPostPrice {
+  amount: number;
+  currency: string;
+}
+
+export interface LivePhoto {
+  small_file_id: string;
+  small_file_unique_id: string;
+  large_file_id: string;
+  large_file_unique_id: string;
+}
+
+export interface Checklist {
+  title: string;
+  title_entities?: MessageEntity[];
+  tasks: ChecklistTask[];
+  others_can_add_tasks?: boolean;
+  others_can_mark_tasks_as_done?: boolean;
+}
+
+export interface ChecklistTask {
+  id: number;
+  text: string;
+  text_entities?: MessageEntity[];
+  is_done?: boolean;
+  is_blocked?: boolean;
+  done_by_user?: User;
+  done_by_chat?: Chat;
+  completion_date?: number;
+}
+
+export interface ChatOwnerLeft {
+  user: User;
+}
+
+export interface ChatOwnerChanged {
+  from: User;
+  date: number;
+}
+
+export interface MessageAutoDeleteTimerChanged {
+  message_auto_delete_time: number;
+}
+
+export interface Dice {
+  emoji: string;
+  value: number;
+}
+
+export interface Game {
+  title: string;
+  description: string;
+  photo: PhotoSize[];
+  text?: string;
+  text_entities?: MessageEntity[];
+  animation?: Animation;
+}
+
+export interface Venue {
+  location: Location;
+  title: string;
+  address: string;
+  foursquare_id?: string;
+  foursquare_type?: string;
+  google_place_id?: string;
+  google_place_type?: string;
+}
+
+export interface VideoNote {
+  file_id: string;
+  file_unique_id: string;
+  length: number;
+  duration: number;
+  thumbnail?: PhotoSize;
+  file_size?: number;
+}
+
+export interface GiftInfo {
+  gift: Gift;
+  owner?: User;
+  origin?: string;
+  is_upgrade_separate?: boolean;
+  is_saved?: boolean;
+  is_transferred?: boolean;
+  can_be_upgraded?: boolean;
+  was_refunded?: boolean;
+  text?: string;
+  text_entities?: MessageEntity[];
+}
+
+export interface UniqueGiftInfo {
+  gift: UniqueGift;
+  origin: string;
+  last_resale_currency?: string;
+  last_resale_amount?: number;
+  next_transfer_date?: number;
+  owned_since?: number;
+}
+
+export interface Gift {
+  id: string;
+  sticker: Sticker;
+  star_count: number;
+  upgrade_star_count?: number;
+  total_count?: number;
+  remaining_count?: number;
+  last_resale_star_count?: number;
+  publisher_chat?: Chat;
+  has_colors?: boolean;
+  colors?: UniqueGiftColors;
+  unique_gift_variant_count?: number;
+  is_premium?: boolean;
+}
+
+export interface UniqueGift {
+  base_sticker: Sticker;
+  name: string;
+  number: number;
+  model: UniqueGiftModel;
+  symbol: UniqueGiftSymbol;
+  backdrop: UniqueGiftBackdrop;
+  owner?: User;
+  origin?: string;
+  gift_id?: string;
+  is_from_blockchain?: boolean;
+  is_premium?: boolean;
+  rarity?: number;
+  is_burned?: boolean;
+  colors?: UniqueGiftColors;
+  unique_gift_number?: number;
+}
+
+export interface UniqueGiftModel {
+  name: string;
+  sticker: Sticker;
+  rarity?: number;
+}
+
+export interface UniqueGiftSymbol {
+  name: string;
+  sticker: Sticker;
+  rarity?: number;
+}
+
+export interface UniqueGiftBackdrop {
+  name: string;
+  center_color: number;
+  edge_color: number;
+  pattern_color: number;
+  rarity?: number;
+}
+
+export interface PaidMediaInfo {
+  star_count: number;
+  background_color?: string;
+  cover?: PaidMediaCover;
+}
+
+export type PaidMediaCover = PhotoSize | Video;
 
 export interface MessageBase {
   message_id: number;
+  message_thread_id?: number;
   date: number;
   chat: Chat;
   from?: User;
+  sender_chat?: Chat;
+  sender_boost_count?: number;
+  sender_business_bot?: User;
+  sender_tag?: string;
+  forward_origin?: MessageOrigin;
   reply_to_message?: Message;
+  external_reply?: ExternalReplyInfo;
+  quote?: TextQuote;
+  reply_to_story?: Story;
+  reply_to_checklist_task_id?: number;
+  reply_to_poll_option_id?: string;
+  via_bot?: User;
+  guest_bot_caller_user?: User;
+  guest_bot_caller_chat?: Chat;
+  guest_query_id?: string;
+  business_connection_id?: string;
+  edit_date?: number;
+  has_protected_content?: true;
+  is_from_offline?: true;
+  is_topic_message?: true;
+  is_automatic_forward?: true;
+  is_paid_post?: true;
+  media_group_id?: string;
+  author_signature?: string;
+  paid_star_count?: number;
+  text?: string;
+  entities?: MessageEntity[];
+  link_preview_options?: LinkPreviewOptions;
+  suggested_post_info?: SuggestedPostInfo;
+  effect_id?: string;
+  rich_message?: unknown;
+  animation?: Animation;
+  audio?: Audio;
+  document?: Document;
+  live_photo?: LivePhoto;
+  photo?: PhotoSize[];
+  sticker?: Sticker;
+  story?: Story;
+  video?: Video;
+  video_note?: VideoNote;
+  voice?: Voice;
+  caption?: string;
+  caption_entities?: MessageEntity[];
+  show_caption_above_media?: true;
+  has_media_spoiler?: true;
+  checklist?: Checklist;
+  contact?: Contact;
+  dice?: Dice;
+  game?: Game;
+  poll?: Poll;
+  venue?: Venue;
+  location?: Location;
+  new_chat_members?: User[];
+  left_chat_member?: User;
+  chat_owner_left?: ChatOwnerLeft;
+  chat_owner_changed?: ChatOwnerChanged;
+  new_chat_title?: string;
+  new_chat_photo?: PhotoSize[];
+  delete_chat_photo?: true;
+  group_chat_created?: true;
+  supergroup_chat_created?: true;
+  channel_chat_created?: true;
+  message_auto_delete_timer_changed?: MessageAutoDeleteTimerChanged;
+  pinned_message?: Message;
+  invoice?: Invoice;
+  successful_payment?: SuccessfulPayment;
+  gift?: GiftInfo;
+  unique_gift?: UniqueGiftInfo;
+  gift_upgrade_sent?: true;
+  paid_media?: PaidMediaInfo;
 }
 
 export interface TextMessage extends MessageBase {
@@ -115,6 +413,18 @@ export interface Video {
   file_name?: string;
   mime_type?: string;
   file_size?: number;
+}
+
+export interface Animation {
+  file_id: string;
+  file_unique_id: string;
+  width: number;
+  height: number;
+  duration: number;
+  file_name?: string;
+  mime_type?: string;
+  file_size?: number;
+  thumbnail?: PhotoSize;
 }
 
 export interface VideoMessage extends MessageBase {
@@ -172,18 +482,45 @@ export interface LocationMessage extends MessageBase {
 
 export interface PollOption {
   text: string;
+  text_entities?: MessageEntity[];
   voter_count: number;
+  media?: PollMedia;
+  persistent_id?: string;
+  added_by_user?: User;
+  added_by_chat?: Chat;
+  addition_date?: number;
+}
+
+export interface PollMedia {
+  photo?: PhotoSize[];
+  animation?: Animation;
+  video?: Video;
+  document?: Document;
+  emoji?: string;
 }
 
 export interface Poll {
   id: string;
   question: string;
+  question_entities?: MessageEntity[];
   options: PollOption[];
   total_voter_count: number;
   is_closed: boolean;
   is_anonymous: boolean;
   type: "regular" | "quiz";
   allows_multiple_answers: boolean;
+  correct_option_ids?: number[];
+  explanation?: string;
+  explanation_entities?: MessageEntity[];
+  open_period?: number;
+  close_date?: number;
+  allows_revoting?: boolean;
+  description?: string;
+  description_entities?: MessageEntity[];
+  media?: PollMedia;
+  explanation_media?: PollMedia;
+  members_only?: boolean;
+  country_codes?: string[];
 }
 
 export interface PollMessage extends MessageBase {
@@ -231,8 +568,11 @@ export interface ChosenInlineResult {
 
 export interface PollAnswer {
   poll_id: string;
-  user: User;
   option_ids: number[];
+  option_persistent_ids?: string[];
+  user: User;
+  voter_chat?: Chat;
+  date?: number;
 }
 
 /**
@@ -263,8 +603,21 @@ export interface Update {
 
 export interface InlineKeyboardButton {
   text: string;
-  callback_data?: string;
   url?: string;
+  callback_data?: string;
+  web_app?: WebAppInfo;
+  login_url?: LoginUrl;
+  inline_web_app?: WebAppInfo;
+  callback_game?: Record<string, unknown>;
+  pay?: boolean;
+  switch_inline_query?: string;
+  switch_inline_query_current_chat?: string;
+  switch_inline_query_chosen_chat?: SwitchInlineQueryChosenChat;
+  copy_text?: CopyTextButton;
+  forward_text?: string;
+  callback_url?: string;
+  icon_custom_emoji_id?: string;
+  style?: "primary" | "secondary";
 }
 
 export interface InlineKeyboardMarkup {
@@ -315,6 +668,69 @@ export interface ChatPermissions {
   can_invite_users?: boolean;
   can_pin_messages?: boolean;
   can_manage_topics?: boolean;
+  can_react_to_messages?: boolean;
+}
+
+export interface Birthdate {
+  day: number;
+  month: number;
+  year?: number;
+}
+
+export interface BusinessIntro {
+  greeting_message?: string;
+  start_message?: string;
+  bio?: string;
+}
+
+export interface BusinessLocation {
+  location?: Location;
+  address: string;
+}
+
+export interface BusinessOpeningHoursInterval {
+  opening_minute: number;
+  closing_minute: number;
+}
+
+export interface BusinessOpeningHours {
+  opening_hours: BusinessOpeningHoursInterval[];
+}
+
+export interface ChatLocation {
+  location: Location;
+  address: string;
+}
+
+export interface UserRating {
+  rating: number;
+}
+
+export interface Audio {
+  file_id: string;
+  file_unique_id: string;
+  duration: number;
+  performer?: string;
+  title?: string;
+  file_name?: string;
+  mime_type?: string;
+  file_size?: number;
+  thumbnail?: PhotoSize;
+}
+
+export interface AcceptedGiftTypes {
+  unlimited_gifts: boolean;
+  limited_gifts: boolean;
+  unique_gifts: boolean;
+  premium_subscription: boolean;
+}
+
+export interface UniqueGiftColors {
+  name_color: string;
+  title_color: string;
+  pattern_color: string;
+  foreground_color: string;
+  background_color: string;
 }
 
 /** Rich chat object from getChat (subset of Bot API fields). */
@@ -337,6 +753,33 @@ export interface ChatFull extends Chat {
   sticker_set_name?: string;
   can_set_sticker_set?: boolean;
   linked_chat_id?: number;
+  max_reaction_count?: number;
+  birthdate?: Birthdate;
+  business_intro?: BusinessIntro;
+  business_location?: BusinessLocation;
+  business_opening_hours?: BusinessOpeningHours;
+  personal_chat?: Chat;
+  parent_chat?: Chat;
+  available_reactions?: ReactionType[];
+  background_custom_emoji_id?: string;
+  profile_accent_color_id?: number;
+  profile_background_custom_emoji_id?: string;
+  emoji_status_custom_emoji_id?: string;
+  emoji_status_expiration_date?: number;
+  has_private_forwards?: true;
+  has_restricted_voice_and_video_messages?: true;
+  join_to_send_messages?: true;
+  join_by_request?: true;
+  accepted_gift_types?: AcceptedGiftTypes;
+  can_send_paid_media?: true;
+  unrestrict_boost_count?: number;
+  custom_emoji_sticker_set_name?: string;
+  location?: ChatLocation;
+  rating?: UserRating;
+  first_profile_audio?: Audio;
+  unique_gift_colors?: UniqueGiftColors;
+  paid_message_star_count?: number;
+  guard_bot?: User;
 }
 
 export interface ChatAdministratorRights {
@@ -415,6 +858,7 @@ export interface ChatMemberRestricted extends ChatMemberBase {
   can_invite_users: boolean;
   can_pin_messages: boolean;
   can_manage_topics: boolean;
+  can_react_to_messages: boolean;
   until_date: number;
 }
 
@@ -504,6 +948,25 @@ export interface ForumTopic {
 
 export interface WebAppInfo {
   url: string;
+}
+
+export interface LoginUrl {
+  url: string;
+  forward_text?: string;
+  bot_username?: string;
+  request_write_access?: boolean;
+}
+
+export interface SwitchInlineQueryChosenChat {
+  query?: string;
+  allow_user_chats?: boolean;
+  allow_bot_chats?: boolean;
+  allow_group_chats?: boolean;
+  allow_channel_chats?: boolean;
+}
+
+export interface CopyTextButton {
+  text: string;
 }
 
 export type MenuButton =
