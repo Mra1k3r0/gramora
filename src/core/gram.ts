@@ -1430,17 +1430,13 @@ export class GramClient {
     longitude?: number,
     chatId?: number | string,
   ) {
-    const normalized: SendLocationOptions =
-      typeof latOrOptions === "number"
-        ? {
-            latitude: latOrOptions,
-            longitude: longitude ?? 0,
-            chatId,
-          }
-        : latOrOptions;
     if (typeof latOrOptions === "number" && longitude === undefined) {
       throw new Error("location() requires both latitude and longitude");
     }
+    const normalized: SendLocationOptions =
+      typeof latOrOptions === "number"
+        ? { latitude: latOrOptions, longitude: longitude!, chatId }
+        : latOrOptions;
     const targetChatId = normalized.chatId ?? this.options.chatId;
     if (targetChatId === undefined) {
       throw new Error("Missing chat id. Use gram.withChat(chatId).location(...).");
@@ -1509,13 +1505,13 @@ export class GramClient {
     firstName?: string,
     chatId?: number | string,
   ) {
-    const normalized: SendContactOptions =
-      typeof phoneOrOptions === "string"
-        ? { phoneNumber: phoneOrOptions, firstName: firstName ?? "", chatId }
-        : phoneOrOptions;
     if (typeof phoneOrOptions === "string" && firstName === undefined) {
       throw new Error("contact() requires both phoneNumber and firstName");
     }
+    const normalized: SendContactOptions =
+      typeof phoneOrOptions === "string"
+        ? { phoneNumber: phoneOrOptions, firstName: firstName!, chatId }
+        : phoneOrOptions;
     GramClient.assertLen(normalized.firstName, 64, "firstName");
     GramClient.assertLen(normalized.lastName, 64, "lastName");
     GramClient.assertLen(normalized.vcard, 2048, "vcard");
