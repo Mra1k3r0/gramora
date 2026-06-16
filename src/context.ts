@@ -43,7 +43,6 @@ import {
   type SendMediaGroupOptions,
   type UnbanMemberOptions,
 } from "./core/gram";
-import type { InputMediaPhoto } from "./types/api";
 import type { MessageForKind } from "./types/context";
 import type {
   ChatFull,
@@ -52,6 +51,7 @@ import type {
   InlineQueryResult,
   InputFile,
   InputMedia,
+  InputMediaPhoto,
   MessageContentKind,
   TextMessage,
   ReplyMarkup,

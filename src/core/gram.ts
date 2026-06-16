@@ -11,6 +11,7 @@ import type {
   InlineKeyboardMarkup,
   InputFile,
   InputMedia,
+  InputMediaPhoto,
   LabeledPrice,
   MenuButton,
   ForumTopic,
@@ -20,7 +21,6 @@ import type {
   StarAmount,
   StarTransactions,
 } from "../types/telegram";
-import type { InputMediaPhoto } from "../types/api";
 
 export interface GramClientOptions {
   chatId?: number | string;

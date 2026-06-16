@@ -11,6 +11,7 @@ import type {
   InlineKeyboardMarkup,
   InlineQueryResult,
   InputMedia,
+  InputMediaPhoto,
   LabeledPrice,
   MenuButton,
   Message,
@@ -296,13 +297,6 @@ export interface DeleteMyCommandsParams {
 export interface GetMyCommandsParams {
   scope?: BotCommandScope;
   language_code?: string;
-}
-
-export interface InputMediaPhoto {
-  type: "photo";
-  media: InputFile;
-  caption?: string;
-  parse_mode?: "Markdown" | "MarkdownV2" | "HTML";
 }
 
 export interface SendMediaGroupParams {
