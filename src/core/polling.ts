@@ -14,7 +14,7 @@ function headerSingleValue(value: string | string[] | undefined): string | undef
 }
 
 /** Compare webhook secret without early exit on first differing byte; uses hashing to avoid length leaks. */
-function timingSafeSecretEqual(incoming: string, expected: string): boolean {
+export function timingSafeSecretEqual(incoming: string, expected: string): boolean {
   const hashA = createHash("sha256").update(incoming).digest();
   const hashB = createHash("sha256").update(expected).digest();
   return timingSafeEqual(hashA, hashB);
@@ -50,7 +50,7 @@ export function createWebhookHandler(options: {
   return (req: IncomingMessage, res: ServerResponse) => {
     let responded = false;
     const pathOnly = (req.url ?? "").split("?")[0] ?? "";
-    if (req.method !== "POST" || pathOnly !== targetPath) {
+    if (req.method !== "POST" || !timingSafeSecretEqual(pathOnly, targetPath)) {
       options.onReject?.("path", req);
       res.statusCode = 404;
       responded = true;
