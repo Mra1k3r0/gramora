@@ -4,6 +4,7 @@ import {
   CallbackContext,
   CommandContext,
   ConversationControl,
+  EMPTY_FROZEN_ARRAY,
   InlineContext,
   MessageContext,
   SceneContext,
@@ -336,7 +337,7 @@ export class UpdateRouter {
     if (!raw) return undefined;
 
     const tail = trimmed.slice(i).trim();
-    const args = tail === "" ? [] : tail.split(/\s+/);
+    const args = tail === "" ? EMPTY_FROZEN_ARRAY : tail.split(/\s+/);
 
     const atIndex = raw.indexOf("@");
     if (atIndex === -1) return { command: raw, fullCommand, args };
@@ -882,16 +883,37 @@ export class UpdateRouter {
    */
   private getUpdateMetadata(update: Update): { kind: string; chatId?: number } {
     let kind = "unknown";
-    for (const key in update) {
-      if (
-        key === "update_id" ||
-        !Object.prototype.hasOwnProperty.call(update, key) ||
-        !update[key as keyof Update]
-      ) {
-        continue;
+
+    if (update.message) kind = "message";
+    else if (update.callback_query) kind = "callback_query";
+    else if (update.edited_message) kind = "edited_message";
+    else if (update.inline_query) kind = "inline_query";
+    else if (update.business_message) kind = "business_message";
+    else if (update.business_connection) kind = "business_connection";
+    else if (update.chosen_inline_result) kind = "chosen_inline_result";
+    else if (update.edited_business_message) kind = "edited_business_message";
+    else if (update.deleted_business_messages) kind = "deleted_business_messages";
+    else if (update.message_reaction) kind = "message_reaction";
+    else if (update.message_reaction_count) kind = "message_reaction_count";
+    else if (update.chat_member) kind = "chat_member";
+    else if (update.my_chat_member) kind = "my_chat_member";
+    else if (update.chat_join_request) kind = "chat_join_request";
+    else if (update.poll) kind = "poll";
+    else if (update.poll_answer) kind = "poll_answer";
+    else if (update.shipping_query) kind = "shipping_query";
+    else if (update.pre_checkout_query) kind = "pre_checkout_query";
+    else {
+      for (const key in update) {
+        if (
+          key === "update_id" ||
+          !Object.prototype.hasOwnProperty.call(update, key) ||
+          !update[key as keyof Update]
+        ) {
+          continue;
+        }
+        kind = key;
+        break;
       }
-      kind = key;
-      break;
     }
 
     switch (kind) {
