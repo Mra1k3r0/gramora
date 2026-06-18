@@ -49,8 +49,12 @@ export function createWebhookHandler(options: {
 
   return (req: IncomingMessage, res: ServerResponse) => {
     let responded = false;
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("X-Frame-Options", "DENY");
+
     const pathOnly = (req.url ?? "").split("?")[0] ?? "";
-    if (req.method !== "POST" || pathOnly !== targetPath) {
+    // security: timing-safe path comparison to prevent discovery via timing attacks
+    if (req.method !== "POST" || !timingSafeSecretEqual(pathOnly, targetPath)) {
       options.onReject?.("path", req);
       res.statusCode = 404;
       responded = true;
@@ -87,6 +91,23 @@ export function createWebhookHandler(options: {
       res.end("unsupported media type");
       return;
     }
+    req.on("error", (error) => {
+      if (responded) return;
+      options.onRuntimeError?.(
+        {
+          source: "webhook",
+          class: "network",
+          retryable: false,
+          message: error.message,
+          timestamp: Date.now(),
+        },
+        error,
+      );
+      res.statusCode = 500;
+      responded = true;
+      res.end("internal server error");
+    });
+
     const chunks: Buffer[] = [];
     let totalSize = 0;
     const contentLengthRaw = headerSingleValue(req.headers["content-length"]);
