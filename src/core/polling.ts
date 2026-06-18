@@ -49,6 +49,16 @@ export function createWebhookHandler(options: {
 
   return (req: IncomingMessage, res: ServerResponse) => {
     let responded = false;
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("X-Frame-Options", "DENY");
+
+    req.on("error", () => {
+      if (responded) return;
+      responded = true;
+      res.statusCode = 400;
+      res.end("bad request");
+    });
+
     const pathOnly = (req.url ?? "").split("?")[0] ?? "";
     if (req.method !== "POST" || pathOnly !== targetPath) {
       options.onReject?.("path", req);

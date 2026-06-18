@@ -97,6 +97,25 @@ describe("Security Log Redaction", () => {
     expect(result).toContain("[MASKED]");
   });
 
+  it("should mask PII keys in objects", () => {
+    const obj = {
+      email: "user@example.com",
+      phone: "+1234567890",
+      phonenumber: "+0987654321",
+      cardnumber: "1111-2222-3333-4444",
+      cvv: "123",
+    };
+
+    const result = stringifyForLog(obj);
+
+    expect(result).not.toContain("user@example.com");
+    expect(result).not.toContain("+1234567890");
+    expect(result).not.toContain("+0987654321");
+    expect(result).not.toContain("1111-2222-3333-4444");
+    expect(result).not.toContain("123");
+    expect(result).toContain("[MASKED]");
+  });
+
   it("should include Error properties and redact them", () => {
     const secret = "error-secret-123";
     addRedactionToken(secret);
