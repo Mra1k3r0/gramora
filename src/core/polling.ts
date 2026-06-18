@@ -49,6 +49,27 @@ export function createWebhookHandler(options: {
 
   return (req: IncomingMessage, res: ServerResponse) => {
     let responded = false;
+    // defense in depth: prevent MIME sniffing and framing
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("X-Frame-Options", "DENY");
+
+    req.on("error", (error) => {
+      if (responded) return;
+      responded = true;
+      options.onRuntimeError?.(
+        {
+          source: "webhook",
+          class: "network",
+          retryable: false,
+          message: error.message,
+          timestamp: Date.now(),
+        },
+        error,
+      );
+      res.statusCode = 500;
+      res.end();
+    });
+
     const pathOnly = (req.url ?? "").split("?")[0] ?? "";
     if (req.method !== "POST" || pathOnly !== targetPath) {
       options.onReject?.("path", req);
