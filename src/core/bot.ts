@@ -439,13 +439,14 @@ class Bot {
     log("debug", scope, message);
   }
 
-  private sanitizeForLog(value: unknown): unknown {
+  private sanitizeForLog(value: unknown, depth = 0): unknown {
+    if (depth >= 20) return "[DEPTH_EXCEEDED]";
     if (value === null || typeof value !== "object") return value;
-    if (Array.isArray(value)) return value.map((item) => this.sanitizeForLog(item));
+    if (Array.isArray(value)) return value.map((item) => this.sanitizeForLog(item, depth + 1));
     const out: Record<string, unknown> = {};
     for (const [key, nested] of Object.entries(value as Record<string, unknown>)) {
       if (nested === undefined) continue;
-      out[key] = this.sanitizeForLog(nested);
+      out[key] = this.sanitizeForLog(nested, depth + 1);
     }
     return out;
   }
