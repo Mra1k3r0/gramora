@@ -63,7 +63,7 @@
     "node": ">=22.0.0"
   },
   "dependencies": {
-    "undici": "^8.0.2"
+    "undici": "^8.5.0"
   },
   "devDependencies": {
     "@semantic-release/changelog": "^6.0.3",
