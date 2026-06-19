@@ -1,7 +1,7 @@
 import { describe, expect, it, vi, afterEach } from "vitest";
-import { Gramora } from "../src/core/bot";
-import { clearRedactionTokensForTests, log, stringifyForLog } from "../src/core/logger";
-import type { User } from "../src/types/telegram";
+import { Gramora } from "../../src/core/bot";
+import { clearRedactionTokensForTests, log, stringifyForLog } from "../../src/core/logger";
+import type { User } from "../../src/types/telegram";
 
 afterEach(() => {
   vi.restoreAllMocks();
